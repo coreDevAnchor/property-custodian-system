@@ -121,7 +121,15 @@ function StatCard({
     return (
         <div
             id={id}
-            className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white p-5 shadow-xs transition-shadow hover:shadow-sm"
+            className="
+                flex flex-col gap-3 rounded-xl
+                border border-gray-100 dark:border-zinc-800
+                bg-white dark:bg-zinc-900
+                p-5
+                shadow-xs
+                transition-shadow
+                hover:shadow-sm
+                "
         >
             <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bgColor}`}>
                 <Icon className={`size-5 ${color}`} />
@@ -130,7 +138,9 @@ function StatCard({
                 <p className={`text-2xl font-extrabold tracking-tight ${color}`}>
                     {value.toLocaleString()}
                 </p>
-                <p className="mt-0.5 text-xs font-medium text-gray-500">{label}</p>
+                <p className="mt-0.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {label}
+                </p>
             </div>
         </div>
     );
@@ -146,7 +156,13 @@ function RequestRow({
     duration,
 }: (typeof pendingRequests)[0]) {
     return (
-        <tr className="group border-b border-gray-50 transition-colors last:border-0 hover:bg-gray-50/60">
+        <tr className="
+                group
+                border-b border-gray-50 dark:border-zinc-800
+                transition-colors
+                last:border-0
+                hover:bg-gray-50 dark:hover:bg-zinc-800/40
+                ">
             {/* Employee */}
             <td className="py-3.5 pr-4">
                 <div className="flex items-center gap-3">
@@ -156,24 +172,24 @@ function RequestRow({
                         {initials}
                     </div>
                     <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-800">
+                        <p className="truncate text-sm font-semibold text-gray-800 dark:text-white">
                             {employee}
                         </p>
-                        <p className="truncate text-xs text-gray-400">{department}</p>
+                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">{department}</p>
                     </div>
                 </div>
             </td>
             {/* Asset */}
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-gray-700">{asset}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">{asset}</span>
             </td>
             {/* Requested */}
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-gray-500">{requested}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{requested}</span>
             </td>
             {/* Duration */}
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-gray-500">{duration}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{duration}</span>
             </td>
             {/* Actions */}
             <td className="py-3.5">
@@ -214,21 +230,32 @@ export default function Dashboard() {
                 {/* ── Page header ── */}
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+                        <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
                             Dashboard
                         </h1>
-                        <p className="text-sm text-gray-400">{today}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {today}
+                        </p>
                     </div>
 
                     {/* Search bar */}
                     <div className="relative mt-3 w-full max-w-xs sm:mt-0">
-                        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
                         <input
                             id="dashboard-search"
                             type="text"
                             placeholder="Search assets, employees, requests…"
-                            className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 text-sm text-gray-700 placeholder:text-gray-400 focus:border-[#0d7a5f] focus:ring-2 focus:ring-[#0d7a5f]/20 focus:outline-none"
-                        />
+                            className="
+                                h-10 w-full rounded-lg
+                                border border-gray-200 dark:border-gray-700
+                                bg-white dark:bg-zinc-900
+                                text-gray-700 dark:text-white
+                                placeholder:text-gray-400 dark:placeholder:text-gray-500
+                                pl-9 pr-4 text-sm
+                                focus:border-[#0d7a5f]
+                                focus:ring-2 focus:ring-[#0d7a5f]/20
+                                focus:outline-none
+                            " />
                     </div>
                 </div>
 
@@ -243,14 +270,19 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                     {/* Pending Borrow Requests table — takes 2/3 width */}
                     <div className="xl:col-span-2">
-                        <div className="rounded-xl border border-gray-100 bg-white shadow-xs">
+                        <div className="
+                                rounded-xl
+                                border border-gray-100 dark:border-zinc-800
+                                bg-white dark:bg-zinc-900
+                                shadow-xs
+                            ">
                             {/* Card header */}
-                            <div className="flex items-start justify-between border-b border-gray-100 px-6 py-4">
+                            <div className="flex items-start justify-between border-b border-gray-100 dark:border-zinc-800 px-6 py-4">
                                 <div>
                                     <h2 className="text-base font-bold text-gray-900">
                                         Pending Borrow Requests
                                     </h2>
-                                    <p className="mt-0.5 text-xs text-gray-400">
+                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                                         Review and approve employee asset requests
                                     </p>
                                 </div>
@@ -264,20 +296,20 @@ export default function Dashboard() {
                             <div className="overflow-x-auto px-6 pb-4">
                                 <table className="w-full min-w-[640px]">
                                     <thead>
-                                        <tr className="border-b border-gray-100">
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                        <tr className="border-b border-gray-100 dark:border-zinc-800">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                 Employee
                                             </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                 Asset
                                             </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                 Requested
                                             </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                 Duration
                                             </th>
-                                            <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                            <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                 Actions
                                             </th>
                                         </tr>
@@ -295,9 +327,9 @@ export default function Dashboard() {
                     {/* Right column: Quick Actions + Asset Categories */}
                     <div className="flex flex-col gap-6">
                         {/* Quick Actions */}
-                        <div className="rounded-xl border border-gray-100 bg-white shadow-xs">
-                            <div className="border-b border-gray-100 px-6 py-4">
-                                <h2 className="text-base font-bold text-gray-900">
+                        <div className="rounded-xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs">
+                            <div className="border-b border-gray-100 dark:border-zinc-800 px-6 py-4">
+                                <h2 className="text-base font-bold text-gray-900 dark:text-white">
                                     Quick Actions
                                 </h2>
                             </div>
@@ -305,7 +337,7 @@ export default function Dashboard() {
                                 {/* Primary CTA */}
                                 <button
                                     id="add-new-asset-btn"
-                                    className="flex h-11 w-full items-center gap-3 rounded-xl bg-orange-500 px-5 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
+                                    className="cursor-pointer flex h-11 w-full items-center gap-3 rounded-xl bg-orange-500 px-5 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
                                 >
                                     <Plus className="size-4 shrink-0" />
                                     Add New Asset
@@ -314,7 +346,7 @@ export default function Dashboard() {
                                 {/* Secondary CTAs */}
                                 <button
                                     id="add-employee-btn"
-                                    className="flex h-11 w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98]"
+                                    className="cursor-pointer flex p-2 h-11 w-full items-center gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 transition-all hover:border-gray-300 dark:hover:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 active:scale-[0.98]"
                                 >
                                     <UserPlus className="size-4 shrink-0 text-gray-500" />
                                     Add Employee
@@ -322,7 +354,7 @@ export default function Dashboard() {
 
                                 <button
                                     id="generate-report-btn"
-                                    className="flex h-11 w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98]"
+                                    className="cursor-pointer flex p-2 h-11 w-full items-center gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 transition-all hover:border-gray-300 dark:hover:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 active:scale-[0.98]"
                                 >
                                     <BarChart3 className="size-4 shrink-0 text-gray-500" />
                                     Generate Report
@@ -331,9 +363,14 @@ export default function Dashboard() {
                         </div>
 
                         {/* Asset Categories */}
-                        <div className="rounded-xl border border-gray-100 bg-white shadow-xs">
-                            <div className="border-b border-gray-100 px-6 py-4">
-                                <h2 className="text-base font-bold text-gray-900">
+                        <div className="
+                                rounded-xl
+                                border border-gray-100 dark:border-zinc-800
+                                bg-white dark:bg-zinc-900
+                                shadow-xs
+                            ">
+                            <div className="border-b border-gray-100 dark:border-zinc-800 px-6 py-4">
+                                <h2 className="text-base font-bold text-gray-900 dark:text-white">
                                     Asset Categories
                                 </h2>
                             </div>
@@ -341,14 +378,14 @@ export default function Dashboard() {
                                 {assetCategories.map((cat) => (
                                     <div key={cat.label} className="flex flex-col gap-1.5">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-700">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">
                                                 {cat.label}
                                             </span>
-                                            <span className="text-sm font-bold text-gray-900">
+                                            <span className="text-sm font-bold text-gray-900 dark:text-white">
                                                 {cat.count}
                                             </span>
                                         </div>
-                                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-zinc-800">
                                             <div
                                                 className={`h-full rounded-full ${cat.color} transition-all duration-500`}
                                                 style={{

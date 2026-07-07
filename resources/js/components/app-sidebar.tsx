@@ -1,7 +1,15 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { Link, router } from '@inertiajs/react';
+import {
+    BarChart3,
+    Box,
+    ClipboardList,
+    LayoutDashboard,
+    LogOut,
+    RefreshCcw,
+    Settings,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -12,32 +20,60 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard, logout } from '@/routes';
 import type { NavItem } from '@/types';
+import ThemeToggle from "@/components/themetoggle/theme-toggle";
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
-        icon: LayoutGrid,
+        icon: LayoutDashboard,
+    },
+    {
+        title: 'Assets',
+        href: '#',
+        icon: Box,
+    },
+    {
+        title: 'Borrow Requests',
+        href: '#',
+        icon: ClipboardList,
+        badge: 12,
+    },
+    {
+        title: 'Returns',
+        href: '#',
+        icon: RefreshCcw,
+        badge: 5,
+    },
+    {
+        title: 'Employees',
+        href: '#',
+        icon: Users,
+    },
+    {
+        title: 'Reports',
+        href: '#',
+        icon: BarChart3,
     },
 ];
 
-const footerNavItems: NavItem[] = [
+const bottomNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
+        title: 'Settings',
+        href: '#',
+        icon: Settings,
     },
 ];
 
 export function AppSidebar() {
+    const handleLogout = () => {
+        router.post(logout.url());
+    };
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -50,14 +86,33 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
+
+                <ThemeToggle />
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={mainNavItems} label="Custodian" />
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
+                <SidebarSeparator />
+                <NavMain items={bottomNavItems} />
+
+                {/* Log Out */}
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            onClick={handleLogout}
+                            className="cursor-pointer"
+                            tooltip={{ children: 'Log Out' }}
+                        >
+                            <LogOut className="size-4" />
+                            <span>Log Out</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+
+                <SidebarSeparator />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

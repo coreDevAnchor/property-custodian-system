@@ -16,6 +16,13 @@ export default function Login({ status }: Props) {
     const [selectedRole, setSelectedRole] = useState<'custodian' | 'employee' | null>(null);
 
     const handleRoleSubmit = (role: 'custodian' | 'employee') => {
+
+        if (role === 'custodian') {
+            window.location.href = '/dev-custodian';
+            return;
+        }
+
+
         setSelectedRole(role);
     };
 
@@ -92,7 +99,7 @@ export default function Login({ status }: Props) {
                                 disabled={processing}
                                 onClick={() => handleRoleSubmit('custodian')}
                                 data-test="login-custodian-button"
-                                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0d7a5f] text-sm font-bold text-white shadow-sm transition-all duration-150 hover:bg-[#0a6550] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+                                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0d7a5f] text-sm font-bold text-white shadow-sm transition-all duration-150 hover:bg-[#0a6550] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
                             >
                                 {processing && selectedRole === 'custodian' && <Spinner />}
                                 Login as Custodian
@@ -105,7 +112,7 @@ export default function Login({ status }: Props) {
                                 disabled={processing}
                                 onClick={() => handleRoleSubmit('employee')}
                                 data-test="login-employee-button"
-                                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-gray-200 bg-white text-sm font-bold text-gray-800 shadow-sm transition-all duration-150 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+                                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-gray-200 bg-white text-sm font-bold text-gray-800 shadow-sm transition-all duration-150 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
                             >
                                 {processing && selectedRole === 'employee' && <Spinner />}
                                 Login as Employee
