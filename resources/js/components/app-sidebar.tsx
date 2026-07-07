@@ -22,7 +22,8 @@ import {
     SidebarMenuItem,
     SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { dashboard, logout } from '@/routes';
+import { dashboard } from '@/routes/custodian';
+import { logout } from '@/routes';
 import type { NavItem } from '@/types';
 import ThemeToggle from "@/components/themetoggle/theme-toggle";
 
