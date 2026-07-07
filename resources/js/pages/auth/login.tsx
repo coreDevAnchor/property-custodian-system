@@ -1,39 +1,53 @@
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
-import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { register } from '@/routes';
 import { store } from '@/routes/login';
-import { request } from '@/routes/password';
 
 type Props = {
     status?: string;
     canResetPassword: boolean;
 };
 
-export default function Login({ status, canResetPassword }: Props) {
+export default function Login({ status }: Props) {
+    const [selectedRole, setSelectedRole] = useState<'custodian' | 'employee' | null>(null);
+
+    const handleRoleSubmit = (role: 'custodian' | 'employee') => {
+        setSelectedRole(role);
+    };
+
     return (
         <>
             <Head title="Log in" />
 
-            <PasskeyVerify />
+            {status && (
+                <div className="mb-4 text-center text-sm font-medium text-green-600">
+                    {status}
+                </div>
+            )}
 
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
+                className="flex flex-col gap-5"
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                        {/* Hidden role field */}
+                        <input type="hidden" name="role" value={selectedRole ?? ''} />
+
+                        <div className="grid gap-4">
+                            {/* Username field */}
+                            <div className="grid gap-1.5">
+                                <Label
+                                    htmlFor="email"
+                                    className="text-sm font-semibold text-gray-700"
+                                >
+                                    Username
+                                </Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -42,76 +56,74 @@ export default function Login({ status, canResetPassword }: Props) {
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="email"
-                                    placeholder="email@example.com"
+                                    placeholder="Enter your username"
+                                    className="h-11 rounded-lg border-gray-200 bg-white px-4 text-sm placeholder:text-gray-400 focus-visible:border-[#0d7a5f] focus-visible:ring-[#0d7a5f]/20 text-black"
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot your password?
-                                        </TextLink>
-                                    )}
-                                </div>
+                            {/* Password field */}
+                            <div className="grid gap-1.5">
+                                <Label
+                                    htmlFor="password"
+                                    className="text-sm font-semibold text-gray-700"
+                                >
+                                    Password
+                                </Label>
                                 <PasswordInput
                                     id="password"
                                     name="password"
                                     required
                                     tabIndex={2}
                                     autoComplete="current-password"
-                                    placeholder="Password"
+                                    placeholder="Enter your password"
+                                    className="h-11 rounded-lg border-gray-200 bg-white px-4 text-sm placeholder:text-gray-400 focus-visible:border-[#0d7a5f] focus-visible:ring-[#0d7a5f]/20 text-black"
                                 />
                                 <InputError message={errors.password} />
                             </div>
+                        </div>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
-
-                            <Button
+                        {/* Role-based login buttons */}
+                        <div className="mt-2 flex flex-col gap-3">
+                            {/* Login as Custodian — filled teal */}
+                            <button
                                 type="submit"
-                                className="mt-4 w-full"
+                                tabIndex={3}
+                                disabled={processing}
+                                onClick={() => handleRoleSubmit('custodian')}
+                                data-test="login-custodian-button"
+                                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0d7a5f] text-sm font-bold text-white shadow-sm transition-all duration-150 hover:bg-[#0a6550] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                                {processing && selectedRole === 'custodian' && <Spinner />}
+                                Login as Custodian
+                            </button>
+
+                            {/* Login as Employee — outlined */}
+                            <button
+                                type="submit"
                                 tabIndex={4}
                                 disabled={processing}
-                                data-test="login-button"
+                                onClick={() => handleRoleSubmit('employee')}
+                                data-test="login-employee-button"
+                                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-gray-200 bg-white text-sm font-bold text-gray-800 shadow-sm transition-all duration-150 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
                             >
-                                {processing && <Spinner />}
-                                Log in
-                            </Button>
+                                {processing && selectedRole === 'employee' && <Spinner />}
+                                Login as Employee
+                            </button>
                         </div>
 
-                        <div className="text-center text-sm text-muted-foreground">
-                            Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
-                                Sign up
-                            </TextLink>
-                        </div>
+                        {/* Role hint */}
+                        <p className="text-center text-sm text-amber-500/80">
+                            Choose your role to continue.
+                        </p>
                     </>
                 )}
             </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
         </>
     );
 }
 
 Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
+    title: 'Property Custodian System',
+    description: 'Sign in to manage and track property assets.',
 };
