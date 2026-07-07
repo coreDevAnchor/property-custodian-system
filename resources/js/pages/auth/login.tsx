@@ -13,19 +13,6 @@ type Props = {
 };
 
 export default function Login({ status }: Props) {
-    const [selectedRole, setSelectedRole] = useState<'custodian' | 'employee' | null>(null);
-
-    const handleRoleSubmit = (role: 'custodian' | 'employee') => {
-
-        if (role === 'custodian') {
-            window.location.href = '/dev-custodian';
-            return;
-        }
-
-
-        setSelectedRole(role);
-    };
-
     return (
         <>
             <Head title="Log in" />
@@ -43,9 +30,6 @@ export default function Login({ status }: Props) {
             >
                 {({ processing, errors }) => (
                     <>
-                        {/* Hidden role field */}
-                        <input type="hidden" name="role" value={selectedRole ?? ''} />
-
                         <div className="grid gap-4">
                             {/* Username field */}
                             <div className="grid gap-1.5">
@@ -91,37 +75,22 @@ export default function Login({ status }: Props) {
                         </div>
 
                         {/* Role-based login buttons */}
-                        <div className="mt-2 flex flex-col gap-3">
-                            {/* Login as Custodian — filled teal */}
+                        <div className="mt-4">
                             <button
                                 type="submit"
                                 tabIndex={3}
                                 disabled={processing}
-                                onClick={() => handleRoleSubmit('custodian')}
-                                data-test="login-custodian-button"
+                                data-test="login-button"
                                 className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0d7a5f] text-sm font-bold text-white shadow-sm transition-all duration-150 hover:bg-[#0a6550] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
                             >
-                                {processing && selectedRole === 'custodian' && <Spinner />}
-                                Login as Custodian
-                            </button>
-
-                            {/* Login as Employee — outlined */}
-                            <button
-                                type="submit"
-                                tabIndex={4}
-                                disabled={processing}
-                                onClick={() => handleRoleSubmit('employee')}
-                                data-test="login-employee-button"
-                                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-gray-200 dark:border-zinc-700  bg-white dark:bg-zinc-900 text-sm font-bold text-gray-800 dark:text-white shadow-sm transition-all duration-150 hover:border-gray-300 dark:hover:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
-                            >
-                                {processing && selectedRole === 'employee' && <Spinner />}
-                                Login as Employee
+                                {processing && <Spinner />}
+                                {processing ? 'Signing in...' : 'Sign In'}
                             </button>
                         </div>
 
                         {/* Role hint */}
-                        <p className="text-center text-sm text-amber-600 dark:text-amber-400">
-                            Choose your role to continue.
+                        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                            Enter your credentials to continue.
                         </p>
                     </>
                 )}
