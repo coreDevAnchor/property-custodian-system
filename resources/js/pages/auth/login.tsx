@@ -31,7 +31,7 @@ export default function Login({ status }: Props) {
             <Head title="Log in" />
 
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
+                <div className="mb-4 text-center text-sm font-medium text-green-600 dark:text-green-400">
                     {status}
                 </div>
             )}
@@ -51,7 +51,7 @@ export default function Login({ status }: Props) {
                             <div className="grid gap-1.5">
                                 <Label
                                     htmlFor="email"
-                                    className="text-sm font-semibold text-gray-700"
+                                    className="text-sm font-semibold text-gray-700 dark:text-gray-200"
                                 >
                                     Username
                                 </Label>
@@ -64,7 +64,7 @@ export default function Login({ status }: Props) {
                                     tabIndex={1}
                                     autoComplete="email"
                                     placeholder="Enter your username"
-                                    className="h-11 rounded-lg border-gray-200 bg-white px-4 text-sm placeholder:text-gray-400 focus-visible:border-[#0d7a5f] focus-visible:ring-[#0d7a5f]/20 text-black"
+                                    className="h-11 rounded-lg border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-sm focus-visible:border-[#0d7a5f] focus-visible:ring-[#0d7a5f]/20"
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -73,7 +73,7 @@ export default function Login({ status }: Props) {
                             <div className="grid gap-1.5">
                                 <Label
                                     htmlFor="password"
-                                    className="text-sm font-semibold text-gray-700"
+                                    className="text-sm font-semibold text-gray-700 dark:text-gray-200"
                                 >
                                     Password
                                 </Label>
@@ -84,7 +84,7 @@ export default function Login({ status }: Props) {
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Enter your password"
-                                    className="h-11 rounded-lg border-gray-200 bg-white px-4 text-sm placeholder:text-gray-400 focus-visible:border-[#0d7a5f] focus-visible:ring-[#0d7a5f]/20 text-black"
+                                    className="h-11 rounded-lg border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-sm focus-visible:border-[#0d7a5f] focus-visible:ring-[#0d7a5f]/20"
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -112,7 +112,7 @@ export default function Login({ status }: Props) {
                                 disabled={processing}
                                 onClick={() => handleRoleSubmit('employee')}
                                 data-test="login-employee-button"
-                                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-gray-200 bg-white text-sm font-bold text-gray-800 shadow-sm transition-all duration-150 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
+                                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-gray-200 dark:border-zinc-700  bg-white dark:bg-zinc-900 text-sm font-bold text-gray-800 dark:text-white shadow-sm transition-all duration-150 hover:border-gray-300 dark:hover:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
                             >
                                 {processing && selectedRole === 'employee' && <Spinner />}
                                 Login as Employee
@@ -120,7 +120,7 @@ export default function Login({ status }: Props) {
                         </div>
 
                         {/* Role hint */}
-                        <p className="text-center text-sm text-amber-500/80">
+                        <p className="text-center text-sm text-amber-600 dark:text-amber-400">
                             Choose your role to continue.
                         </p>
                     </>
