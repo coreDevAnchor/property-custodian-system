@@ -10,7 +10,7 @@ import {
     Search,
     UserPlus,
 } from 'lucide-react';
-import { dashboard } from '@/routes';
+import { dashboard } from '@/routes/custodian';
 
 // ─── Static mock data (replaced with real props once API is ready) ────────────
 

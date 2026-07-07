@@ -3,11 +3,17 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::redirect('/', '/login');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('/custodian/dashboard', function () {
+        return Inertia::render('custodian/dashboard');
+    })->name('custodian.dashboard');
 });
+
+Route::get('/custodian/assets', function () {
+    return Inertia::render('custodian/assets');
+})->name('custodian.assets');
 
 Route::get('/dev-custodian', function () {
     return Inertia::render('custodian/dashboard');
