@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Asset extends Model
 {
@@ -19,12 +20,22 @@ class Asset extends Model
         'condition',
         'status',
         'photo',
-        'location',
+        'location_id',
         'remarks',
     ];
 
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    public function borrowRequests(): HasMany
+    {
+        return $this->hasMany(BorrowRequest::class);
     }
 }
