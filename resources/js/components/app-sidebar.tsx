@@ -22,7 +22,7 @@ import {
     SidebarMenuItem,
     SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes/custodian';
+import { dashboard, assets } from '@/routes/custodian';
 import { logout } from '@/routes';
 import type { NavItem } from '@/types';
 import ThemeToggle from "@/components/themetoggle/theme-toggle";
@@ -35,7 +35,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Assets',
-        href: '#',
+        href: assets(),
         icon: Box,
     },
     {

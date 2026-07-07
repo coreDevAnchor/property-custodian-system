@@ -11,6 +11,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('custodian.dashboard');
 });
 
+Route::get('/custodian/assets', function () {
+    return Inertia::render('custodian/assets');
+})->name('custodian.assets');
+
 Route::get('/dev-custodian', function () {
     return Inertia::render('custodian/dashboard');
 })->name('dev.custodian');
