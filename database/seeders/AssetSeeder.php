@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Asset;
 use App\Models\Category;
+use App\Models\Location;
 use Illuminate\Database\Seeder;
 
 class AssetSeeder extends Seeder
@@ -17,6 +18,10 @@ class AssetSeeder extends Seeder
         $furniture = Category::firstWhere('name', 'Furniture');
         $officeEquipment = Category::firstWhere('name', 'Office Equipment');
 
+        $luzon = Location::firstWhere('name', 'Luzon Office');
+        $visayas = Location::firstWhere('name', 'Visayas Office');
+        $mindanao = Location::firstWhere('name', 'Mindanao Office');
+
         Asset::create([
             'asset_tag' => 'ELEC-0001',
             'name' => 'Dell Latitude 5420',
@@ -28,7 +33,7 @@ class AssetSeeder extends Seeder
             'depreciation_rate' => 10.00,
             'condition' => 5,
             'status' => 'available',
-            'location' => 'IT Office',
+            'location_id' => $luzon->id,
             'remarks' => 'Good condition',
         ]);
 
@@ -43,7 +48,7 @@ class AssetSeeder extends Seeder
             'depreciation_rate' => 10.00,
             'condition' => 4,
             'status' => 'borrowed',
-            'location' => 'Conference Room',
+            'location_id' => $visayas->id,
             'remarks' => null,
         ]);
 
@@ -58,7 +63,7 @@ class AssetSeeder extends Seeder
             'depreciation_rate' => 5.00,
             'condition' => 5,
             'status' => 'available',
-            'location' => 'HR Department',
+            'location_id' => $mindanao->id,
             'remarks' => null,
         ]);
 
@@ -73,7 +78,7 @@ class AssetSeeder extends Seeder
             'depreciation_rate' => 8.00,
             'condition' => 4,
             'status' => 'under_repair',
-            'location' => 'Admin Office',
+            'location_id' => $luzon->id,
             'remarks' => 'Paper feed issue',
         ]);
 
@@ -88,7 +93,7 @@ class AssetSeeder extends Seeder
             'depreciation_rate' => 10.00,
             'condition' => 5,
             'status' => 'available',
-            'location' => 'Storage Room',
+            'location_id' => $visayas->id,
             'remarks' => null,
         ]);
     }

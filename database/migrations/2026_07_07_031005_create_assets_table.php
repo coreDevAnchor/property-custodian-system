@@ -36,7 +36,10 @@ return new class extends Migration
             ])->default('available');
 
             $table->string('photo')->nullable();
-            $table->string('location')->nullable();
+            $table->foreignId('location_id')
+                ->nullable()
+                ->constrained()
+                ->nullOnDelete();
 
             $table->text('remarks')->nullable();
 
