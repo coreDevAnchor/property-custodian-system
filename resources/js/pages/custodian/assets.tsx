@@ -73,6 +73,12 @@ interface Asset {
 
     borrows?: Borrow[];
 }
+
+interface Category {
+    id: number;
+    name: string;
+}
+
 interface AssetFormValues {
     name: string;
     asset_tag: string;
@@ -267,12 +273,14 @@ function AssetFormModal({
     isEditing,
     onClose,
     onSubmit,
+    categories,
 }: {
     open: boolean;
     initialValues: AssetFormValues;
     isEditing: boolean;
     onClose: () => void;
     onSubmit: (values: AssetFormValues) => void;
+    categories: Category[];
 }) {
     const [values, setValues] = useState<AssetFormValues>(initialValues);
 
@@ -349,9 +357,12 @@ function AssetFormModal({
                                 }
                                 className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:border-[#0d7a5f] focus:ring-2 focus:ring-[#0d7a5f]/20 focus:outline-none"
                             >
-                                {categoryOptions.map((c) => (
-                                    <option key={c} value={c}>
-                                        {c}
+                                {categories.map((category) => (
+                                    <option
+                                        key={category.id}
+                                        value={category.id}
+                                    >
+                                        {category.name}
                                     </option>
                                 ))}
                             </select>
@@ -478,18 +489,18 @@ function DeleteConfirmModal({
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 interface Props {
-    assets: Asset[];
+    assets: {
+        data: Asset[];
+    };
+    categories: Category[];
 }
 
-export default function Assets({ assets }: Props) {
+export default function Assets({ assets, categories }: Props) {
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('All');
     const [statusFilter, setStatusFilter] = useState<'All' | AssetStatus>('All');
 
-    const categoryOptions = useMemo(
-        () => [...new Set(assets.map((a) => a.category.name))],
-        [assets]
-    );
+    const categoryOptions = categories;
 
     const [formOpen, setFormOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
@@ -498,7 +509,7 @@ export default function Assets({ assets }: Props) {
     const filteredAssets = useMemo(() => {
         const searchTerm = search.toLowerCase().trim();
 
-        return assets.filter((asset) => {
+        return assets.data.filter((asset) => {
             const matchesSearch =
                 !searchTerm ||
                 asset.name.toLowerCase().includes(searchTerm) ||
@@ -624,9 +635,12 @@ export default function Assets({ assets }: Props) {
                             >
                                 <option value="All">All Categories</option>
 
-                                {categoryOptions.map((c) => (
-                                    <option key={c} value={c}>
-                                        {c}
+                                {categoryOptions.map((category) => (
+                                    <option
+                                        key={category.id}
+                                        value={category.id}
+                                    >
+                                        {category.name}
                                     </option>
                                 ))}
                             </select>
@@ -698,7 +712,7 @@ export default function Assets({ assets }: Props) {
 
                     <div className="flex items-center justify-between border-t border-border px-6 py-3.5">
                         <p className="text-xs text-muted-foreground">
-                            Showing {filteredAssets.length} of {assets.length} assets
+                            Showing {filteredAssets.length} of {assets.data.length} assets
                         </p>
                     </div>
                 </div>
@@ -707,6 +721,7 @@ export default function Assets({ assets }: Props) {
             <AssetFormModal
                 open={formOpen}
                 isEditing={!!editingAsset}
+                categories={categories}
                 initialValues={
                     editingAsset
                         ? {
