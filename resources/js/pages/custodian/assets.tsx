@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import {
     AlertTriangle,
@@ -12,7 +12,13 @@ import {
     Trash2,
     Video,
     X,
+    Eye,
 } from 'lucide-react';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { dashboard } from '@/routes/custodian';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -24,148 +30,113 @@ type AssetCategory =
     | 'Lab Equipment'
     | 'Audio/Visual';
 
-type AssetStatus = 'Available' | 'Borrowed' | 'Under Repair' | 'Retired';
+type AssetStatus =
+    | 'available'
+    | 'borrowed'
+    | 'under_repair'
+    | 'retired';
+
+interface Borrow {
+    id: number;
+    status: string;
+    requested_at: string;
+    returned_at?: string | null;
+
+    employee: {
+        id: number;
+
+        user: {
+            name: string;
+        };
+    };
+}
 
 interface Asset {
     id: number;
+    asset_tag: string;
     name: string;
-    tag: string;
-    category: AssetCategory;
-    status: AssetStatus;
-    location: string;
-    dateAdded: string;
-}
+    description?: string;
+    serial_number?: string;
 
-type AssetFormValues = Omit<Asset, 'id'>;
+    status: AssetStatus;
+    acquisition_date: string;
+
+    category: {
+        id: number;
+        name: string;
+    };
+
+    location: {
+        id: number;
+        name: string;
+    };
+
+    borrows?: Borrow[];
+}
+interface AssetFormValues {
+    name: string;
+    asset_tag: string;
+    category_id: number;
+    location_id: number;
+    status: string;
+    acquisition_date: string;
+    description?: string;
+    serial_number?: string;
+}
 
 const emptyForm: AssetFormValues = {
     name: '',
-    tag: '',
-    category: 'IT Equipment',
-    status: 'Available',
-    location: '',
-    dateAdded: new Date().toISOString().slice(0, 10),
+    asset_tag: '',
+    category_id: 0,
+    location_id: 0,
+    status: 'available',
+    acquisition_date: new Date().toISOString().slice(0, 10),
+    description: '',
+    serial_number: '',
 };
 
-// ─── Static mock data (replaced with real props once API is ready) ────────────
 
-const initialAssets: Asset[] = [
-    {
-        id: 1,
-        name: 'MacBook Pro 14"',
-        tag: 'AST-0001',
-        category: 'IT Equipment',
-        status: 'Available',
-        location: 'Storage Room A',
-        dateAdded: '2025-11-02',
-    },
-    {
-        id: 2,
-        name: 'Dell Latitude 5420',
-        tag: 'AST-0002',
-        category: 'IT Equipment',
-        status: 'Borrowed',
-        location: 'w/ Carlo Villanueva',
-        dateAdded: '2025-09-15',
-    },
-    {
-        id: 3,
-        name: 'Toyota Hilux (Van 2)',
-        tag: 'AST-0003',
-        category: 'Vehicles',
-        status: 'Available',
-        location: 'Motor Pool',
-        dateAdded: '2024-06-01',
-    },
-    {
-        id: 4,
-        name: 'Epson EB-X06 Projector',
-        tag: 'AST-0004',
-        category: 'Audio/Visual',
-        status: 'Borrowed',
-        location: 'w/ Kim Santos',
-        dateAdded: '2025-03-20',
-    },
-    {
-        id: 5,
-        name: 'Executive Office Chair',
-        tag: 'AST-0005',
-        category: 'Office Furniture',
-        status: 'Available',
-        location: '3rd Floor Storage',
-        dateAdded: '2023-01-10',
-    },
-    {
-        id: 6,
-        name: 'Nikon DSLR Camera Kit',
-        tag: 'AST-0006',
-        category: 'Audio/Visual',
-        status: 'Under Repair',
-        location: 'IT Service Center',
-        dateAdded: '2024-08-14',
-    },
-    {
-        id: 7,
-        name: 'Conference Table (8-seater)',
-        tag: 'AST-0007',
-        category: 'Office Furniture',
-        status: 'Available',
-        location: '2nd Floor — Room 204',
-        dateAdded: '2023-07-22',
-    },
-    {
-        id: 8,
-        name: 'Digital Microscope',
-        tag: 'AST-0008',
-        category: 'Lab Equipment',
-        status: 'Retired',
-        location: 'Old Storage',
-        dateAdded: '2019-05-01',
-    },
-];
-
-const categoryOptions: AssetCategory[] = [
-    'IT Equipment',
-    'Vehicles',
-    'Office Furniture',
-    'Lab Equipment',
-    'Audio/Visual',
-];
 
 const statusOptions: AssetStatus[] = [
-    'Available',
-    'Borrowed',
-    'Under Repair',
-    'Retired',
+    'available',
+    'borrowed',
+    'under_repair',
+    'retired',
 ];
 
-const categoryIcon: Record<AssetCategory, typeof Laptop> = {
-    'IT Equipment': Laptop,
-    Vehicles: Car,
-    'Office Furniture': Armchair,
-    'Lab Equipment': FlaskConical,
-    'Audio/Visual': Video,
+const statusLabels: Record<AssetStatus, string> = {
+    available: 'Available',
+    borrowed: 'Borrowed',
+    under_repair: 'Under Repair',
+    retired: 'Retired',
 };
 
-const statusStyles: Record<AssetStatus, string> = {
-    Available:
+const categoryIcon: Record<string, typeof Laptop> = {
+    Electronics: Laptop,
+    Furniture: Armchair,
+    'Office Equipment': Video,
+};
+
+const statusStyles: Record<string, string> = {
+    available:
         'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    Borrowed:
+
+    borrowed:
         'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    'Under Repair':
+
+    under_repair:
         'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    Retired:
+
+    retired:
         'bg-muted text-muted-foreground',
 };
-
 // ─── Sub-components ────────────────────────────────────────────────────────────
-
 function StatusBadge({ status }: { status: AssetStatus }) {
     return (
         <span
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[status]}`}
         >
-            {status}
+            {statusLabels[status]}
         </span>
     );
 }
@@ -179,7 +150,7 @@ function AssetRow({
     onEdit: (asset: Asset) => void;
     onDelete: (asset: Asset) => void;
 }) {
-    const Icon = categoryIcon[asset.category];
+    const Icon = categoryIcon[asset.category.name];
 
     return (
         <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
@@ -192,38 +163,98 @@ function AssetRow({
                         <p className="truncate text-sm font-semibold text-foreground">
                             {asset.name}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">{asset.tag}</p>
+                        <p className="truncate text-xs text-muted-foreground">{asset.asset_tag}</p>
                     </div>
                 </div>
             </td>
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-foreground">{asset.category}</span>
+                <span className="text-sm text-foreground">{asset.name}</span>
             </td>
             <td className="py-3.5 pr-4">
                 <StatusBadge status={asset.status} />
             </td>
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-muted-foreground">{asset.location}</span>
+                <span className="text-sm text-muted-foreground">{asset.location.name}</span>
             </td>
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-muted-foreground">{asset.dateAdded}</span>
+                <span className="text-sm text-muted-foreground">{asset.acquisition_date}</span>
             </td>
             <td className="py-3.5">
                 <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                         onClick={() => onEdit(asset)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-500"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-500 cursor-pointer"
                         aria-label={`Edit ${asset.name}`}
                     >
                         <Pencil className="size-4" />
                     </button>
                     <button
                         onClick={() => onDelete(asset)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
                         aria-label={`Delete ${asset.name}`}
                     >
                         <Trash2 className="size-4" />
                     </button>
+                    <HoverCard>
+                        <HoverCardTrigger asChild>
+                            <button
+                                className="flex h-8 w-8 items-center justify-center rounded-lg
+                                    text-muted-foreground transition-colors cursor-pointer
+                                    hover:bg-emerald-500/10 hover:text-emerald-500"
+                            >
+                                <Eye className="size-4" />
+                            </button>
+                        </HoverCardTrigger>
+
+                        <HoverCardContent className="w-80">
+                            <div className="space-y-3">
+                                <h4 className="font-semibold">
+                                    Borrow History
+                                </h4>
+
+                                {asset.borrows?.length ? (
+                                    asset.borrows.map((borrow) => (
+                                        <div
+                                            key={borrow.id}
+                                            className="border-b border-border pb-2 last:border-0"
+                                        >
+                                            <div className="font-medium">
+                                                {borrow.employee.user.name}
+                                            </div>
+
+                                            <div className="text-xs text-muted-foreground">
+                                                Requested:
+                                                {" "}
+                                                {new Date(
+                                                    borrow.requested_at
+                                                ).toLocaleDateString()}
+                                            </div>
+
+                                            <div className="text-xs text-muted-foreground">
+                                                Status:
+                                                {" "}
+                                                {borrow.status}
+                                            </div>
+
+                                            {borrow.returned_at && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    Returned:
+                                                    {" "}
+                                                    {new Date(
+                                                        borrow.returned_at
+                                                    ).toLocaleDateString()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        No borrowing history.
+                                    </p>
+                                )}
+                            </div>
+                        </HoverCardContent>
+                    </HoverCard>
                 </div>
             </td>
         </tr>
@@ -294,9 +325,9 @@ function AssetFormModal({
                         </label>
                         <input
                             required
-                            value={values.tag}
+                            value={values.asset_tag}
                             onChange={(e) =>
-                                setValues((v) => ({ ...v, tag: e.target.value }))
+                                setValues((v) => ({ ...v, asset_tag: e.target.value }))
                             }
                             placeholder="e.g. AST-0009"
                             className="h-10 rounded-lg border border-border px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
@@ -309,11 +340,11 @@ function AssetFormModal({
                                 Category
                             </label>
                             <select
-                                value={values.category}
+                                value={values.category_id}
                                 onChange={(e) =>
                                     setValues((v) => ({
                                         ...v,
-                                        category: e.target.value as AssetCategory,
+                                        category_id: Number(e.target.value),
                                     }))
                                 }
                                 className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:border-[#0d7a5f] focus:ring-2 focus:ring-[#0d7a5f]/20 focus:outline-none"
@@ -342,7 +373,7 @@ function AssetFormModal({
                             >
                                 {statusOptions.map((s) => (
                                     <option key={s} value={s}>
-                                        {s}
+                                        {statusLabels[s]}
                                     </option>
                                 ))}
                             </select>
@@ -355,9 +386,9 @@ function AssetFormModal({
                         </label>
                         <input
                             required
-                            value={values.location}
+                            value={values.location_id}
                             onChange={(e) =>
-                                setValues((v) => ({ ...v, location: e.target.value }))
+                                setValues((v) => ({ ...v, location_id: Number(e.target.value) }))
                             }
                             placeholder="e.g. Storage Room A"
                             className="h-10 rounded-lg border border-border px-3 text-sm text-gray-700 placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
@@ -371,9 +402,9 @@ function AssetFormModal({
                         <input
                             required
                             type="date"
-                            value={values.dateAdded}
+                            value={values.acquisition_date}
                             onChange={(e) =>
-                                setValues((v) => ({ ...v, dateAdded: e.target.value }))
+                                setValues((v) => ({ ...v, acquisition_date: e.target.value }))
                             }
                             className="h-10 rounded-lg border border-border px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                         />
@@ -422,7 +453,7 @@ function DeleteConfirmModal({
                 </h2>
                 <p className="mt-1.5 text-sm text-gray-500">
                     <span className="font-semibold text-foreground">{asset.name}</span>{' '}
-                    ({asset.tag}) will be permanently removed from the inventory. This
+                    ({asset.asset_tag}) will be permanently removed from the inventory. This
                     action cannot be undone.
                 </p>
                 <div className="mt-5 flex items-center justify-end gap-2">
@@ -446,31 +477,55 @@ function DeleteConfirmModal({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function Assets() {
-    const [assets, setAssets] = useState<Asset[]>(initialAssets);
+interface Props {
+    assets: Asset[];
+}
+
+export default function Assets({ assets }: Props) {
     const [search, setSearch] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState<'All' | AssetCategory>(
-        'All',
-    );
+    const [categoryFilter, setCategoryFilter] = useState<string>('All');
     const [statusFilter, setStatusFilter] = useState<'All' | AssetStatus>('All');
+
+    const categoryOptions = useMemo(
+        () => [...new Set(assets.map((a) => a.category.name))],
+        [assets]
+    );
 
     const [formOpen, setFormOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null);
 
     const filteredAssets = useMemo(() => {
-        return assets.filter((a) => {
+        const searchTerm = search.toLowerCase().trim();
+
+        return assets.filter((asset) => {
             const matchesSearch =
-                search.trim() === '' ||
-                a.name.toLowerCase().includes(search.toLowerCase()) ||
-                a.tag.toLowerCase().includes(search.toLowerCase());
+                !searchTerm ||
+                asset.name.toLowerCase().includes(searchTerm) ||
+                asset.asset_tag.toLowerCase().includes(searchTerm) ||
+                asset.category.name.toLowerCase().includes(searchTerm) ||
+                asset.location.name.toLowerCase().includes(searchTerm);
+
             const matchesCategory =
-                categoryFilter === 'All' || a.category === categoryFilter;
+                categoryFilter === 'All' ||
+                asset.category.name === categoryFilter;
+
             const matchesStatus =
-                statusFilter === 'All' || a.status === statusFilter;
-            return matchesSearch && matchesCategory && matchesStatus;
+                statusFilter === 'All' ||
+                asset.status === statusFilter;
+
+            return (
+                matchesSearch &&
+                matchesCategory &&
+                matchesStatus
+            );
         });
-    }, [assets, search, categoryFilter, statusFilter]);
+    }, [
+        assets,
+        search,
+        categoryFilter,
+        statusFilter,
+    ]);
 
     function openAddModal() {
         setEditingAsset(null);
@@ -489,24 +544,37 @@ export default function Assets() {
 
     function handleFormSubmit(values: AssetFormValues) {
         if (editingAsset) {
-            // Update
-            setAssets((prev) =>
-                prev.map((a) =>
-                    a.id === editingAsset.id ? { ...a, ...values } : a,
-                ),
+            router.put(
+                `/custodian/assets/${editingAsset.id}`,
+                {
+                    ...values,
+                },
+                {
+                    onSuccess: closeFormModal,
+                }
             );
         } else {
-            // Create
-            const nextId = Math.max(0, ...assets.map((a) => a.id)) + 1;
-            setAssets((prev) => [...prev, { id: nextId, ...values }]);
+            router.post(
+                '/custodian/assets',
+                {
+                    ...values,
+                },
+                {
+                    onSuccess: closeFormModal,
+                }
+            );
         }
-        closeFormModal();
     }
 
     function handleDeleteConfirm() {
         if (!deleteTarget) return;
-        setAssets((prev) => prev.filter((a) => a.id !== deleteTarget.id));
-        setDeleteTarget(null);
+
+        router.delete(
+            `/custodian/assets/${deleteTarget.id}`,
+            {
+                onSuccess: () => setDeleteTarget(null),
+            }
+        );
     }
 
     return (
@@ -551,14 +619,11 @@ export default function Assets() {
                         <div className="flex items-center gap-2">
                             <select
                                 value={categoryFilter}
-                                onChange={(e) =>
-                                    setCategoryFilter(
-                                        e.target.value as 'All' | AssetCategory,
-                                    )
-                                }
+                                onChange={(e) => setCategoryFilter(e.target.value)}
                                 className="h-10 rounded-lg border border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                             >
                                 <option value="All">All Categories</option>
+
                                 {categoryOptions.map((c) => (
                                     <option key={c} value={c}>
                                         {c}
@@ -646,11 +711,13 @@ export default function Assets() {
                     editingAsset
                         ? {
                             name: editingAsset.name,
-                            tag: editingAsset.tag,
-                            category: editingAsset.category,
+                            asset_tag: editingAsset.asset_tag,
+                            category_id: editingAsset.category.id,
+                            location_id: editingAsset.location.id,
                             status: editingAsset.status,
-                            location: editingAsset.location,
-                            dateAdded: editingAsset.dateAdded,
+                            acquisition_date: editingAsset.acquisition_date,
+                            description: editingAsset.description ?? '',
+                            serial_number: editingAsset.serial_number ?? '',
                         }
                         : emptyForm
                 }

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Asset;
+use Inertia\Inertia;
 
 class EmployeeController extends Controller
 {
@@ -12,7 +14,17 @@ class EmployeeController extends Controller
     public function index()
     {
         //
+        $assets = Asset::with([
+            'category',
+            'location',
+            'borrows.employee.user',
+        ])->get();
+
+        return Inertia::render('custodian/assets', [
+            'assets' => $assets,
+        ]);
     }
+
 
     /**
      * Show the form for creating a new resource.

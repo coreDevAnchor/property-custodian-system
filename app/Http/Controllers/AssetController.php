@@ -6,6 +6,7 @@ use App\Models\Asset;
 use App\Models\Category;
 use App\Models\Location;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class AssetController extends Controller
 {
@@ -15,6 +16,16 @@ class AssetController extends Controller
     public function index()
     {
         //
+        $assets = Asset::with([
+            'category',
+            'location',
+            'borrows.employee.user',
+        ])->get();
+
+        return Inertia::render('custodian/assets', [
+            'assets' => $assets,
+        ]);
+
     }
 
     /**
@@ -31,6 +42,16 @@ class AssetController extends Controller
     public function store(Request $request)
     {
         //
+        Asset::create($request->validate([
+            'asset_tag' => 'required',
+            'name' => 'required',
+            'category_id' => 'required',
+            'location_id' => 'required',
+            'status' => 'required',
+        ]));
+
+        return back();
+
     }
 
     /**
@@ -55,6 +76,15 @@ class AssetController extends Controller
     public function update(Request $request, Asset $asset)
     {
         //
+        $asset->update($request->validate([
+            'asset_tag' => 'required',
+            'name' => 'required',
+            'category_id' => 'required',
+            'location_id' => 'required',
+            'status' => 'required',
+        ]));
+
+        return back();
     }
 
     /**
@@ -63,5 +93,8 @@ class AssetController extends Controller
     public function destroy(Asset $asset)
     {
         //
+        $asset->delete();
+
+        return back();
     }
 }

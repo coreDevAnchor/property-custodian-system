@@ -9,7 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class BorrowRequest extends Model
 {
     protected $table = 'borrows';
-
+    protected $casts = [
+        'requested_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'returned_at' => 'datetime',
+        'is_acknowledged' => 'boolean',
+    ];
     protected $fillable = [
         'asset_id',
         'employee_id',

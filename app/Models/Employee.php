@@ -23,6 +23,7 @@ class Employee extends Model
 
     public function borrows(): HasMany
     {
-        return $this->hasMany(BorrowRequest::class);
+        return $this->hasMany(BorrowRequest::class)
+            ->latest('requested_at');
     }
 }
