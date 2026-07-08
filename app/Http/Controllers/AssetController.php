@@ -17,7 +17,11 @@ class AssetController extends Controller
     public function index()
     {
         return Inertia::render('custodian/assets', [
-            'assets' => Asset::with(['category', 'location'])
+            'assets' => Asset::with([
+                    'category',
+                    'location',
+                    'borrows.employee.user',
+                ])
                 ->latest()
                 ->paginate(10),
 
@@ -27,11 +31,6 @@ class AssetController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * Not used since asset creation is handled through a modal.
-     */
     public function create()
     {
         //
