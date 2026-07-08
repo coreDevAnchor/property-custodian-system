@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Asset extends Model
 {
@@ -34,8 +35,15 @@ class Asset extends Model
         return $this->belongsTo(Location::class);
     }
 
-    public function borrowRequests(): HasMany
+    public function borrows(): HasMany
     {
         return $this->hasMany(BorrowRequest::class);
+    }
+
+    public function currentBorrow(): HasOne
+    {
+        return $this->hasOne(BorrowRequest::class)
+            ->where('status', 'borrowed')
+            ->latestOfMany();
     }
 }

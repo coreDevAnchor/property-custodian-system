@@ -21,7 +21,7 @@ class Employee extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function borrowRequests(): HasMany
+    public function borrows(): HasMany
     {
         return $this->hasMany(BorrowRequest::class);
     }
