@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Asset;
+use App\Models\Category;
+use App\Models\Location;
 use Illuminate\Http\Request;
 
 class AssetController extends Controller
@@ -33,7 +36,7 @@ class AssetController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Asset $asset)
     {
         //
     }
@@ -41,7 +44,7 @@ class AssetController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Asset $asset)
     {
         //
     }
@@ -49,7 +52,7 @@ class AssetController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Asset $asset)
     {
         //
     }
@@ -57,7 +60,7 @@ class AssetController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Asset $asset)
     {
         //
     }
