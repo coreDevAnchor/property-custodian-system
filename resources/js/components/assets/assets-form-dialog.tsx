@@ -119,7 +119,7 @@ export function AssetFormDialog({
 
                 category_id: asset.category.id,
                 location_id: asset.location.id,
-                asset_type_id: asset.assetType.id,
+                asset_type_id: asset.asset_type.id,
 
                 serial_number: asset.serial_number ?? "",
 
