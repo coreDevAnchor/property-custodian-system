@@ -70,7 +70,7 @@ class AssetController extends Controller
         Asset::create($validated);
 
         return redirect()
-            ->route('assets.index')
+            ->route('custodian.assets.index')
             ->with('success', 'Asset created successfully.');
     }
 
@@ -137,7 +137,7 @@ class AssetController extends Controller
         $asset->update($validated);
 
         return redirect()
-            ->route('assets.index')
+            ->route('custodian.assets.index')
             ->with('success', 'Asset updated successfully.');
     }
 
@@ -150,7 +150,7 @@ class AssetController extends Controller
         Asset::destroy($asset->id);
 
         return redirect()
-            ->route('assets.index')
+            ->route('custodian.assets.index')
             ->with('success', 'Asset deleted successfully.');
     }
 

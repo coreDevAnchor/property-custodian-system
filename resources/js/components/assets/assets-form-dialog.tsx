@@ -111,13 +111,15 @@ export function AssetFormDialog({
 
     useEffect(() => {
         if (mode === "edit" && asset) {
+            console.log(asset);
+
             form.reset({
                 name: asset.name,
                 description: asset.description ?? "",
 
                 category_id: asset.category.id,
                 location_id: asset.location.id,
-                asset_type_id: asset.assetTypes.id,
+                asset_type_id: asset.asset_type.id,
 
                 serial_number: asset.serial_number ?? "",
 
