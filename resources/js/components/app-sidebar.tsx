@@ -27,6 +27,7 @@ import { dashboard } from '@/routes/custodian';
 import assets from '@/routes/custodian/assets/index';
 import * as borrowRequests from '@/routes/custodian/borrow-requests';
 import * as employees from '@/routes/custodian/employees';
+import * as returns from '@/routes/custodian/returns';
 
 import { logout } from '@/routes';
 import type { NavItem } from '@/types';
@@ -51,7 +52,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Returns',
-        href: '#',
+        href: returns.index.url(),
         icon: RefreshCcw,
         badge: 5,
     },

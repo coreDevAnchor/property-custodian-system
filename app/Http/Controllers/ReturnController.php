@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BorrowRequest;
+use App\Models\ReturnRecord;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class ReturnController extends Controller
 {
@@ -11,7 +15,17 @@ class ReturnController extends Controller
      */
     public function index()
     {
-        //
+        return Inertia::render('custodian/returns', [
+            'returns' => BorrowRequest::with([
+                'asset.category',
+                'employee.user',
+                'checkedBy',
+                'returnRecord',
+            ])
+                ->whereIn('status', ['awaiting_check', 'returned'])
+                ->latest('requested_at')
+                ->paginate(10),
+        ]);
     }
 
     /**
