@@ -48,9 +48,9 @@ class AssetController extends Controller
             'category_id' => ['required', 'exists:categories,id'],
             'serial_number' => ['nullable', 'string', 'max:255', 'unique:assets,serial_number'],
             'acquisition_date' => ['required', 'date'],
-            'acquisition_cost' => ['required', 'numeric', 'min:0'],
+            'acquisition_cost' => ['nullable', 'numeric', 'min:0'],
             'depreciation_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'condition' => ['required', 'integer', 'min:1', 'max:5'],
+            'condition' => ['nullable', 'integer', 'min:1', 'max:5'],
             'status' => ['required', 'in:available,borrowed,under_repair,disposed'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
@@ -59,7 +59,9 @@ class AssetController extends Controller
         ]);
 
         $validated['asset_tag'] = $this->generateAssetTag($validated['asset_type_id']);
+        $validated['acquisition_cost'] ??= 0;
         $validated['depreciation_rate'] ??= 0;
+        $validated['condition'] ??= 5;
 
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('assets', 'public');
@@ -103,9 +105,9 @@ class AssetController extends Controller
             'category_id' => ['required', 'exists:categories,id'],
             'serial_number' => ['nullable', 'string', 'max:255', 'unique:assets,serial_number,' . $asset->id],
             'acquisition_date' => ['required', 'date'],
-            'acquisition_cost' => ['required', 'numeric', 'min:0'],
+            'acquisition_cost' => ['nullable', 'numeric', 'min:0'],
             'depreciation_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'condition' => ['required', 'integer', 'min:1', 'max:5'],
+            'condition' => ['nullable', 'integer', 'min:1', 'max:5'],
             'status' => ['required', 'in:available,borrowed,under_repair,disposed'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
@@ -114,7 +116,9 @@ class AssetController extends Controller
         ]);
 
         if ($asset->asset_type_id !== (int) $validated['asset_type_id']) {
-            $validated['asset_tag'] = $this->generateAssetTag($validated['asset_type_id']);
+            $validated['acquisition_cost'] ??= $asset->acquisition_cost;
+            $validated['depreciation_rate'] ??= $asset->depreciation_rate;
+            $validated['condition'] ??= $asset->condition;
         }
 
         $validated['depreciation_rate'] ??= 0;

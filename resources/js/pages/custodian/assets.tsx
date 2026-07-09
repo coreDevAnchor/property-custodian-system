@@ -572,16 +572,20 @@ export default function Assets({
     }
 
     function openEditModal(asset: Asset) {
+        console.log(asset);
+        console.log(asset.assetType);
+
         setEditingAsset(asset);
         setFormOpen(true);
     }
-
     function closeFormModal() {
         setFormOpen(false);
         setEditingAsset(null);
     }
 
     function handleFormSubmit(values: AssetFormValues) {
+        console.log(values);
+        
         if (editingAsset) {
             router.put(
                 `/custodian/assets/${editingAsset.id}`,
@@ -754,16 +758,20 @@ export default function Assets({
                 locations={locations}
                 initialValues={
                     editingAsset
-                        ? {
-                            name: editingAsset.name,
-                            category_id: editingAsset.category.id,
-                            asset_type_id: editingAsset.assetType.id,
-                            location_id: editingAsset.location.id,
-                            status: editingAsset.status,
-                            acquisition_date: editingAsset.acquisition_date,
-                            description: editingAsset.description ?? '',
-                            serial_number: editingAsset.serial_number ?? '',
-                        }
+                        ? (() => {
+                            console.log(editingAsset);
+
+                            return {
+                                name: editingAsset.name,
+                                category_id: editingAsset.category?.id,
+                                asset_type_id: editingAsset.assetType?.id,
+                                location_id: editingAsset.location?.id,
+                                status: editingAsset.status,
+                                acquisition_date: editingAsset.acquisition_date,
+                                description: editingAsset.description ?? '',
+                                serial_number: editingAsset.serial_number ?? '',
+                            };
+                        })()
                         : emptyForm
                 }
                 onClose={closeFormModal}
