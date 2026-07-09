@@ -25,6 +25,7 @@ import {
 import { dashboard } from '@/routes/custodian';
 
 import assets from '@/routes/custodian/assets/index';
+import * as borrowRequests from '@/routes/custodian/borrow-requests';
 
 import { logout } from '@/routes';
 import type { NavItem } from '@/types';
@@ -43,7 +44,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Borrow Requests',
-        href: '#',
+        href: borrowRequests.index.url(),
         icon: ClipboardList,
         badge: 12,
     },

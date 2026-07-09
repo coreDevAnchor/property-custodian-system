@@ -17,6 +17,7 @@ Route::middleware(['auth', 'verified'])
         })->name('dashboard');
 
         Route::resource('assets', AssetController::class);
+        Route::resource('borrow-requests', BorrowRequestController::class);
     });
 
 Route::get('/dev-custodian', function () {

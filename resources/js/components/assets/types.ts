@@ -41,7 +41,7 @@ export interface Asset {
 
     status: AssetStatus;
     acquisition_date: string;
-    assetTypes: AssetType[];
+    assetTypes: AssetType;
 
     category: {
         id: number;
