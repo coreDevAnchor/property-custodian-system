@@ -6,6 +6,7 @@ export const assetSchema = z.object({
 
     category_id: z.number(),
     location_id: z.number().nullable(),
+    asset_type_id: z.number(),
 
     serial_number: z.string().optional(),
 

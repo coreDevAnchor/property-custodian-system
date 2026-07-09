@@ -1,4 +1,15 @@
 
+export interface AssetType {
+    id: number;
+    name: string;
+    prefix: string;
+
+    category: {
+        id: number;
+        name: string;
+    };
+}
+
 type AssetStatus =
     | 'available'
     | 'borrowed'
@@ -30,6 +41,7 @@ export interface Asset {
 
     status: AssetStatus;
     acquisition_date: string;
+    assetTypes: AssetType[];
 
     category: {
         id: number;

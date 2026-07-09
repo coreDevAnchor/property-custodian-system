@@ -23,7 +23,7 @@ Route::get('/dev-custodian', function () {
     return Inertia::render('custodian/dashboard');
 })->name('dev.custodian');
 
-Route::resource('assets', AssetController::class);
+//Route::resource('assets', AssetController::class);
 Route::resource('borrow-requests', BorrowRequestController::class);
 
 require __DIR__ . '/settings.php';

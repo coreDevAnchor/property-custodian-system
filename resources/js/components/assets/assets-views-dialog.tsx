@@ -20,6 +20,13 @@ type ViewableAsset = Asset & {
     condition?: number;
     photo?: string | null;
     remarks?: string | null;
+
+    assetType?: {
+        id: number;
+        name: string;
+        prefix: string;
+    };
+
 };
 
 type AssetStatus = "available" | "borrowed" | "under_repair" | "disposed";
@@ -175,6 +182,10 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
 
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                             <DetailRow label="Category" value={asset.category?.name} />
+                            <DetailRow
+                                label="Asset Type"
+                                value={asset.assetType?.name}
+                            />
                             <DetailRow label="Location" value={asset.location?.name} />
                             <DetailRow
                                 label="Serial Number"

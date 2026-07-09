@@ -23,6 +23,7 @@ import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import { dashboard } from '@/routes/custodian';
 import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
 import { DeleteConfirmModal } from "@/components/assets/assets-delete.dialog";
+import { Asset } from "@/components/assets/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -47,38 +48,51 @@ interface Borrow {
     };
 }
 
-interface Asset {
-    id: number;
-    asset_tag: string;
-    name: string;
-    description?: string;
-    serial_number?: string;
+// interface Asset {
+//     id: number;
+//     asset_tag: string;
+//     name: string;
+//     description?: string;
+//     serial_number?: string;
 
-    status: AssetStatus;
-    acquisition_date: string;
+//     status: AssetStatus;
+//     acquisition_date: string;
 
-    category: {
-        id: number;
-        name: string;
-    };
+//     category: {
+//         id: number;
+//         name: string;
+//     };
 
-    location: {
-        id: number;
-        name: string;
-    };
+//     assetType: AssetType;
 
-    borrows?: Borrow[];
-}
+//     location: {
+//         id: number;
+//         name: string;
+//     };
+
+//     borrows?: Borrow[];
+// }
 
 interface Category {
     id: number;
     name: string;
 }
 
+interface AssetType {
+    id: number;
+    name: string;
+    prefix: string;
+
+    category: {
+        id: number;
+        name: string;
+    };
+}
+
 interface AssetFormValues {
     name: string;
-    asset_tag: string;
     category_id: number;
+    asset_type_id: number;
     location_id: number;
     status: string;
     acquisition_date: string;
@@ -88,8 +102,8 @@ interface AssetFormValues {
 
 const emptyForm: AssetFormValues = {
     name: '',
-    asset_tag: '',
     category_id: 0,
+    asset_type_id: 0,
     location_id: 0,
     status: 'available',
     acquisition_date: new Date().toISOString().slice(0, 10),
@@ -283,11 +297,13 @@ interface Props {
     assets: {
         data: Asset[];
     };
+
+    assetTypes: AssetType[];
     categories: Category[];
     locations: Location[];
 }
 
-export default function Assets({ assets, categories, locations }: Props) {
+export default function Assets({ assets, assetTypes, categories, locations }: Props) {
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('All');
     const [statusFilter, setStatusFilter] = useState<'All' | AssetStatus>('All');
@@ -408,7 +424,7 @@ export default function Assets({ assets, categories, locations }: Props) {
                                 {categoryOptions.map((category) => (
                                     <option
                                         key={category.id}
-                                        value={category.id}
+                                        value={category.name}
                                     >
                                         {category.name}
                                     </option>
@@ -495,6 +511,7 @@ export default function Assets({ assets, categories, locations }: Props) {
                 asset={editingAsset}
                 categories={categories}
                 locations={locations}
+                assetTypes={assetTypes}
                 onOpenChange={setDialogOpen}
             />
 

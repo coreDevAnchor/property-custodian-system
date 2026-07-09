@@ -55,6 +55,7 @@ interface Props {
 
     categories: Category[];
     locations: AssetLocation[];
+    assetTypes: AssetType[];
 
     onOpenChange: (open: boolean) => void;
 }
@@ -65,12 +66,23 @@ interface StagedImage {
     url: string;
 }
 
+interface AssetType {
+    id: number;
+    name: string;
+    prefix: string;
+    category: {
+        id: number;
+        name: string;
+    };
+}
+
 export function AssetFormDialog({
     open,
     mode,
     asset,
     categories,
     locations,
+    assetTypes,
     onOpenChange,
 }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,6 +99,7 @@ export function AssetFormDialog({
 
             category_id: undefined,
             location_id: undefined,
+            asset_type_id: undefined,
 
             serial_number: "",
 
@@ -104,6 +117,7 @@ export function AssetFormDialog({
 
                 category_id: asset.category.id,
                 location_id: asset.location.id,
+                asset_type_id: asset.assetType.id,
 
                 serial_number: asset.serial_number ?? "",
 
@@ -197,6 +211,14 @@ export function AssetFormDialog({
         }
     };
 
+    const selectedCategoryId = form.watch("category_id");
+
+    const filteredAssetTypes = assetTypes.filter(
+        (assetType) =>
+            !selectedCategoryId ||
+            assetType.category.id === selectedCategoryId
+    );
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -258,7 +280,7 @@ export function AssetFormDialog({
                                 )}
                             />
 
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-4 md:grid-cols-3">
                                 <FormField
                                     control={form.control}
                                     name="category_id"
@@ -285,6 +307,41 @@ export function AssetFormDialog({
                                                             value={category.id.toString()}
                                                         >
                                                             {category.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="asset_type_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Asset Type</FormLabel>
+
+                                            <Select
+                                                value={field.value?.toString()}
+                                                onValueChange={(value) =>
+                                                    field.onChange(Number(value))
+                                                }
+                                            >
+                                                <FormControl className="cursor-pointer">
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select asset type" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+
+                                                <SelectContent>
+                                                    {filteredAssetTypes.map((assetType) => (
+                                                        <SelectItem
+                                                            key={assetType.id}
+                                                            value={assetType.id.toString()}
+                                                        >
+                                                            {assetType.name}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
