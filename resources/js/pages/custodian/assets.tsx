@@ -19,6 +19,13 @@ import {
     HoverCardContent,
     HoverCardTrigger,
 } from '@/components/ui/hover-card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import { dashboard } from '@/routes/custodian';
 import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
@@ -48,30 +55,6 @@ interface Borrow {
     };
 }
 
-// interface Asset {
-//     id: number;
-//     asset_tag: string;
-//     name: string;
-//     description?: string;
-//     serial_number?: string;
-
-//     status: AssetStatus;
-//     acquisition_date: string;
-
-//     category: {
-//         id: number;
-//         name: string;
-//     };
-
-//     assetType: AssetType;
-
-//     location: {
-//         id: number;
-//         name: string;
-//     };
-
-//     borrows?: Borrow[];
-// }
 
 interface Category {
     id: number;
@@ -189,7 +172,7 @@ function AssetRow({
                 </div>
             </td>
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-foreground">{asset.name}</span>
+                <span className="text-sm text-foreground">{asset.category.name}</span>
             </td>
             <td className="py-3.5 pr-4">
                 <StatusBadge status={asset.status} />
@@ -241,8 +224,8 @@ function AssetRow({
                             <div className="space-y-3">
                                 <h4 className="font-semibold">Borrow History</h4>
 
-                                {asset.borrows?.length ? (
-                                    asset.borrows.map((borrow) => (
+                                {(asset.borrows ?? []).length > 0 ? (
+                                    (asset.borrows ?? []).map((borrow) => (
                                         <div
                                             key={borrow.id}
                                             className="border-b border-border pb-2 last:border-0"
@@ -310,7 +293,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
     const [viewTarget, setViewTarget] = useState<Asset | undefined>();
     type AssetModalMode = 'create' | 'edit' | 'view';
 
-    const categoryOptions = categories;
+    const categoryOptions = categories ?? [];
 
     const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -402,50 +385,67 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                 {/* ── Filters + table ── */}
                 <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
                     <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="relative w-full max-w-xs">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 h-10 w-full max-w-xs">
+                            <Search className="size-4 text-muted-foreground shrink-0" />
 
                             <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by name or tag…"
-                                className="h-10 w-full rounded-lg border border-border bg-background pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                placeholder="Search by name or tag..."
+                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                             />
                         </div>
-
                         <div className="flex items-center gap-2">
-                            <select
+                            <Select
                                 value={categoryFilter}
-                                onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="h-10 rounded-lg border border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                onValueChange={setCategoryFilter}
                             >
-                                <option value="All">All Categories</option>
+                                <SelectTrigger className="w-[180px] cursor-pointer">
+                                    <SelectValue placeholder="Category" />
+                                </SelectTrigger>
 
-                                {categoryOptions.map((category) => (
-                                    <option
-                                        key={category.id}
-                                        value={category.name}
-                                    >
-                                        {category.name}
-                                    </option>
-                                ))}
-                            </select>
+                                <SelectContent>
+                                    <SelectItem value="All">
+                                        All Categories
+                                    </SelectItem>
 
-                            <select
+                                    {categoryOptions.map((category) => (
+                                        <SelectItem
+                                            key={category.id}
+                                            value={category.id.toString()}
+                                        >
+                                            {category.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {/* Status */}
+                            <Select
                                 value={statusFilter}
-                                onChange={(e) =>
-                                    setStatusFilter(e.target.value as 'All' | AssetStatus)
+                                onValueChange={(value) =>
+                                    setStatusFilter(value as "All" | AssetStatus)
                                 }
-                                className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                             >
-                                <option value="All">All Statuses</option>
-                                {statusOptions.map((s) => (
-                                    <option className="cursor-pointer" key={s} value={s}>
-                                        {s}
-                                    </option>
-                                ))}
-                            </select>
+                                <SelectTrigger className="w-[180px] cursor-pointer">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+
+                                <SelectContent>
+                                    <SelectItem value="All">
+                                        All Statuses
+                                    </SelectItem>
+
+                                    {statusOptions.map((status) => (
+                                        <SelectItem
+                                            key={status}
+                                            value={status}
+                                        >
+                                            {statusLabels[status]}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 

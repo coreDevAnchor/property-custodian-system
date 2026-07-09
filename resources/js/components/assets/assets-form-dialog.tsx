@@ -119,7 +119,7 @@ export function AssetFormDialog({
 
                 category_id: asset.category.id,
                 location_id: asset.location.id,
-                asset_type_id: asset.asset_type.id,
+                asset_type_id: asset.assetType.id,
 
                 serial_number: asset.serial_number ?? "",
 
@@ -215,11 +215,20 @@ export function AssetFormDialog({
 
     const selectedCategoryId = form.watch("category_id");
 
-    const filteredAssetTypes = assetTypes.filter(
+    console.log("categories", categories);
+    console.log("locations", locations);
+    console.log("assetTypes", assetTypes);
+    const filteredAssetTypes = (assetTypes ?? []).filter(
         (assetType) =>
             !selectedCategoryId ||
-            assetType.category.id === selectedCategoryId
+            assetType.category?.id === selectedCategoryId
     );
+
+    console.log("categories", categories);
+    console.log("locations", locations);
+    console.log("assetTypes", assetTypes);
+    console.log("filteredAssetTypes", filteredAssetTypes);
+    console.log("subImages", subImages);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

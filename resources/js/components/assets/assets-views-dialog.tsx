@@ -184,7 +184,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
                             <DetailRow label="Category" value={asset.category?.name} />
                             <DetailRow
                                 label="Asset Type"
-                                value={asset.asset_type?.name}
+                                value={asset.assetType?.name}
                             />
                             <DetailRow label="Location" value={asset.location?.name} />
                             <DetailRow
