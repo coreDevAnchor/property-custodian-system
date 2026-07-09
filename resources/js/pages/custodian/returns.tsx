@@ -1,12 +1,11 @@
 import { Head, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import {
-    Check,
+    AlertTriangle,
+    CheckCircle2,
     ClipboardCheck,
-    Clock,
-    PackageCheck,
     Search,
-    X,
+    ShieldCheck,
 } from 'lucide-react';
 import {
     Select,
@@ -14,25 +13,23 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import { dashboard } from '@/routes/custodian';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type BorrowStatus =
-    | 'pending'
-    | 'borrowed'
-    | 'awaiting_check'
-    | 'returned'
-    | 'rejected';
+type ReturnStatus = 'awaiting_check' | 'returned';
+type ReturnCondition = 'ok' | 'defective';
 
-interface BorrowRequest {
+interface ReturnItem {
     id: number;
-    status: BorrowStatus;
+    status: ReturnStatus;
     remarks?: string | null;
     requested_at: string;
     approved_at?: string | null;
     returned_at?: string | null;
+    return_condition?: ReturnCondition | null;
+    is_acknowledged: boolean;
 
     asset: {
         id: number;
@@ -51,43 +48,39 @@ interface BorrowRequest {
         };
     };
 
-    approved_by?: {
-        id: number;
-        name: string;
-    } | null;
-
     checked_by?: {
         id: number;
         name: string;
     } | null;
 }
 
-type SortKey = 'newest' | 'oldest' | 'requester_az' | 'requester_za';
+type SortKey = 'newest' | 'oldest' | 'borrower_az' | 'borrower_za';
 
-const statusLabels: Record<BorrowStatus, string> = {
-    pending: 'Pending',
-    borrowed: 'Borrowed',
+const statusLabels: Record<ReturnStatus, string> = {
     awaiting_check: 'Awaiting Check',
     returned: 'Returned',
-    rejected: 'Rejected',
 };
 
-const statusStyles: Record<BorrowStatus, string> = {
-    pending:
-        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    borrowed:
-        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+const statusStyles: Record<ReturnStatus, string> = {
     awaiting_check:
         'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
     returned:
         'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    rejected:
-        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
+
+const conditionLabels: Record<ReturnCondition, string> = {
+    ok: 'Good Condition',
+    defective: 'Defective',
+};
+
+const conditionStyles: Record<ReturnCondition, string> = {
+    ok: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    defective: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: BorrowStatus }) {
+function StatusBadge({ status }: { status: ReturnStatus }) {
     return (
         <span
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[status]}`}
@@ -97,95 +90,104 @@ function StatusBadge({ status }: { status: BorrowStatus }) {
     );
 }
 
-function BorrowRequestRow({
-    request,
-    onUpdateStatus,
+function ConditionBadge({ condition }: { condition: ReturnCondition }) {
+    return (
+        <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${conditionStyles[condition]}`}
+        >
+            {condition === 'ok' ? (
+                <CheckCircle2 className="size-3" />
+            ) : (
+                <AlertTriangle className="size-3" />
+            )}
+            {conditionLabels[condition]}
+        </span>
+    );
+}
+
+function ReturnRow({
+    item,
+    onConfirmReturn,
 }: {
-    request: BorrowRequest;
-    onUpdateStatus: (request: BorrowRequest, status: BorrowStatus) => void;
+    item: ReturnItem;
+    onConfirmReturn: (item: ReturnItem, condition: ReturnCondition) => void;
 }) {
     return (
         <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
             <td className="py-3.5 pr-4">
                 <p className="truncate text-sm font-semibold text-foreground">
-                    {request.employee.user.name}
+                    {item.employee.user.name}
                 </p>
-                {request.remarks && (
+                {item.remarks && (
                     <p className="truncate text-xs text-muted-foreground">
-                        {request.remarks}
+                        {item.remarks}
                     </p>
                 )}
             </td>
             <td className="py-3.5 pr-4">
-                <p className="truncate text-sm text-foreground">
-                    {request.asset.name}
-                </p>
+                <p className="truncate text-sm text-foreground">{item.asset.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                    {request.asset.asset_tag} · {request.asset.category.name}
+                    {item.asset.asset_tag} · {item.asset.category.name}
                 </p>
             </td>
             <td className="py-3.5 pr-4">
                 <span className="text-sm text-muted-foreground">
-                    {new Date(request.requested_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                    })}
+                    {item.returned_at
+                        ? new Date(item.returned_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                        })
+                        : '—'}
                 </span>
             </td>
             <td className="py-3.5 pr-4">
-                <StatusBadge status={request.status} />
+                <StatusBadge status={item.status} />
+            </td>
+            <td className="py-3.5 pr-4">
+                {item.return_condition ? (
+                    <ConditionBadge condition={item.return_condition} />
+                ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                )}
+            </td>
+            <td className="py-3.5 pr-4">
+                {item.checked_by ? (
+                    <div className="flex items-center gap-1.5">
+                        <ShieldCheck className="size-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                            {item.checked_by.name}
+                        </span>
+                    </div>
+                ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                )}
             </td>
             <td className="py-3.5">
-                <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                    {request.status === 'pending' && (
-                        <>
-                            <button
-                                onClick={() => onUpdateStatus(request, 'borrowed')}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
-                                aria-label={`Approve request from ${request.employee.user.name}`}
-                                title="Approve"
-                            >
-                                <Check className="size-4" />
-                            </button>
-                            <button
-                                onClick={() => onUpdateStatus(request, 'rejected')}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
-                                aria-label={`Reject request from ${request.employee.user.name}`}
-                                title="Reject"
-                            >
-                                <X className="size-4" />
-                            </button>
-                        </>
-                    )}
-
-                    {request.status === 'borrowed' && (
+                {item.status === 'awaiting_check' ? (
+                    <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
-                            onClick={() => onUpdateStatus(request, 'awaiting_check')}
-                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-purple-500/10 hover:text-purple-500 cursor-pointer"
-                            title="Mark as awaiting check"
-                        >
-                            <ClipboardCheck className="size-3.5" />
-                            Awaiting Check
-                        </button>
-                    )}
-
-                    {request.status === 'awaiting_check' && (
-                        <button
-                            onClick={() => onUpdateStatus(request, 'returned')}
+                            onClick={() => onConfirmReturn(item, 'ok')}
                             className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
-                            title="Confirm return"
+                            title="Confirm return in good condition"
                         >
-                            <PackageCheck className="size-3.5" />
-                            Confirm Return
+                            <CheckCircle2 className="size-3.5" />
+                            Good
                         </button>
-                    )}
-
-                    {(request.status === 'returned' ||
-                        request.status === 'rejected') && (
-                            <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                </div>
+                        <button
+                            onClick={() => onConfirmReturn(item, 'defective')}
+                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
+                            title="Confirm return as defective"
+                        >
+                            <AlertTriangle className="size-3.5" />
+                            Defective
+                        </button>
+                    </div>
+                ) : (
+                    <span className="text-xs text-muted-foreground">
+                        {item.is_acknowledged ? 'Acknowledged' : 'Unacknowledged'}
+                    </span>
+                )}
             </td>
         </tr>
     );
@@ -194,28 +196,30 @@ function BorrowRequestRow({
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 interface Props {
-    borrowRequests: {
-        data: BorrowRequest[];
+    returns: {
+        data: ReturnItem[];
     };
 }
 
-export default function BorrowRequests({ borrowRequests }: Props) {
+export default function Returns({ returns }: Props) {
     const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'All' | BorrowStatus>('pending');
+    const [statusFilter, setStatusFilter] = useState<'All' | ReturnStatus>(
+        'awaiting_check'
+    );
     const [sortKey, setSortKey] = useState<SortKey>('newest');
 
-    const filteredRequests = useMemo(() => {
+    const filteredReturns = useMemo(() => {
         const searchTerm = search.toLowerCase().trim();
 
-        const filtered = (borrowRequests?.data ?? []).filter((request) => {
+        const filtered = (returns?.data ?? []).filter((item) => {
             const matchesSearch =
                 !searchTerm ||
-                request.employee.user.name.toLowerCase().includes(searchTerm) ||
-                request.asset.name.toLowerCase().includes(searchTerm) ||
-                request.asset.asset_tag.toLowerCase().includes(searchTerm);
+                item.employee.user.name.toLowerCase().includes(searchTerm) ||
+                item.asset.name.toLowerCase().includes(searchTerm) ||
+                item.asset.asset_tag.toLowerCase().includes(searchTerm);
 
             const matchesStatus =
-                statusFilter === 'All' || request.status === statusFilter;
+                statusFilter === 'All' || item.status === statusFilter;
 
             return matchesSearch && matchesStatus;
         });
@@ -232,11 +236,11 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                         new Date(a.requested_at).getTime() -
                         new Date(b.requested_at).getTime()
                     );
-                case 'requester_az':
+                case 'borrower_az':
                     return a.employee.user.name.localeCompare(
                         b.employee.user.name
                     );
-                case 'requester_za':
+                case 'borrower_za':
                     return b.employee.user.name.localeCompare(
                         a.employee.user.name
                     );
@@ -244,43 +248,46 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                     return 0;
             }
         });
-    }, [borrowRequests, search, statusFilter, sortKey]);
+    }, [returns, search, statusFilter, sortKey]);
 
-    const pendingCount = useMemo(
+    const awaitingCount = useMemo(
         () =>
-            (borrowRequests?.data ?? []).filter((r) => r.status === 'pending')
+            (returns?.data ?? []).filter((r) => r.status === 'awaiting_check')
                 .length,
-        [borrowRequests]
+        [returns]
     );
 
-    function handleUpdateStatus(request: BorrowRequest, status: BorrowStatus) {
+    function handleConfirmReturn(item: ReturnItem, condition: ReturnCondition) {
         router.put(
-            `/custodian/borrow-requests/${request.id}`,
-            { status },
+            `/custodian/borrow-requests/${item.id}`,
+            {
+                status: 'returned',
+                return_condition: condition,
+            },
             { preserveScroll: true }
         );
     }
 
     return (
         <>
-            <Head title="Borrow Requests" />
+            <Head title="Returns" />
 
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 lg:p-8">
                 {/* ── Page header ── */}
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-                            Borrow Requests
+                            Returns
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Review and manage employee borrow requests
+                            Inspect and confirm returned assets
                         </p>
                     </div>
 
-                    {pendingCount > 0 && (
-                        <div className="flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                            <Clock className="size-4" />
-                            {pendingCount} pending
+                    {awaitingCount > 0 && (
+                        <div className="flex items-center gap-2 rounded-lg bg-purple-100 px-3 py-2 text-sm font-semibold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                            <ClipboardCheck className="size-4" />
+                            {awaitingCount} awaiting check
                         </div>
                     )}
                 </div>
@@ -294,7 +301,7 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by requester or asset…"
+                                placeholder="Search by borrower or asset…"
                                 className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                             />
                         </div>
@@ -303,7 +310,7 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                             <Select
                                 value={statusFilter}
                                 onValueChange={(value) =>
-                                    setStatusFilter(value as "All" | BorrowStatus)
+                                    setStatusFilter(value as 'All' | ReturnStatus)
                                 }
                             >
                                 <SelectTrigger className="w-[180px] cursor-pointer">
@@ -312,13 +319,10 @@ export default function BorrowRequests({ borrowRequests }: Props) {
 
                                 <SelectContent>
                                     <SelectItem value="All">All Statuses</SelectItem>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="borrowed">Borrowed</SelectItem>
                                     <SelectItem value="awaiting_check">
                                         Awaiting Check
                                     </SelectItem>
                                     <SelectItem value="returned">Returned</SelectItem>
-                                    <SelectItem value="rejected">Rejected</SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -333,11 +337,11 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                                 <SelectContent>
                                     <SelectItem value="newest">Newest First</SelectItem>
                                     <SelectItem value="oldest">Oldest First</SelectItem>
-                                    <SelectItem value="requester_az">
-                                        Requester A–Z
+                                    <SelectItem value="borrower_az">
+                                        Borrower A–Z
                                     </SelectItem>
-                                    <SelectItem value="requester_za">
-                                        Requester Z–A
+                                    <SelectItem value="borrower_za">
+                                        Borrower Z–A
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -345,20 +349,26 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                     </div>
 
                     <div className="overflow-x-auto px-6 pb-2">
-                        <table className="w-full min-w-[720px]">
+                        <table className="w-full min-w-[820px]">
                             <thead>
                                 <tr className="border-b border-border">
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                        Requester
+                                        Borrower
                                     </th>
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                         Asset
                                     </th>
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                        Requested
+                                        Returned
                                     </th>
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                         Status
+                                    </th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Condition
+                                    </th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Checked By
                                     </th>
                                     <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                         Actions
@@ -366,20 +376,20 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredRequests.map((request) => (
-                                    <BorrowRequestRow
-                                        key={request.id}
-                                        request={request}
-                                        onUpdateStatus={handleUpdateStatus}
+                                {filteredReturns.map((item) => (
+                                    <ReturnRow
+                                        key={item.id}
+                                        item={item}
+                                        onConfirmReturn={handleConfirmReturn}
                                     />
                                 ))}
                             </tbody>
                         </table>
 
-                        {filteredRequests.length === 0 && (
+                        {filteredReturns.length === 0 && (
                             <div className="flex flex-col items-center gap-1 py-12 text-center">
                                 <p className="text-sm font-semibold text-foreground">
-                                    No borrow requests found
+                                    No returns found
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                     Try adjusting your search or filters
@@ -390,8 +400,8 @@ export default function BorrowRequests({ borrowRequests }: Props) {
 
                     <div className="flex items-center justify-between border-t border-border px-6 py-3.5">
                         <p className="text-xs text-muted-foreground">
-                            Showing {filteredRequests.length} of{' '}
-                            {borrowRequests?.data?.length ?? 0} requests
+                            Showing {filteredReturns.length} of{' '}
+                            {returns?.data?.length ?? 0} returns
                         </p>
                     </div>
                 </div>
@@ -400,15 +410,15 @@ export default function BorrowRequests({ borrowRequests }: Props) {
     );
 }
 
-BorrowRequests.layout = {
+Returns.layout = {
     breadcrumbs: [
         {
             title: 'Dashboard',
             href: dashboard(),
         },
         {
-            title: 'Borrow Requests',
-            href: '/custodian/borrow-requests',
+            title: 'Returns',
+            href: '/custodian/returns',
         },
     ],
 };
