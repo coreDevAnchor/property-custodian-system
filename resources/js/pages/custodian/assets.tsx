@@ -304,7 +304,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
     const filteredAssets = useMemo(() => {
         const searchTerm = search.toLowerCase().trim();
 
-        return assets.data.filter((asset) => {
+        return (assets?.data ?? []).filter((asset) => {
             const matchesSearch =
                 !searchTerm ||
                 asset.name.toLowerCase().includes(searchTerm) ||
@@ -312,13 +312,12 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                 asset.category.name.toLowerCase().includes(searchTerm) ||
                 asset.location.name.toLowerCase().includes(searchTerm);
 
-
             const matchesCategory =
-                categoryFilter === 'All' ||
+                categoryFilter === "All" ||
                 asset.category.id.toString() === categoryFilter;
 
             const matchesStatus =
-                statusFilter === 'All' ||
+                statusFilter === "All" ||
                 asset.status === statusFilter;
 
             return (
@@ -500,7 +499,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
 
                     <div className="flex items-center justify-between border-t border-border px-6 py-3.5">
                         <p className="text-xs text-muted-foreground">
-                            Showing {filteredAssets.length} of {assets.data.length} assets
+                            Showing {filteredAssets.length} of {assets?.data?.length ?? 0} assets
                         </p>
                     </div>
                 </div>

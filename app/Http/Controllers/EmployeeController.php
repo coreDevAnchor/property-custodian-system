@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Employee;
 use App\Models\Asset;
 use Inertia\Inertia;
 
@@ -20,8 +21,10 @@ class EmployeeController extends Controller
             'borrows.employee.user',
         ])->get();
 
-        return Inertia::render('custodian/assets', [
-            'assets' => $assets,
+        return Inertia::render('custodian/employee', [
+            'employees' => Employee::with(['user', 'borrows.asset'])
+                ->latest()
+                ->paginate(10),
         ]);
     }
 
