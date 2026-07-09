@@ -28,6 +28,16 @@ Route::get('/dev-custodian', function () {
     return Inertia::render('custodian/dashboard');
 })->name('dev.custodian');
 
+Route::middleware(['auth', 'verified'])
+    ->prefix('employee')
+    ->name('employee.')
+    ->group(function () {
+
+        Route::get('/dashboard', function () {
+            return Inertia::render('employee/dashboard');
+        })->name('dashboard');
+
+    });
 //Route::resource('assets', AssetController::class);
 Route::resource('borrow-requests', BorrowRequestController::class);
 
