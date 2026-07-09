@@ -404,12 +404,13 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                     <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="relative w-full max-w-xs">
                             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
                             <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search by name or tag…"
-                                className="h-10 w-full rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                className="h-10 w-full rounded-lg border border-border bg-background pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                             />
                         </div>
 
