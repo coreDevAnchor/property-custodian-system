@@ -19,6 +19,7 @@ import {
 import { dashboard } from '@/routes/custodian';
 import { EmployeeFormDialog } from '@/components/employees/employee-form-dialog';
 import { EmployeeDeleteDialog } from '@/components/employees/employee-delete-dialog';
+import { EmployeeViewDialog } from '@/components/employees/employee-views-dialog';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -57,8 +58,8 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
     return (
         <span
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${isActive
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-muted text-muted-foreground'
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                : 'bg-muted text-muted-foreground'
                 }`}
         >
             {isActive ? 'Active' : 'Inactive'}
@@ -70,17 +71,21 @@ function EmployeeRow({
     employee,
     onEdit,
     onDelete,
+    onView,
 }: {
     employee: Employee;
     onEdit: (employee: Employee) => void;
     onDelete: (employee: Employee) => void;
+    onView: (employee: Employee) => void;
 }) {
     const activeBorrows = employee.borrows?.filter(
         (b) => b.status === 'borrowed' || b.status === 'awaiting_check'
     );
 
     return (
-        <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+        <tr
+            onClick={() => onView(employee)}
+            className="group cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50">
             <td className="py-3.5 pr-4">
                 <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-50">
@@ -124,14 +129,20 @@ function EmployeeRow({
             <td className="py-3.5">
                 <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
-                        onClick={() => onEdit(employee)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(employee);
+                        }}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-500 cursor-pointer"
                         aria-label={`Edit ${employee.user.name}`}
                     >
                         <Pencil className="size-4" />
                     </button>
                     <button
-                        onClick={() => onDelete(employee)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(employee);
+                        }}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
                         aria-label={`Remove ${employee.user.name}`}
                     >
@@ -182,6 +193,7 @@ function EmployeeRow({
                     </HoverCard>
                 </div>
             </td>
+
         </tr>
     );
 }
@@ -197,6 +209,7 @@ interface Props {
 export default function Employees({ employees }: Props) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'All' | 'active' | 'inactive'>('All');
+    const [viewTarget, setViewTarget] = useState<Employee | undefined>();
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | undefined>();
@@ -325,6 +338,7 @@ export default function Employees({ employees }: Props) {
                                         employee={employee}
                                         onEdit={openEditModal}
                                         onDelete={setDeleteTarget}
+                                        onView={setViewTarget}
                                     />
                                 ))}
                             </tbody>
@@ -362,6 +376,13 @@ export default function Employees({ employees }: Props) {
                 employee={deleteTarget}
                 onCancel={() => setDeleteTarget(null)}
                 onConfirm={handleDeleteConfirm}
+            />
+
+            <EmployeeViewDialog
+                open={!!viewTarget}
+                employee={viewTarget}
+                onOpenChange={(open) => !open && setViewTarget(undefined)}
+                onEdit={openEditModal}
             />
         </>
     );
