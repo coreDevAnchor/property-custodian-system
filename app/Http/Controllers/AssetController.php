@@ -8,24 +8,28 @@ use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use App\Models\AssetType;
 
 class AssetController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index()
     {
         return Inertia::render('custodian/assets', [
             'assets' => Asset::with([
                     'category',
+                    'assetType',
                     'location',
                     'borrows.employee.user',
                 ])
-                ->latest()
-                ->paginate(10),
+            ->latest()
+            ->paginate(10),
 
             'categories' => Category::orderBy('name', 'asc')->get(),
+
+            'assetTypes' => AssetType::with('category')
+                ->orderBy('name')
+                ->get(),
 
             'locations' => Location::orderBy('name', 'asc')->get(),
         ]);
@@ -33,12 +37,9 @@ class AssetController extends Controller
 
     public function create()
     {
-        //
+
     }
 
-    /**
-     * Store a newly created resource.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -54,9 +55,10 @@ class AssetController extends Controller
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'asset_type_id' => ['required', 'exists:asset_types,id'],
         ]);
 
-        $validated['asset_tag'] = $this->generateAssetTag($validated['category_id']);
+        $validated['asset_tag'] = $this->generateAssetTag($validated['asset_type_id']);
         $validated['depreciation_rate'] ??= 0;
 
         if ($request->hasFile('photo')) {
@@ -70,38 +72,29 @@ class AssetController extends Controller
             ->with('success', 'Asset created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * Used by the View Asset modal.
-     */
     public function show(Asset $asset)
     {
         return response()->json(
             $asset->load([
                 'category',
+                'assetType',
                 'location',
                 'currentBorrow',
             ])
         );
     }
 
-    /**
-     * Return the asset data for the Edit Asset modal.
-     */
     public function edit(Asset $asset)
     {
         return response()->json(
             $asset->load([
                 'category',
+                'assetType',
                 'location',
             ])
         );
     }
 
-    /**
-     * Update the specified resource.
-     */
     public function update(Request $request, Asset $asset)
     {
         $validated = $request->validate([
@@ -117,10 +110,11 @@ class AssetController extends Controller
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'asset_type_id' => ['required', 'exists:asset_types,id'],
         ]);
 
-        if ($asset->category_id !== (int) $validated['category_id']) {
-            $validated['asset_tag'] = $this->generateAssetTag($validated['category_id']);
+        if ($asset->asset_type_id !== (int) $validated['asset_type_id']) {
+            $validated['asset_tag'] = $this->generateAssetTag($validated['asset_type_id']);
         }
 
         $validated['depreciation_rate'] ??= 0;
@@ -143,9 +137,6 @@ class AssetController extends Controller
             ->with('success', 'Asset updated successfully.');
     }
 
-    /**
-     * Remove the specified resource.
-     */
     public function destroy(Asset $asset)
     {
         if ($asset->photo) {
@@ -159,25 +150,24 @@ class AssetController extends Controller
             ->with('success', 'Asset deleted successfully.');
     }
 
-    /**
-     * Generate a unique asset tag based on the category prefix.
-     */
-    private function generateAssetTag(int $categoryId): string
+    private function generateAssetTag(int $assetTypeId): string
     {
-        $category = Category::findOrFail($categoryId);
+        $assetType = AssetType::findOrFail($assetTypeId);
 
-        $prefix = strtoupper($category->prefix);
+        $prefix = strtoupper($assetType->prefix);
 
-        $lastAsset = Asset::query()
-            ->where('asset_tag', 'LIKE', "{$prefix}-%")
-            ->orderBy('id', 'desc')
+        $lastAsset = Asset::where('asset_tag', 'LIKE', "{$prefix}-%", 'and')
+            ->latest('id')
             ->first();
 
-        if (!$lastAsset) {
+        if (! $lastAsset) {
             return "{$prefix}-0001";
         }
 
-        $lastNumber = (int) substr($lastAsset->asset_tag, strrpos($lastAsset->asset_tag, '-') + 1);
+        $lastNumber = (int) substr(
+            $lastAsset->asset_tag,
+            strrpos($lastAsset->asset_tag, '-') + 1
+        );
 
         return $prefix . '-' . sprintf('%04d', $lastNumber + 1);
     }

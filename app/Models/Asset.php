@@ -14,6 +14,7 @@ class Asset extends Model
         'name',
         'description',
         'category_id',
+        'asset_type_id',
         'serial_number',
         'acquisition_date',
         'acquisition_cost',
@@ -45,5 +46,10 @@ class Asset extends Model
         return $this->hasOne(BorrowRequest::class)
             ->where('status', 'borrowed')
             ->latestOfMany();
+    }
+    
+    public function assetType(): BelongsTo
+    {
+        return $this->belongsTo(AssetType::class);
     }
 }
