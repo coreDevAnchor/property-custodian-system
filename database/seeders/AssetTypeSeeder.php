@@ -10,9 +10,17 @@ class AssetTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        $electronics = Category::where('name', 'Electronics')->first();
-        $furniture = Category::where('name', 'Furniture')->first();
-        $office = Category::where('name', 'Office Equipment')->first();
+        $electronics = Category::query()
+            ->where('name', 'Electronics')
+            ->firstOrFail();
+
+        $furniture = Category::query()
+            ->where('name', 'Furniture')
+            ->firstOrFail();
+
+        $office = Category::query()
+            ->where('name', 'Office Equipment')
+            ->firstOrFail();
 
         AssetType::insert([
             // Electronics

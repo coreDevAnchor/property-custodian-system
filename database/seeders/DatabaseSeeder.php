@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             LocationSeeder::class,
             AssetTypeSeeder::class,
-            AssetSeeder::class,
         ]);
     }
 }
