@@ -22,78 +22,84 @@ class AssetTypeSeeder extends Seeder
             ->where('name', 'Office Equipment')
             ->firstOrFail();
 
-        AssetType::insert([
-            // Electronics
-            [
-                'category_id' => $electronics->id,
-                'name' => 'Laptop',
-                'prefix' => 'LAP',
-                'description' => 'Laptop computers',
-            ],
-            [
-                'category_id' => $electronics->id,
-                'name' => 'Desktop',
-                'prefix' => 'DES',
-                'description' => 'Desktop computers',
-            ],
-            [
-                'category_id' => $electronics->id,
-                'name' => 'Monitor',
-                'prefix' => 'MON',
-                'description' => 'Computer monitors',
-            ],
-            [
-                'category_id' => $electronics->id,
-                'name' => 'Keyboard',
-                'prefix' => 'KEY',
-                'description' => 'Computer keyboards',
-            ],
-            [
-                'category_id' => $electronics->id,
-                'name' => 'Mouse',
-                'prefix' => 'MOU',
-                'description' => 'Computer mice',
-            ],
+        // Electronics
+        AssetType::create([
+            'category_id' => $electronics->id,
+            'name' => 'Laptop',
+            'prefix' => 'LAP',
+            'description' => 'Laptop computers',
+        ]);
 
-            // Furniture
-            [
-                'category_id' => $furniture->id,
-                'name' => 'Chair',
-                'prefix' => 'CHR',
-                'description' => 'Office chairs',
-            ],
-            [
-                'category_id' => $furniture->id,
-                'name' => 'Table',
-                'prefix' => 'TBL',
-                'description' => 'Office tables',
-            ],
-            [
-                'category_id' => $furniture->id,
-                'name' => 'Cabinet',
-                'prefix' => 'CAB',
-                'description' => 'Storage cabinets',
-            ],
+        AssetType::create([
+            'category_id' => $electronics->id,
+            'name' => 'Desktop',
+            'prefix' => 'DES',
+            'description' => 'Desktop computers',
+        ]);
 
-            // Office Equipment
-            [
-                'category_id' => $office->id,
-                'name' => 'Printer',
-                'prefix' => 'PRT',
-                'description' => 'Office printers',
-            ],
-            [
-                'category_id' => $office->id,
-                'name' => 'Scanner',
-                'prefix' => 'SCN',
-                'description' => 'Document scanners',
-            ],
-            [
-                'category_id' => $office->id,
-                'name' => 'Projector',
-                'prefix' => 'PRO',
-                'description' => 'Projectors',
-            ],
+        AssetType::create([
+            'category_id' => $electronics->id,
+            'name' => 'Monitor',
+            'prefix' => 'MON',
+            'description' => 'Computer monitors',
+        ]);
+
+        AssetType::create([
+            'category_id' => $electronics->id,
+            'name' => 'Keyboard',
+            'prefix' => 'KEY',
+            'description' => 'Computer keyboards',
+        ]);
+
+        AssetType::create([
+            'category_id' => $electronics->id,
+            'name' => 'Mouse',
+            'prefix' => 'MOU',
+            'description' => 'Computer mice',
+        ]);
+
+        // Furniture
+        AssetType::create([
+            'category_id' => $furniture->id,
+            'name' => 'Chair',
+            'prefix' => 'CHR',
+            'description' => 'Office chairs',
+        ]);
+
+        AssetType::create([
+            'category_id' => $furniture->id,
+            'name' => 'Table',
+            'prefix' => 'TBL',
+            'description' => 'Office tables',
+        ]);
+
+        AssetType::create([
+            'category_id' => $furniture->id,
+            'name' => 'Cabinet',
+            'prefix' => 'CAB',
+            'description' => 'Storage cabinets',
+        ]);
+
+        // Office Equipment
+        AssetType::create([
+            'category_id' => $office->id,
+            'name' => 'Printer',
+            'prefix' => 'PRT',
+            'description' => 'Office printers',
+        ]);
+
+        AssetType::create([
+            'category_id' => $office->id,
+            'name' => 'Scanner',
+            'prefix' => 'SCN',
+            'description' => 'Document scanners',
+        ]);
+
+        AssetType::create([
+            'category_id' => $office->id,
+            'name' => 'Projector',
+            'prefix' => 'PRO',
+            'description' => 'Projectors',
         ]);
     }
 }
