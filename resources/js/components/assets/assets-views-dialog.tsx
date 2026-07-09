@@ -1,0 +1,284 @@
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ImageOff, Pencil } from "lucide-react";
+
+import type { Asset } from "@/components/assets/types";
+
+// ── Extra fields that exist on the backend model but may not yet be
+// on the shared Asset type. Marked optional so this renders safely
+// either way. ──
+type ViewableAsset = Asset & {
+    acquisition_cost?: number | string;
+    depreciation_rate?: number | string;
+    condition?: number;
+    photo?: string | null;
+    remarks?: string | null;
+};
+
+type AssetStatus = "available" | "borrowed" | "under_repair" | "disposed";
+
+const statusLabels: Record<AssetStatus, string> = {
+    available: "Available",
+    borrowed: "Borrowed",
+    under_repair: "Under Repair",
+    disposed: "Disposed",
+};
+
+const statusStyles: Record<AssetStatus, string> = {
+    available:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    borrowed:
+        "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    under_repair:
+        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    disposed: "bg-muted text-muted-foreground",
+};
+
+function StatusBadge({ status }: { status: AssetStatus }) {
+    return (
+        <span
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[status]}`}
+        >
+            {statusLabels[status]}
+        </span>
+    );
+}
+
+function ConditionStars({ condition }: { condition?: number }) {
+    if (!condition) return <span className="text-sm text-muted-foreground">—</span>;
+
+    return (
+        <div className="flex items-center gap-0.5" aria-label={`Condition ${condition} of 5`}>
+            {Array.from({ length: 5 }).map((_, i) => (
+                <span
+                    key={i}
+                    className={
+                        i < condition
+                            ? "text-amber-400"
+                            : "text-muted-foreground/30"
+                    }
+                >
+                    ★
+                </span>
+            ))}
+        </div>
+    );
+}
+
+function DetailRow({
+    label,
+    value,
+}: {
+    label: string;
+    value: React.ReactNode;
+}) {
+    return (
+        <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                {label}
+            </span>
+            <span className="text-sm font-medium text-foreground">
+                {value ?? <span className="text-muted-foreground">—</span>}
+            </span>
+        </div>
+    );
+}
+
+interface Props {
+    open: boolean;
+    asset?: ViewableAsset;
+    onOpenChange: (open: boolean) => void;
+    onEdit?: (asset: ViewableAsset) => void;
+}
+
+function formatCurrency(value?: number | string) {
+    if (value === undefined || value === null || value === "") return undefined;
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    if (Number.isNaN(num)) return undefined;
+    return new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+    }).format(num);
+}
+
+function formatDate(value?: string) {
+    if (!value) return undefined;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+}
+
+export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
+    if (!asset) return null;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <div className="flex items-start justify-between gap-4 pr-8">
+                        <div>
+                            <DialogTitle>{asset.name}</DialogTitle>
+                            <DialogDescription>
+                                {asset.asset_tag}
+                            </DialogDescription>
+                        </div>
+                        <StatusBadge status={asset.status} />
+                    </div>
+                </DialogHeader>
+
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                    {/* ── Left: photo (1/3) ── */}
+                    <div className="lg:col-span-1">
+                        <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/30">
+                            {asset.photo ? (
+                                <img
+                                    src={`/storage/${asset.photo}`}
+                                    alt={asset.name}
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                    <ImageOff className="size-8" />
+                                    <span className="text-xs font-medium">
+                                        No photo uploaded
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ── Right: details (2/3) ── */}
+                    <div className="space-y-6 lg:col-span-2">
+                        <div>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                Description
+                            </span>
+                            <p className="mt-1 text-sm text-foreground">
+                                {asset.description || (
+                                    <span className="text-muted-foreground">
+                                        No description provided.
+                                    </span>
+                                )}
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                            <DetailRow label="Category" value={asset.category?.name} />
+                            <DetailRow label="Location" value={asset.location?.name} />
+                            <DetailRow
+                                label="Serial Number"
+                                value={asset.serial_number}
+                            />
+                            <DetailRow
+                                label="Acquisition Date"
+                                value={formatDate(asset.acquisition_date)}
+                            />
+                            <DetailRow
+                                label="Acquisition Cost"
+                                value={formatCurrency(asset.acquisition_cost)}
+                            />
+                            <DetailRow
+                                label="Depreciation Rate"
+                                value={
+                                    asset.depreciation_rate !== undefined
+                                        ? `${asset.depreciation_rate}%`
+                                        : undefined
+                                }
+                            />
+                            <DetailRow
+                                label="Condition"
+                                value={<ConditionStars condition={asset.condition} />}
+                            />
+                        </div>
+
+                        {asset.remarks && (
+                            <div>
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    Remarks
+                                </span>
+                                <p className="mt-1 text-sm text-foreground">
+                                    {asset.remarks}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* ── Borrow history ── */}
+                        <div>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                Borrow History
+                            </span>
+
+                            <div className="mt-2 space-y-2 rounded-lg border border-border p-3">
+                                {asset.borrows?.length ? (
+                                    asset.borrows.map((borrow) => (
+                                        <div
+                                            key={borrow.id}
+                                            className="border-b border-border pb-2 last:border-0 last:pb-0"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm font-semibold text-foreground">
+                                                    {borrow.employee.user.name}
+                                                </span>
+                                                <span className="text-xs capitalize text-muted-foreground">
+                                                    {borrow.status}
+                                                </span>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                Requested:{" "}
+                                                {new Date(
+                                                    borrow.requested_at
+                                                ).toLocaleDateString()}
+                                            </div>
+                                            {borrow.returned_at && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    Returned:{" "}
+                                                    {new Date(
+                                                        borrow.returned_at
+                                                    ).toLocaleDateString()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        No borrowing history.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button className="cursor-pointer" variant="outline" onClick={() => onOpenChange(false)}>
+                        Close
+                    </Button>
+
+                    {onEdit && (
+                        <Button
+                            className="cursor-pointer"
+                            onClick={() => {
+                                onOpenChange(false);
+                                onEdit(asset);
+                            }}
+                        >
+                            <Pencil className="size-4" />
+                            Edit Asset
+                        </Button>
+                    )}
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}

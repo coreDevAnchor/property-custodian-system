@@ -7,14 +7,17 @@ use App\Http\Controllers\BorrowRequestController;
 
 Route::redirect('/', '/login');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/custodian/dashboard', function () {
-        return Inertia::render('custodian/dashboard');
-    })->name('custodian.dashboard');
+Route::middleware(['auth', 'verified'])
+    ->prefix('custodian')
+    ->name('custodian.')
+    ->group(function () {
 
-    Route::resource('custodian/assets', AssetController::class);
+        Route::get('/dashboard', function () {
+            return Inertia::render('custodian/dashboard');
+        })->name('dashboard');
 
-});
+        Route::resource('assets', AssetController::class);
+    });
 
 Route::get('/dev-custodian', function () {
     return Inertia::render('custodian/dashboard');

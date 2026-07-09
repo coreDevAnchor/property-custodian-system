@@ -19,22 +19,18 @@ import {
     HoverCardContent,
     HoverCardTrigger,
 } from '@/components/ui/hover-card';
+import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import { dashboard } from '@/routes/custodian';
+import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
+import { DeleteConfirmModal } from "@/components/assets/assets-delete.dialog";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-type AssetCategory =
-    | 'IT Equipment'
-    | 'Vehicles'
-    | 'Office Furniture'
-    | 'Lab Equipment'
-    | 'Audio/Visual';
 
 type AssetStatus =
     | 'available'
     | 'borrowed'
     | 'under_repair'
-    | 'retired';
+    | 'disposed';
 
 interface Borrow {
     id: number;
@@ -107,14 +103,14 @@ const statusOptions: AssetStatus[] = [
     'available',
     'borrowed',
     'under_repair',
-    'retired',
+    'disposed',
 ];
 
 const statusLabels: Record<AssetStatus, string> = {
     available: 'Available',
     borrowed: 'Borrowed',
     under_repair: 'Under Repair',
-    retired: 'Retired',
+    disposed: 'Disposed',
 };
 
 const categoryIcon: Record<string, typeof Laptop> = {
@@ -133,7 +129,7 @@ const statusStyles: Record<string, string> = {
     under_repair:
         'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 
-    retired:
+    disposed:
         'bg-muted text-muted-foreground',
 };
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -151,15 +147,20 @@ function AssetRow({
     asset,
     onEdit,
     onDelete,
+    onView,
 }: {
     asset: Asset;
     onEdit: (asset: Asset) => void;
     onDelete: (asset: Asset) => void;
+    onView: (asset: Asset) => void;
 }) {
     const Icon = categoryIcon[asset.category.name];
 
     return (
-        <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+        <tr
+            onClick={() => onView(asset)}
+            className="group cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+        >
             <td className="py-3.5 pr-4">
                 <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50">
@@ -188,35 +189,43 @@ function AssetRow({
             <td className="py-3.5">
                 <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
-                        onClick={() => onEdit(asset)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(asset);
+                        }}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-500 cursor-pointer"
                         aria-label={`Edit ${asset.name}`}
                     >
                         <Pencil className="size-4" />
                     </button>
                     <button
-                        onClick={() => onDelete(asset)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(asset);
+                        }}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
                         aria-label={`Delete ${asset.name}`}
                     >
                         <Trash2 className="size-4" />
                     </button>
+
                     <HoverCard>
                         <HoverCardTrigger asChild>
                             <button
-                                className="flex h-8 w-8 items-center justify-center rounded-lg
-                                    text-muted-foreground transition-colors cursor-pointer
-                                    hover:bg-emerald-500/10 hover:text-emerald-500"
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
+                                aria-label={`View borrow history for ${asset.name}`}
                             >
                                 <Eye className="size-4" />
                             </button>
                         </HoverCardTrigger>
 
-                        <HoverCardContent className="w-80">
+                        <HoverCardContent
+                            className="w-80"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             <div className="space-y-3">
-                                <h4 className="font-semibold">
-                                    Borrow History
-                                </h4>
+                                <h4 className="font-semibold">Borrow History</h4>
 
                                 {asset.borrows?.length ? (
                                     asset.borrows.map((borrow) => (
@@ -229,23 +238,19 @@ function AssetRow({
                                             </div>
 
                                             <div className="text-xs text-muted-foreground">
-                                                Requested:
-                                                {" "}
+                                                Requested:{' '}
                                                 {new Date(
                                                     borrow.requested_at
                                                 ).toLocaleDateString()}
                                             </div>
 
                                             <div className="text-xs text-muted-foreground">
-                                                Status:
-                                                {" "}
-                                                {borrow.status}
+                                                Status: {borrow.status}
                                             </div>
 
                                             {borrow.returned_at && (
                                                 <div className="text-xs text-muted-foreground">
-                                                    Returned:
-                                                    {" "}
+                                                    Returned:{' '}
                                                     {new Date(
                                                         borrow.returned_at
                                                     ).toLocaleDateString()}
@@ -267,243 +272,34 @@ function AssetRow({
     );
 }
 
-function AssetFormModal({
-    open,
-    initialValues,
-    isEditing,
-    onClose,
-    onSubmit,
-    categories,
-}: {
-    open: boolean;
-    initialValues: AssetFormValues;
-    isEditing: boolean;
-    onClose: () => void;
-    onSubmit: (values: AssetFormValues) => void;
-    categories: Category[];
-}) {
-    const [values, setValues] = useState<AssetFormValues>(initialValues);
-
-    // Sync form state whenever a different asset is opened for editing
-    useMemo(() => setValues(initialValues), [initialValues]);
-
-    if (!open) return null;
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-md rounded-2xl border border-border bg-card text-card-foreground shadow-xl">
-                <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                    <h2 className="text-base font-bold text-gray-900">
-                        {isEditing ? 'Edit Asset' : 'Add New Asset'}
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-600"
-                        aria-label="Close"
-                    >
-                        <X className="size-4" />
-                    </button>
-                </div>
-
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        onSubmit(values);
-                    }}
-                    className="flex flex-col gap-4 px-6 py-5"
-                >
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">
-                            Asset Name
-                        </label>
-                        <input
-                            required
-                            value={values.name}
-                            onChange={(e) =>
-                                setValues((v) => ({ ...v, name: e.target.value }))
-                            }
-                            placeholder="e.g. MacBook Pro 14&quot;"
-                            className="h-10 rounded-lg border border-border px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                        />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">
-                            Tag / Serial Number
-                        </label>
-                        <input
-                            required
-                            value={values.asset_tag}
-                            onChange={(e) =>
-                                setValues((v) => ({ ...v, asset_tag: e.target.value }))
-                            }
-                            placeholder="e.g. AST-0009"
-                            className="h-10 rounded-lg border border-border px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-muted-foreground">
-                                Category
-                            </label>
-                            <select
-                                value={values.category_id}
-                                onChange={(e) =>
-                                    setValues((v) => ({
-                                        ...v,
-                                        category_id: Number(e.target.value),
-                                    }))
-                                }
-                                className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:border-[#0d7a5f] focus:ring-2 focus:ring-[#0d7a5f]/20 focus:outline-none"
-                            >
-                                {categories.map((category) => (
-                                    <option
-                                        key={category.id}
-                                        value={category.id}
-                                    >
-                                        {category.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-muted-foreground">
-                                Status
-                            </label>
-                            <select
-                                value={values.status}
-                                onChange={(e) =>
-                                    setValues((v) => ({
-                                        ...v,
-                                        status: e.target.value as AssetStatus,
-                                    }))
-                                }
-                                className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:border-[#0d7a5f] focus:ring-2 focus:ring-[#0d7a5f]/20 focus:outline-none"
-                            >
-                                {statusOptions.map((s) => (
-                                    <option key={s} value={s}>
-                                        {statusLabels[s]}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">
-                            Location / Assigned To
-                        </label>
-                        <input
-                            required
-                            value={values.location_id}
-                            onChange={(e) =>
-                                setValues((v) => ({ ...v, location_id: Number(e.target.value) }))
-                            }
-                            placeholder="e.g. Storage Room A"
-                            className="h-10 rounded-lg border border-border px-3 text-sm text-gray-700 placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                        />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">
-                            Date Added
-                        </label>
-                        <input
-                            required
-                            type="date"
-                            value={values.acquisition_date}
-                            onChange={(e) =>
-                                setValues((v) => ({ ...v, acquisition_date: e.target.value }))
-                            }
-                            className="h-10 rounded-lg border border-border px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                        />
-                    </div>
-
-                    <div className="mt-2 flex items-center justify-end gap-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="h-10 rounded-lg px-4 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="h-10 rounded-lg bg-orange-500 px-5 text-sm font-bold text-white transition-colors hover:bg-orange-600 active:scale-[0.98]"
-                        >
-                            {isEditing ? 'Save Changes' : 'Add Asset'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-}
-
-function DeleteConfirmModal({
-    asset,
-    onCancel,
-    onConfirm,
-}: {
-    asset: Asset | null;
-    onCancel: () => void;
-    onConfirm: () => void;
-}) {
-    if (!asset) return null;
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-sm rounded-2xl bg-card text-card-foreground border border-border p-6 shadow-xl">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-50">
-                    <AlertTriangle className="size-5 text-red-500" />
-                </div>
-                <h2 className="mt-4 text-base font-bold text-muted-foreground">
-                    Delete this asset?
-                </h2>
-                <p className="mt-1.5 text-sm text-gray-500">
-                    <span className="font-semibold text-foreground">{asset.name}</span>{' '}
-                    ({asset.asset_tag}) will be permanently removed from the inventory. This
-                    action cannot be undone.
-                </p>
-                <div className="mt-5 flex items-center justify-end gap-2">
-                    <button
-                        onClick={onCancel}
-                        className="h-10 rounded-lg px-4 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="h-10 rounded-lg bg-red-500 px-4 text-sm font-bold text-white transition-colors hover:bg-red-600 active:scale-[0.98]"
-                    >
-                        Delete Asset
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 // ─── Main Page ─────────────────────────────────────────────────────────────────
+
+interface Location {
+    id: number;
+    name: string;
+}
 
 interface Props {
     assets: {
         data: Asset[];
     };
     categories: Category[];
+    locations: Location[];
 }
 
-export default function Assets({ assets, categories }: Props) {
+export default function Assets({ assets, categories, locations }: Props) {
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('All');
     const [statusFilter, setStatusFilter] = useState<'All' | AssetStatus>('All');
+    const [viewTarget, setViewTarget] = useState<Asset | undefined>();
+    type AssetModalMode = 'create' | 'edit' | 'view';
 
     const categoryOptions = categories;
 
-    const [formOpen, setFormOpen] = useState(false);
-    const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    const [editingAsset, setEditingAsset] =
+        useState<Asset | undefined>();
     const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null);
 
     const filteredAssets = useMemo(() => {
@@ -517,9 +313,10 @@ export default function Assets({ assets, categories }: Props) {
                 asset.category.name.toLowerCase().includes(searchTerm) ||
                 asset.location.name.toLowerCase().includes(searchTerm);
 
+
             const matchesCategory =
                 categoryFilter === 'All' ||
-                asset.category.name === categoryFilter;
+                asset.category.id.toString() === categoryFilter;
 
             const matchesStatus =
                 statusFilter === 'All' ||
@@ -539,43 +336,16 @@ export default function Assets({ assets, categories }: Props) {
     ]);
 
     function openAddModal() {
-        setEditingAsset(null);
-        setFormOpen(true);
+        setEditingAsset(undefined);
+        setDialogOpen(true);
     }
 
     function openEditModal(asset: Asset) {
         setEditingAsset(asset);
-        setFormOpen(true);
+        setDialogOpen(true);
     }
 
-    function closeFormModal() {
-        setFormOpen(false);
-        setEditingAsset(null);
-    }
 
-    function handleFormSubmit(values: AssetFormValues) {
-        if (editingAsset) {
-            router.put(
-                `/custodian/assets/${editingAsset.id}`,
-                {
-                    ...values,
-                },
-                {
-                    onSuccess: closeFormModal,
-                }
-            );
-        } else {
-            router.post(
-                '/custodian/assets',
-                {
-                    ...values,
-                },
-                {
-                    onSuccess: closeFormModal,
-                }
-            );
-        }
-    }
 
     function handleDeleteConfirm() {
         if (!deleteTarget) return;
@@ -606,7 +376,7 @@ export default function Assets({ assets, categories }: Props) {
 
                     <button
                         onClick={openAddModal}
-                        className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
+                        className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
                     >
                         <Plus className="size-4" />
                         Add New Asset
@@ -693,6 +463,7 @@ export default function Assets({ assets, categories }: Props) {
                                         asset={asset}
                                         onEdit={openEditModal}
                                         onDelete={setDeleteTarget}
+                                        onView={setViewTarget}
                                     />
                                 ))}
                             </tbody>
@@ -718,26 +489,20 @@ export default function Assets({ assets, categories }: Props) {
                 </div>
             </div>
 
-            <AssetFormModal
-                open={formOpen}
-                isEditing={!!editingAsset}
+            <AssetFormDialog
+                open={dialogOpen}
+                mode={editingAsset ? "edit" : "create"}
+                asset={editingAsset}
                 categories={categories}
-                initialValues={
-                    editingAsset
-                        ? {
-                            name: editingAsset.name,
-                            asset_tag: editingAsset.asset_tag,
-                            category_id: editingAsset.category.id,
-                            location_id: editingAsset.location.id,
-                            status: editingAsset.status,
-                            acquisition_date: editingAsset.acquisition_date,
-                            description: editingAsset.description ?? '',
-                            serial_number: editingAsset.serial_number ?? '',
-                        }
-                        : emptyForm
-                }
-                onClose={closeFormModal}
-                onSubmit={handleFormSubmit}
+                locations={locations}
+                onOpenChange={setDialogOpen}
+            />
+
+            <AssetViewDialog
+                open={!!viewTarget}
+                asset={viewTarget}
+                onOpenChange={(open) => !open && setViewTarget(undefined)}
+                onEdit={openEditModal}
             />
 
             <DeleteConfirmModal
