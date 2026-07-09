@@ -21,15 +21,6 @@ import {
 } from '@/components/ui/hover-card';
 import { dashboard } from '@/routes/custodian';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-type AssetCategory =
-    | 'IT Equipment'
-    | 'Vehicles'
-    | 'Office Furniture'
-    | 'Lab Equipment'
-    | 'Audio/Visual';
-
 type AssetStatus =
     | 'available'
     | 'borrowed'
@@ -62,9 +53,11 @@ interface Asset {
     acquisition_date: string;
 
     category: {
-        id: number;
-        name: string;
+    id: number;
+    name: string;
     };
+
+    assetType: AssetType;
 
     location: {
         id: number;
@@ -79,10 +72,21 @@ interface Category {
     name: string;
 }
 
+interface AssetType {
+    id: number;
+    name: string;
+    prefix: string;
+
+    category: {
+        id: number;
+        name: string;
+    };
+}
+
 interface AssetFormValues {
     name: string;
-    asset_tag: string;
     category_id: number;
+    asset_type_id: number;
     location_id: number;
     status: string;
     acquisition_date: string;
@@ -92,8 +96,8 @@ interface AssetFormValues {
 
 const emptyForm: AssetFormValues = {
     name: '',
-    asset_tag: '',
     category_id: 0,
+    asset_type_id: 0,
     location_id: 0,
     status: 'available',
     acquisition_date: new Date().toISOString().slice(0, 10),
@@ -274,6 +278,8 @@ function AssetFormModal({
     onClose,
     onSubmit,
     categories,
+    assetTypes,
+    locations,
 }: {
     open: boolean;
     initialValues: AssetFormValues;
@@ -281,6 +287,11 @@ function AssetFormModal({
     onClose: () => void;
     onSubmit: (values: AssetFormValues) => void;
     categories: Category[];
+    assetTypes: AssetType[];
+    locations: {
+        id: number;
+        name: string;
+    }[];
 }) {
     const [values, setValues] = useState<AssetFormValues>(initialValues);
 
@@ -327,36 +338,25 @@ function AssetFormModal({
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">
-                            Tag / Serial Number
-                        </label>
-                        <input
-                            required
-                            value={values.asset_tag}
-                            onChange={(e) =>
-                                setValues((v) => ({ ...v, asset_tag: e.target.value }))
-                            }
-                            placeholder="e.g. AST-0009"
-                            className="h-10 rounded-lg border border-border px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                        />
-                    </div>
-
                     <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-muted-foreground">
                                 Category
                             </label>
+
                             <select
                                 value={values.category_id}
                                 onChange={(e) =>
                                     setValues((v) => ({
                                         ...v,
                                         category_id: Number(e.target.value),
+                                        asset_type_id: 0,
                                     }))
                                 }
                                 className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:border-[#0d7a5f] focus:ring-2 focus:ring-[#0d7a5f]/20 focus:outline-none"
                             >
+                                <option value={0}>Select Category</option>
+
                                 {categories.map((category) => (
                                     <option
                                         key={category.id}
@@ -370,54 +370,72 @@ function AssetFormModal({
 
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-muted-foreground">
-                                Status
+                                Asset Type
                             </label>
+
                             <select
-                                value={values.status}
+                                value={values.asset_type_id}
                                 onChange={(e) =>
                                     setValues((v) => ({
                                         ...v,
-                                        status: e.target.value as AssetStatus,
+                                        asset_type_id: Number(e.target.value),
                                     }))
                                 }
                                 className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:border-[#0d7a5f] focus:ring-2 focus:ring-[#0d7a5f]/20 focus:outline-none"
                             >
-                                {statusOptions.map((s) => (
-                                    <option key={s} value={s}>
-                                        {statusLabels[s]}
-                                    </option>
-                                ))}
+                                <option value={0}>Select Asset Type</option>
+
+                                {assetTypes
+                                    .filter((type) => type.category.id === values.category_id)
+                                    .map((type) => (
+                                        <option key={type.id} value={type.id}>
+                                            {type.name}
+                                        </option>
+                                    ))}
                             </select>
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-semibold text-muted-foreground">
-                            Location / Assigned To
+                            Location
                         </label>
-                        <input
-                            required
+
+                        <select
                             value={values.location_id}
                             onChange={(e) =>
-                                setValues((v) => ({ ...v, location_id: Number(e.target.value) }))
+                                setValues((v) => ({
+                                    ...v,
+                                    location_id: Number(e.target.value),
+                                }))
                             }
-                            placeholder="e.g. Storage Room A"
-                            className="h-10 rounded-lg border border-border px-3 text-sm text-gray-700 placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                        />
+                            className="h-10 rounded-lg border border-border px-3 text-sm text-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                        >
+                            <option value={0}>Select Location</option>
+
+                            {locations.map((location) => (
+                                <option key={location.id} value={location.id}>
+                                    {location.name}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-semibold text-muted-foreground">
-                            Date Added
+                            Serial Number
                         </label>
+
                         <input
-                            required
-                            type="date"
-                            value={values.acquisition_date}
+                            value={values.serial_number}
                             onChange={(e) =>
-                                setValues((v) => ({ ...v, acquisition_date: e.target.value }))
+                                setValues((v) => ({
+                                    ...v,
+                                    serial_number: e.target.value,
+                                }))
                             }
-                            className="h-10 rounded-lg border border-border px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                            placeholder="e.g. ABC123456"
+                            className="h-10 rounded-lg border border-border px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                         />
                     </div>
 
@@ -493,9 +511,19 @@ interface Props {
         data: Asset[];
     };
     categories: Category[];
+    assetTypes: AssetType[];
+    locations: {
+        id: number;
+        name: string;
+    }[];
 }
 
-export default function Assets({ assets, categories }: Props) {
+export default function Assets({
+    assets,
+    categories,
+    assetTypes,
+    locations,
+}: Props) {
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('All');
     const [statusFilter, setStatusFilter] = useState<'All' | AssetStatus>('All');
@@ -638,7 +666,7 @@ export default function Assets({ assets, categories }: Props) {
                                 {categoryOptions.map((category) => (
                                     <option
                                         key={category.id}
-                                        value={category.id}
+                                        value={category.name}
                                     >
                                         {category.name}
                                     </option>
@@ -722,12 +750,14 @@ export default function Assets({ assets, categories }: Props) {
                 open={formOpen}
                 isEditing={!!editingAsset}
                 categories={categories}
+                assetTypes={assetTypes}
+                locations={locations}
                 initialValues={
                     editingAsset
                         ? {
                             name: editingAsset.name,
-                            asset_tag: editingAsset.asset_tag,
                             category_id: editingAsset.category.id,
+                            asset_type_id: editingAsset.assetType.id,
                             location_id: editingAsset.location.id,
                             status: editingAsset.status,
                             acquisition_date: editingAsset.acquisition_date,
