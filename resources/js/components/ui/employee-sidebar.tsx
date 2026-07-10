@@ -51,7 +51,7 @@ export function EmployeeSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={availableAssets.index.url()} prefetch>
+                            <Link href={employeeDashboard.dashboard.url()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
