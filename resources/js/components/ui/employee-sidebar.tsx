@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { LogOut, PackageSearch, Undo2 } from 'lucide-react';
+import { LogOut, PackageSearch, Undo2, LayoutDashboard } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -16,13 +16,18 @@ import {
 
 import * as availableAssets from '@/routes/employee/assets';
 import * as myBorrows from '@/routes/employee/borrows';
-import employee from '@/routes/employee';
+import * as employeeDashboard from '@/routes/employee';
 
 import { logout } from '@/routes';
 import type { NavItem } from '@/types';
 import ThemeToggle from '@/components/themetoggle/theme-toggle';
 
 const mainNavItems: NavItem[] = [
+    {
+        title: 'Dashboard',
+        href: employeeDashboard.dashboard.url(),
+        icon: LayoutDashboard,
+    },
     {
         title: 'Available Assets',
         href: availableAssets.index.url(),
@@ -46,7 +51,7 @@ export function EmployeeSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={employee.dashboard.url()} prefetch>
+                            <Link href={employeeDashboard.dashboard.url()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
