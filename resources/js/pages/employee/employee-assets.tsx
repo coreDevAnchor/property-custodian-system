@@ -25,6 +25,8 @@ interface Asset {
     name: string;
     description?: string | null;
     photo?: string | null;
+    acquisition_date?: string | null;
+    condition?: number | null;
 
     category: {
         id: number;

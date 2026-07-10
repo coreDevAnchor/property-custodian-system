@@ -9,6 +9,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeDashboardController;
 use App\Http\Controllers\AvailableAssetController;
 use App\Http\Controllers\MyBorrowController;
+use App\Http\Controllers\EmployeeReturnController;
 
 Route::redirect('/', '/login');
 
@@ -42,13 +43,17 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('/borrows', [MyBorrowController::class, 'index'])
             ->name('borrows.index');
-    });
 
-Route::middleware(['auth', 'verified'])
-    ->group(function () {
         Route::post('/borrow-requests', [BorrowRequestController::class, 'store'])
             ->name('borrow-requests.store');
+
+        Route::post('/returns', [EmployeeReturnController::class, 'store'])
+            ->name('returns.store');
     });
+
+// Route::middleware(['auth', 'verified'])
+//     ->group(function () {
+//     });
 
 
 require __DIR__ . '/settings.php';

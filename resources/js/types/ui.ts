@@ -20,6 +20,10 @@ export interface SharedData {
         user: User;
     };
     sidebarOpen: boolean;
+    flash: {
+        type: FlashToast['type'] | null;
+        message: string | null;
+    };
     [key: string]: unknown;
 }
 

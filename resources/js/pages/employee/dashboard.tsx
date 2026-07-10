@@ -8,6 +8,10 @@ import {
     RefreshCcw,
     Undo2,
 } from 'lucide-react';
+import * as assets from '@/routes/employee/assets';
+import * as borrows from '@/routes/employee/borrows';
+import { useState } from 'react';
+import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -106,17 +110,16 @@ function QuickActionCard({
     title,
     description,
     href,
+    onClick,
 }: {
     icon: React.ElementType;
     title: string;
     description: string;
-    href: string;
+    href?: string;
+    onClick?: () => void;
 }) {
-    return (
-        <Link
-            href={href}
-            className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm transition-colors hover:bg-muted/50"
-        >
+    const content = (
+        <>
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500 transition-colors group-hover:bg-orange-500 group-hover:text-white">
                 <Icon className="size-5" />
             </div>
@@ -124,6 +127,23 @@ function QuickActionCard({
                 <p className="text-sm font-bold text-foreground">{title}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
             </div>
+        </>
+    );
+
+    const className =
+        'group flex items-start gap-4 rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm transition-colors hover:bg-muted/50';
+
+    if (onClick) {
+        return (
+            <button onClick={onClick} className={`${className} w-full text-left cursor-pointer`}>
+                {content}
+            </button>
+        );
+    }
+
+    return (
+        <Link href={href!} className={className}>
+            {content}
         </Link>
     );
 }
@@ -135,6 +155,9 @@ export default function EmployeeDashboard({
     currentBorrows,
     recentActivity,
 }: Props) {
+    const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+    const returnableItems = currentBorrows.filter((b) => b.status === 'borrowed');
+
     return (
         <>
             <Head title="Dashboard" />
@@ -184,19 +207,19 @@ export default function EmployeeDashboard({
                             icon={PackageSearch}
                             title="Browse Assets"
                             description="Find and request available equipment"
-                            href="#"
+                            href={assets.index.url()}
                         />
                         <QuickActionCard
                             icon={RefreshCcw}
                             title="My Borrow Requests"
                             description="Track the status of your requests"
-                            href="#"
+                            href={borrows.index.url()}
                         />
                         <QuickActionCard
                             icon={Undo2}
                             title="Process a Return"
                             description="Return an item you've borrowed"
-                            href="#"
+                            onClick={() => setReturnDialogOpen(true)}
                         />
                     </div>
                 </div>
@@ -332,6 +355,11 @@ export default function EmployeeDashboard({
                         )}
                     </div>
                 </div>
+                <ReturnRequestDialog
+                    open={returnDialogOpen}
+                    items={returnableItems}
+                    onOpenChange={setReturnDialogOpen}
+                />
             </div>
         </>
     );

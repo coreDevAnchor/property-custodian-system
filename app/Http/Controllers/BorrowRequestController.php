@@ -19,8 +19,8 @@ class BorrowRequestController extends Controller
                 'approvedBy',
                 'checkedBy',
             ])
-            ->latest()
-            ->paginate(10),
+                ->latest()
+                ->paginate(10),
         ]);
     }
 
@@ -31,9 +31,9 @@ class BorrowRequestController extends Controller
 
     public function store(Request $request)
     {
-            $validated = $request->validate([
-            'asset_id'   => ['required', 'exists:assets,id'],
-            'remarks'    => ['nullable', 'string'],
+        $validated = $request->validate([
+            'asset_id' => ['required', 'exists:assets,id'],
+            'remarks' => ['nullable', 'string'],
         ]);
 
         $asset = Asset::findOrFail($validated['asset_id']);
@@ -44,16 +44,22 @@ class BorrowRequestController extends Controller
             ]);
         }
 
+        $employee = Auth::user()->employee;
+
+        if (!$employee) {
+            abort(403, 'Only employees can submit borrow requests.');
+        }
+
         BorrowRequest::create([
-            'asset_id'         => $asset->id,
-            'employee_id'      => Auth::user()->employee->id,
-            'status'           => 'pending',
-            'requested_at'     => now(),
-            'remarks'          => $validated['remarks'] ?? null,
+            'asset_id' => $asset->id,
+            'employee_id' => Auth::user()->employee->id,
+            'status' => 'pending',
+            'requested_at' => now(),
+            'remarks' => $validated['remarks'] ?? null,
         ]);
 
         return redirect()
-            ->route('borrow-requests.index')
+            ->route('employee.assets.index')
             ->with('success', 'Borrow request submitted successfully.');
     }
 
@@ -72,7 +78,7 @@ class BorrowRequestController extends Controller
 
     public function edit(string $id)
     {
-            $borrowRequest = BorrowRequest::with([
+        $borrowRequest = BorrowRequest::with([
             'asset.category',
             'asset.location',
             'employee.user',
@@ -114,16 +120,16 @@ class BorrowRequestController extends Controller
         ] + $updateData);
 
         if ($validated['status'] === 'borrowed') {
-        $borrowRequest->asset->update([
-            'status' => 'borrowed',
-                ]);
-            }
+            $borrowRequest->asset->update([
+                'status' => 'borrowed',
+            ]);
+        }
 
-            if ($validated['status'] === 'returned') {
-                $borrowRequest->asset->update([
-                    'status' => 'available',
-                ]);
-            }
+        if ($validated['status'] === 'returned') {
+            $borrowRequest->asset->update([
+                'status' => 'available',
+            ]);
+        }
 
         return redirect()
             ->route('borrow-requests.index')
@@ -135,7 +141,7 @@ class BorrowRequestController extends Controller
         BorrowRequest::destroy($id);
 
         return redirect()
-        ->route('borrow-requests.index')
-        ->with('success', 'Borrow request deleted successfully.');
+            ->route('borrow-requests.index')
+            ->with('success', 'Borrow request deleted successfully.');
     }
 }
