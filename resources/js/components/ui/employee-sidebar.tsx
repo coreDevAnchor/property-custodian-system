@@ -16,6 +16,7 @@ import {
 
 import * as availableAssets from '@/routes/employee/assets';
 import * as myBorrows from '@/routes/employee/borrows';
+import employee from '@/routes/employee';
 
 import { logout } from '@/routes';
 import type { NavItem } from '@/types';
@@ -45,7 +46,7 @@ export function EmployeeSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={availableAssets.index.url()} prefetch>
+                            <Link href={employee.dashboard.url()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
