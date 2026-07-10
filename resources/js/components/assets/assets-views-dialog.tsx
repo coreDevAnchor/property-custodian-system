@@ -58,24 +58,31 @@ function StatusBadge({ status }: { status: AssetStatus }) {
     );
 }
 
-function ConditionStars({ condition }: { condition?: number }) {
-    if (!condition) return <span className="text-sm text-muted-foreground">—</span>;
+const conditionLabels: Record<number, string> = {
+    1: 'Poor',
+    2: 'Fair',
+    3: 'Good',
+    4: 'Excellent',
+};
+
+const conditionStyles: Record<number, string> = {
+    1: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    2: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    3: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    4: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+};
+
+function ConditionBadge({ condition }: { condition?: number }) {
+    if (!condition || !conditionLabels[condition]) {
+        return <span className="text-sm text-muted-foreground">—</span>;
+    }
 
     return (
-        <div className="flex items-center gap-0.5" aria-label={`Condition ${condition} of 5`}>
-            {Array.from({ length: 5 }).map((_, i) => (
-                <span
-                    key={i}
-                    className={
-                        i < condition
-                            ? "text-amber-400"
-                            : "text-muted-foreground/30"
-                    }
-                >
-                    ★
-                </span>
-            ))}
-        </div>
+        <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${conditionStyles[condition]}`}
+        >
+            {conditionLabels[condition]}
+        </span>
     );
 }
 
@@ -184,7 +191,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
                             <DetailRow label="Category" value={asset.category?.name} />
                             <DetailRow
                                 label="Asset Type"
-                                value={asset.asset_type.name}
+                                value={asset.asset_type?.name}
                             />
                             <DetailRow label="Location" value={asset.location?.name} />
                             <DetailRow
@@ -209,7 +216,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
                             />
                             <DetailRow
                                 label="Condition"
-                                value={<ConditionStars condition={asset.condition} />}
+                                value={<ConditionBadge condition={asset.condition} />}
                             />
                         </div>
 

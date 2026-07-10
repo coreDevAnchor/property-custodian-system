@@ -37,7 +37,6 @@ const conditionLabels: Record<number, string> = {
     2: 'Fair',
     3: 'Good',
     4: 'Excellent',
-    5: 'Perfect',
 };
 
 const conditionStyles: Record<number, string> = {

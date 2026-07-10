@@ -76,6 +76,51 @@ interface AssetType {
     };
 }
 
+const conditionOptions = [
+    { value: 1, label: 'Poor' },
+    { value: 2, label: 'Fair' },
+    { value: 3, label: 'Good' },
+    { value: 4, label: 'Excellent' },
+] as const;
+
+const conditionActiveStyles: Record<number, string> = {
+    1: 'bg-red-500 text-white border-red-500',
+    2: 'bg-amber-500 text-white border-amber-500',
+    3: 'bg-blue-500 text-white border-blue-500',
+    4: 'bg-emerald-500 text-white border-emerald-500',
+};
+
+function ConditionScale({
+    value,
+    onChange,
+}: {
+    value?: number;
+    onChange: (value: number) => void;
+}) {
+    return (
+        <div className="flex w-full overflow-hidden rounded-lg border border-border">
+            {conditionOptions.map((option, index) => {
+                const isActive = value === option.value;
+
+                return (
+                    <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => onChange(option.value)}
+                        className={`flex-1 border-border px-3 py-2 text-sm font-semibold transition-colors cursor-pointer ${index !== 0 ? 'border-l' : ''
+                            } ${isActive
+                                ? conditionActiveStyles[option.value]
+                                : 'bg-background text-muted-foreground hover:bg-muted/50'
+                            }`}
+                    >
+                        {option.label}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
 export function AssetFormDialog({
     open,
     mode,
@@ -100,6 +145,7 @@ export function AssetFormDialog({
             category_id: undefined,
             location_id: undefined,
             asset_type_id: undefined,
+            condition: undefined,
 
             serial_number: "",
 
@@ -120,6 +166,7 @@ export function AssetFormDialog({
                 category_id: asset.category.id,
                 location_id: asset.location.id,
                 asset_type_id: asset.asset_type.id,
+                condition: asset.condition,
 
                 serial_number: asset.serial_number ?? "",
 
@@ -432,6 +479,29 @@ export function AssetFormDialog({
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>
+
+
+
+                                            <FormMessage />
+
+
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="condition"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Condition</FormLabel>
+
+                                            <FormControl>
+                                                <ConditionScale
+                                                    value={field.value}
+                                                    onChange={field.onChange}
+                                                />
+                                            </FormControl>
 
                                             <FormMessage />
                                         </FormItem>

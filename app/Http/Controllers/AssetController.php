@@ -17,13 +17,13 @@ class AssetController extends Controller
     {
         return Inertia::render('custodian/assets', [
             'assets' => Asset::with([
-                    'category',
-                    'assetType',
-                    'location',
-                    'borrows.employee.user',
-                ])
-            ->latest()
-            ->paginate(10),
+                'category',
+                'assetType',
+                'location',
+                'borrows.employee.user',
+            ])
+                ->latest()
+                ->paginate(10),
 
             'categories' => Category::orderBy('name', 'asc')->get(),
 
@@ -50,7 +50,7 @@ class AssetController extends Controller
             'acquisition_date' => ['required', 'date'],
             'acquisition_cost' => ['nullable', 'numeric', 'min:0'],
             'depreciation_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'condition' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'condition' => ['nullable', 'integer', 'min:1', 'max:4'],
             'status' => ['required', 'in:available,borrowed,under_repair,disposed'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
@@ -61,7 +61,7 @@ class AssetController extends Controller
         $validated['asset_tag'] = $this->generateAssetTag($validated['asset_type_id']);
         $validated['acquisition_cost'] ??= 0;
         $validated['depreciation_rate'] ??= 0;
-        $validated['condition'] ??= 5;
+        $validated['condition'] ??= 4;
 
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('assets', 'public');
@@ -107,7 +107,7 @@ class AssetController extends Controller
             'acquisition_date' => ['required', 'date'],
             'acquisition_cost' => ['nullable', 'numeric', 'min:0'],
             'depreciation_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'condition' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'condition' => ['nullable', 'integer', 'min:1', 'max:4'],
             'status' => ['required', 'in:available,borrowed,under_repair,disposed'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
@@ -164,7 +164,7 @@ class AssetController extends Controller
             ->latest('id')
             ->first();
 
-        if (! $lastAsset) {
+        if (!$lastAsset) {
             return "{$prefix}-0001";
         }
 
