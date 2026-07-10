@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     BarChart3,
     Box,
@@ -30,53 +30,56 @@ import * as employees from '@/routes/custodian/employees';
 import * as returns from '@/routes/custodian/returns';
 
 import { logout } from '@/routes';
-import type { NavItem } from '@/types';
-import ThemeToggle from "@/components/themetoggle/theme-toggle";
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutDashboard,
-    },
-    {
-        title: 'Assets',
-        href: assets.index.url(),
-        icon: Box,
-    },
-    {
-        title: 'Borrow Requests',
-        href: borrowRequests.index.url(),
-        icon: ClipboardList,
-        badge: 12,
-    },
-    {
-        title: 'Returns',
-        href: returns.index.url(),
-        icon: RefreshCcw,
-        badge: 5,
-    },
-    {
-        title: 'Employees',
-        href: employees.index.url(),
-        icon: Users,
-    },
-    {
-        title: 'Reports',
-        href: '#',
-        icon: BarChart3,
-    },
-];
-
-const bottomNavItems: NavItem[] = [
-    {
-        title: 'Settings',
-        href: '#',
-        icon: Settings,
-    },
-];
+import type { NavItem, SharedData } from '@/types';
+import ThemeToggle from '@/components/themetoggle/theme-toggle';
 
 export function AppSidebar() {
+    const { props } = usePage<SharedData>();
+    const counts = props.counts;
+
+    const mainNavItems: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutDashboard,
+        },
+        {
+            title: 'Assets',
+            href: assets.index.url(),
+            icon: Box,
+        },
+        {
+            title: 'Borrow Requests',
+            href: borrowRequests.index.url(),
+            icon: ClipboardList,
+            badge: counts?.pendingBorrowRequests ?? 0,
+        },
+        {
+            title: 'Returns',
+            href: returns.index.url(),
+            icon: RefreshCcw,
+            badge: counts?.awaitingReturns ?? 0,
+        },
+        {
+            title: 'Employees',
+            href: employees.index.url(),
+            icon: Users,
+        },
+        {
+            title: 'Reports',
+            href: '#',
+            icon: BarChart3,
+        },
+    ];
+
+    const bottomNavItems: NavItem[] = [
+        {
+            title: 'Settings',
+            href: '#',
+            icon: Settings,
+        },
+    ];
+
     const handleLogout = () => {
         router.post(logout.url());
     };

@@ -92,8 +92,8 @@ export function ReturnRequestDialog({ open, items, onOpenChange }: Props) {
                                 <label
                                     key={item.id}
                                     className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${checked
-                                            ? 'border-primary bg-primary/5'
-                                            : 'border-border hover:bg-muted/50'
+                                        ? 'border-primary bg-primary/5'
+                                        : 'border-border hover:bg-muted/50'
                                         }`}
                                 >
                                     <input
@@ -134,10 +134,11 @@ export function ReturnRequestDialog({ open, items, onOpenChange }: Props) {
                 )}
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button className="cursor-pointer" variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
                     <Button
+                        className="cursor-pointer"
                         onClick={handleSubmit}
                         disabled={selectedIds.length === 0 || submitting}
                     >

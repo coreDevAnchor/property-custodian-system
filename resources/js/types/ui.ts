@@ -24,6 +24,10 @@ export interface SharedData {
         type: FlashToast['type'] | null;
         message: string | null;
     };
+    counts: {
+        pendingBorrowRequests: number;
+        awaitingReturns: number;
+    } | null;
     [key: string]: unknown;
 }
 
