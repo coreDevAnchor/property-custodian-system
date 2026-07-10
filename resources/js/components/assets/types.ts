@@ -38,6 +38,7 @@ export interface Asset {
     name: string;
     description?: string;
     serial_number?: string;
+    condition: number;
 
     status: AssetStatus;
     acquisition_date: string;
