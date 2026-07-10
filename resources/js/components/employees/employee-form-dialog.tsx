@@ -65,7 +65,7 @@ export function EmployeeFormDialog({
         defaultValues: {
             name: '',
             email: '',
-            password: '',
+            password: 'Password123!',
             department: '',
             employee_id: '',
             contact: '',
@@ -171,22 +171,23 @@ export function EmployeeFormDialog({
                         <FormField
                             control={form.control}
                             name="password"
-                            render={({ field }) => (
+                            render={() => (
                                 <FormItem>
-                                    <FormLabel>
-                                        {mode === 'create' ? 'Password' : 'New Password (optional)'}
-                                    </FormLabel>
+                                    <FormLabel>Password</FormLabel>
+
                                     <FormControl>
                                         <Input
-                                            type="password"
-                                            placeholder={
-                                                mode === 'create'
-                                                    ? 'At least 8 characters'
-                                                    : 'Leave blank to keep current password'
-                                            }
-                                            {...field}
+                                            type="text"
+                                            value="Password123!"
+                                            readOnly
+                                            className="bg-muted cursor-not-allowed"
                                         />
                                     </FormControl>
+
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Default password: Password123! Employee should change it after first login.
+                                    </p>
+
                                     <FormMessage />
                                 </FormItem>
                             )}
