@@ -91,12 +91,14 @@ class BorrowRequestController extends Controller
                 'in:pending,borrowed,awaiting_check,returned,rejected',
             ],
             'remarks' => ['nullable', 'string'],
+            'return_condition' => ['nullable', 'in:ok,defective'],
         ]);
 
         $borrowRequest = BorrowRequest::with('asset')->findOrFail($id);
 
         $updateData = [
             'remarks' => $validated['remarks'] ?? $borrowRequest->remarks,
+            'return_condition' => $validated['return_condition'] ?? $borrowRequest->return_condition,
         ];
 
         if ($validated['status'] === 'borrowed') {

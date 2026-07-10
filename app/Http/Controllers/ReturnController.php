@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\BorrowRequest;
-use App\Models\ReturnRecord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -20,7 +19,6 @@ class ReturnController extends Controller
                 'asset.category',
                 'employee.user',
                 'checkedBy',
-                'returnRecord',
             ])
                 ->whereIn('status', ['awaiting_check', 'returned'])
                 ->latest('requested_at')
