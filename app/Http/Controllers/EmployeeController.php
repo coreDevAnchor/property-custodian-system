@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\Asset;
 use Inertia\Inertia;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class EmployeeController extends Controller
 {
@@ -42,7 +45,14 @@ class EmployeeController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+
+            'department' => ['required', 'string', 'max:255'],
+            'employee_id' => ['nullable', 'string', 'max:255', 'unique:employees,employee_id'],
+            'contact' => ['nullable', 'string', 'max:255'],
+        ]);
     }
 
     /**
