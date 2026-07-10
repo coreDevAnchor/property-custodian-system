@@ -56,7 +56,6 @@ class EmployeeController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
