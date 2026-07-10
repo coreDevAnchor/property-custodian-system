@@ -17,17 +17,22 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        //
-        $assets = Asset::with([
-            'category',
-            'location',
-            'borrows.employee.user',
-        ])->get();
+        $lastEmployee = Employee::latest('id')->first();
+
+        if ($lastEmployee) {
+            $lastNumber = (int) str_replace('EMP-', '', $lastEmployee->employee_id);
+
+            $nextEmployeeId = 'EMP-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $nextEmployeeId = 'EMP-0001';
+        }
 
         return Inertia::render('custodian/employee', [
             'employees' => Employee::with(['user', 'borrows.asset'])
                 ->latest()
                 ->paginate(10),
+
+            'nextEmployeeId' => $nextEmployeeId,
         ]);
     }
 
@@ -47,7 +52,6 @@ class EmployeeController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
 
             'department' => ['required', 'string', 'max:255'],
-            'employee_id' => ['nullable', 'string', 'max:255', 'unique:employees,employee_id'],
             'contact' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -60,10 +64,20 @@ class EmployeeController extends Controller
                 'role' => 'employee',
             ]);
 
+            $lastEmployee = Employee::latest('id')->first();
+
+            if ($lastEmployee) {
+                $lastNumber = (int) str_replace('EMP-', '', $lastEmployee->employee_id);
+
+                $employeeId = 'EMP-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+            } else {
+                $employeeId = 'EMP-0001';
+            }
+
             Employee::create([
                 'user_id' => $user->id,
                 'department' => $validated['department'],
-                'employee_id' => $validated['employee_id'] ?? null,
+                'employee_id' => $employeeId,
                 'contact' => $validated['contact'] ?? null,
                 'is_active' => true,
             ]);

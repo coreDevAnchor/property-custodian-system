@@ -204,9 +204,11 @@ interface Props {
     employees: {
         data: Employee[];
     };
+
+    nextEmployeeId: string;
 }
 
-export default function Employees({ employees }: Props) {
+export default function Employees({ employees, nextEmployeeId }: Props) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'All' | 'active' | 'inactive'>('All');
     const [viewTarget, setViewTarget] = useState<Employee | undefined>();
@@ -370,6 +372,7 @@ export default function Employees({ employees }: Props) {
                 mode={editingEmployee ? 'edit' : 'create'}
                 employee={editingEmployee}
                 onOpenChange={setDialogOpen}
+                nextEmployeeId={nextEmployeeId}
             />
 
             <EmployeeDeleteDialog

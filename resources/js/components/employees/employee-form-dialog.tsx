@@ -51,9 +51,16 @@ interface Props {
     mode: 'create' | 'edit';
     employee?: Employee;
     onOpenChange: (open: boolean) => void;
+    nextEmployeeId: string;
 }
 
-export function EmployeeFormDialog({ open, mode, employee, onOpenChange }: Props) {
+export function EmployeeFormDialog({
+    open,
+    mode,
+    employee,
+    onOpenChange,
+    nextEmployeeId,
+}: Props) {
     const form = useForm<FormValues>({
         defaultValues: {
             name: '',
@@ -206,7 +213,10 @@ export function EmployeeFormDialog({ open, mode, employee, onOpenChange }: Props
                                     <FormItem>
                                         <FormLabel>Employee ID</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="EMP-0001" {...field} />
+                                            <Input
+                                                value={mode === 'create' ? nextEmployeeId : employee?.employee_id ?? ''}
+                                                disabled
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
