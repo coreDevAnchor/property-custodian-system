@@ -29,7 +29,7 @@ createInertiaApp({
             <TooltipProvider delayDuration={0}>
                 <FlashToastListener />
                 {app}
-                <Toaster />
+                <Toaster richColors />
             </TooltipProvider>
         );
     },

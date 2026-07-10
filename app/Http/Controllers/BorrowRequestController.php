@@ -101,6 +101,7 @@ class BorrowRequestController extends Controller
         ]);
 
         $borrowRequest = BorrowRequest::with('asset')->findOrFail($id);
+        $wasPending = $borrowRequest->status === 'pending';
 
         $updateData = [
             'remarks' => $validated['remarks'] ?? $borrowRequest->remarks,
@@ -130,10 +131,19 @@ class BorrowRequestController extends Controller
                 'status' => 'available',
             ]);
         }
+        $message = match (true) {
+            $validated['status'] === 'borrowed' && $wasPending => 'The request has been approved.',
+            $validated['status'] === 'rejected' => 'The request has been rejected.',
+            $validated['status'] === 'awaiting_check' => 'Item marked as awaiting check.',
+            $validated['status'] === 'returned' => 'Return confirmed successfully.',
+            default => 'Borrow request updated successfully.',
+        };
+
+        $toastType = $validated['status'] === 'rejected' ? 'error' : 'success';
 
         return redirect()
-            ->route('borrow-requests.index')
-            ->with('success', 'Borrow request updated successfully.');
+            ->route('custodian.borrow-requests.index')
+            ->with($toastType, $message);
     }
 
     public function destroy(string $id)
@@ -141,7 +151,7 @@ class BorrowRequestController extends Controller
         BorrowRequest::destroy($id);
 
         return redirect()
-            ->route('borrow-requests.index')
+            ->route('custodian.borrow-requests.index')
             ->with('success', 'Borrow request deleted successfully.');
     }
 }

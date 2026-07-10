@@ -173,10 +173,14 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button
+                        className='cursor-pointer'
+                        variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button onClick={() => onSubmit(asset.id, remarks)}>
+                    <Button
+                        className='cursor-pointer'
+                        onClick={() => onSubmit(asset.id, remarks)}>
                         Submit Request
                     </Button>
                 </DialogFooter>

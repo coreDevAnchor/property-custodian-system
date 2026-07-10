@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\BorrowRequest;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -55,6 +56,12 @@ class HandleInertiaRequests extends Middleware
                     ?? $request->session()->get('warning')
                     ?? $request->session()->get('info'),
             ],
+            'counts' => $request->user()?->role === 'custodian'
+                ? [
+                    'pendingBorrowRequests' => BorrowRequest::where('status', 'pending')->count(),
+                    'awaitingReturns' => BorrowRequest::where('status', 'awaiting_check')->count(),
+                ]
+                : null,
         ];
     }
 }

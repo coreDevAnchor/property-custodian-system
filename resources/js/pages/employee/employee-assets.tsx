@@ -138,7 +138,7 @@ export default function AvailableAssets({ assets, categories }: Props) {
 
     function handleSubmitRequest(assetId: number, remarks: string) {
         router.post(
-            '/borrow-requests',
+            '/employee/borrow-requests',
             { asset_id: assetId, remarks },
             {
                 preserveScroll: true,
