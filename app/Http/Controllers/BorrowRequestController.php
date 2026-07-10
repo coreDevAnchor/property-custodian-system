@@ -38,11 +38,26 @@ class BorrowRequestController extends Controller
 
         $asset = Asset::findOrFail($validated['asset_id']);
 
+
         if ($asset->status !== 'available') {
             return back()->withErrors([
                 'asset_id' => 'This asset is not available for borrowing.',
             ]);
         }
+        $existing = BorrowRequest::query()
+            ->where('asset_id', $asset->id)
+            ->where('employee_id', Auth::user()->employee->id)
+            ->where(function ($q) {
+                $q->where('status', 'pending')
+                  ->orWhere('status', 'borrowed');
+            })
+            ->exists();
+
+        if ($existing) {
+        return back()->withErrors([
+            'asset_id' => 'You already have a pending or active request for this asset.',
+        ]);
+    }   
 
         $employee = Auth::user()->employee;
 
@@ -151,7 +166,7 @@ class BorrowRequestController extends Controller
         BorrowRequest::destroy($id);
 
         return redirect()
-            ->route('custodian.borrow-requests.index')
-            ->with('success', 'Borrow request deleted successfully.');
+        ->route('custodian.borrow-requests.index')
+        ->with('success', 'Borrow request deleted successfully.');
     }
 }
