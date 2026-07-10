@@ -13,7 +13,7 @@ class AvailableAssetController extends Controller
     public function index()
     {
         return Inertia::render('employee/employee-assets', [
-            'assets' => Asset::with('category')
+            'assets' => Asset::with('category', 'location')
                 ->where('status', 'available')
                 ->latest()
                 ->paginate(10),
