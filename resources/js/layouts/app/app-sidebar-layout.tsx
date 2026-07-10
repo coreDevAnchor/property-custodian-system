@@ -1,16 +1,24 @@
+import { usePage } from '@inertiajs/react';
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
+import { EmployeeSidebar } from '@/components/ui/employee-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
-import type { AppLayoutProps } from '@/types';
+import type { AppLayoutProps, SharedData } from '@/types';
 
 export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
+    const { auth } = usePage<SharedData>().props;
+
+    console.log(auth.user);
+
+    const isCustodian = auth.user?.role === 'custodian';
+
     return (
         <AppShell variant="sidebar">
-            <AppSidebar />
+            {isCustodian ? <AppSidebar /> : <EmployeeSidebar />}
             <AppContent variant="sidebar" className="overflow-x-hidden">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}

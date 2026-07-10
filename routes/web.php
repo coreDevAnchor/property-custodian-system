@@ -6,6 +6,9 @@ use App\Http\Controllers\AssetController;
 use App\Http\Controllers\BorrowRequestController;
 use App\Http\Controllers\ReturnController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeDashboardController;
+use App\Http\Controllers\AvailableAssetController;
+use App\Http\Controllers\MyBorrowController;
 
 Route::redirect('/', '/login');
 
@@ -32,13 +35,20 @@ Route::middleware(['auth', 'verified'])
     ->prefix('employee')
     ->name('employee.')
     ->group(function () {
+        Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
 
-        Route::get('/dashboard', function () {
-            return Inertia::render('employee/dashboard');
-        })->name('dashboard');
+        Route::get('/assets', [AvailableAssetController::class, 'index'])
+            ->name('assets.index');
 
+        Route::get('/borrows', [MyBorrowController::class, 'index'])
+            ->name('borrows.index');
     });
-//Route::resource('assets', AssetController::class);
-Route::resource('borrow-requests', BorrowRequestController::class);
+
+Route::middleware(['auth', 'verified'])
+    ->group(function () {
+        Route::post('/borrow-requests', [BorrowRequestController::class, 'store'])
+            ->name('borrow-requests.store');
+    });
+
 
 require __DIR__ . '/settings.php';
