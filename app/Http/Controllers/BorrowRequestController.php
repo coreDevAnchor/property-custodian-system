@@ -39,26 +39,8 @@ class BorrowRequestController extends Controller
 
         $asset = Asset::findOrFail($validated['asset_id']);
 
-
         if ($asset->status !== 'available') {
-            return back()->withErrors([
-                'asset_id' => 'This asset is not available for borrowing.',
-            ]);
-        }
-
-        $existing = BorrowRequest::query()
-            ->where('asset_id', $asset->id)
-            ->where('employee_id', Auth::user()->employee->id)
-            ->where(function ($q) {
-                $q->where('status', 'pending')
-                    ->orWhere('status', 'borrowed');
-            })
-            ->exists();
-
-        if ($existing) {
-            return back()->withErrors([
-                'asset_id' => 'You already have a pending or active request for this asset.',
-            ]);
+            return back()->with('error', 'This asset is not available for borrowing.');
         }
 
         $employee = Auth::user()->employee;
@@ -67,9 +49,18 @@ class BorrowRequestController extends Controller
             abort(403, 'Only employees can submit borrow requests.');
         }
 
+        $hasDuplicate = BorrowRequest::where('asset_id', $asset->id)
+            ->where('employee_id', $employee->id)
+            ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
+            ->exists();
+
+        if ($hasDuplicate) {
+            return back()->with('error', "You can't duplicate a borrow request.");
+        }
+
         BorrowRequest::create([
             'asset_id' => $asset->id,
-            'employee_id' => Auth::user()->employee->id,
+            'employee_id' => $employee->id,
             'status' => 'pending',
             'requested_at' => now(),
             'remarks' => $validated['remarks'] ?? null,
