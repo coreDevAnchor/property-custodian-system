@@ -18,6 +18,13 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 
@@ -53,6 +60,16 @@ interface Props {
     onOpenChange: (open: boolean) => void;
     nextEmployeeId: string;
 }
+
+const departments = [
+    'IT Department',
+    'Human Resources',
+    'Finance',
+    'Accounting',
+    'Administration',
+    'Procurement',
+    'Maintenance',
+];
 
 export function EmployeeFormDialog({
     open,
@@ -201,7 +218,25 @@ export function EmployeeFormDialog({
                                     <FormItem>
                                         <FormLabel>Department</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="IT Department" {...field} />
+                                            <Select
+                                                value={field.value}
+                                                onValueChange={field.onChange}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Department" />
+                                                </SelectTrigger>
+
+                                                <SelectContent>
+                                                    {departments.map((department) => (
+                                                        <SelectItem
+                                                            key={department}
+                                                            value={department}
+                                                        >
+                                                            {department}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
