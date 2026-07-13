@@ -150,6 +150,7 @@ export function AssetFormDialog({
             serial_number: "",
 
             acquisition_date: "",
+            acquisition_cost: 0,
 
             status: "available",
         },
@@ -171,14 +172,15 @@ export function AssetFormDialog({
                 serial_number: asset.serial_number ?? "",
 
                 acquisition_date: asset.acquisition_date,
+                acquisition_cost: asset.acquisition_cost,
 
                 status: asset.status,
             });
         }
 
-        if (mode === "create") {
-            form.reset();
-        }
+        form.reset({
+            acquisition_cost: 0,
+        });
 
         // Reset image staging whenever the dialog switches asset/mode.
         setImages((prev) => {
@@ -509,7 +511,7 @@ export function AssetFormDialog({
                                 />
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-4 md:grid-cols-3">
                                 <FormField
                                     control={form.control}
                                     name="acquisition_date"
@@ -519,6 +521,28 @@ export function AssetFormDialog({
 
                                             <FormControl className="cursor-pointer">
                                                 <Input type="date" {...field} />
+                                            </FormControl>
+
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="acquisition_cost"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Acquisition Cost</FormLabel>
+
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    placeholder="0.00"
+                                                    value={field.value === 0 ? "" : field.value}
+                                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                                />
                                             </FormControl>
 
                                             <FormMessage />

@@ -38,10 +38,15 @@ export interface Asset {
     name: string;
     description?: string;
     serial_number?: string;
-    condition: number;
 
     status: AssetStatus;
     acquisition_date: string;
+
+    condition: number;
+    acquisition_cost: number;
+    depreciation_rate: number;
+    photo?: string | null;
+
     asset_type: AssetType;
 
     category: {
