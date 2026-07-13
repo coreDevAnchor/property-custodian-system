@@ -13,6 +13,7 @@ import {
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import * as custodians from '@/routes/custodian/custodians';
 import {
     Sidebar,
     SidebarContent,
@@ -66,6 +67,11 @@ export function AppSidebar() {
         {
             title: 'Employees',
             href: employees.index.url(),
+            icon: Users,
+        },
+        {
+            title: 'Custodians',
+            href: custodians.index.url(),
             icon: Users,
         },
         {
