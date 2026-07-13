@@ -30,6 +30,7 @@ import * as borrowRequests from '@/routes/custodian/borrow-requests';
 import * as employees from '@/routes/custodian/employees';
 import * as returns from '@/routes/custodian/returns';
 import * as activity from '@/routes/custodian/activity';
+import * as reports from '@/actions/App/Http/Controllers/Custodian/ReportController';
 
 import { logout } from '@/routes';
 import type { NavItem, SharedData } from '@/types';
@@ -74,7 +75,7 @@ export function AppSidebar() {
         },
         {
             title: 'Reports',
-            href: '#',
+            href: reports.index.url(),
             icon: BarChart3,
         },
     ];
