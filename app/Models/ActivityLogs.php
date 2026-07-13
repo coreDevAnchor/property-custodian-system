@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class ActivityLogs extends Model
 {
-    //public $timestamps = false;
+    public $timestamps = false;
 
     protected $fillable = [
         'asset_id',

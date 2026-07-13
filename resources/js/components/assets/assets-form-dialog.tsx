@@ -178,9 +178,9 @@ export function AssetFormDialog({
             });
         }
 
-        form.reset({
-            acquisition_cost: 0,
-        });
+        if (mode === "create") {
+            form.reset();
+        }
 
         // Reset image staging whenever the dialog switches asset/mode.
         setImages((prev) => {
@@ -511,7 +511,7 @@ export function AssetFormDialog({
                                 />
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-3">
+                            <div className="grid gap-4 md:grid-cols-2">
                                 <FormField
                                     control={form.control}
                                     name="acquisition_date"
@@ -527,13 +527,13 @@ export function AssetFormDialog({
                                         </FormItem>
                                     )}
                                 />
+
                                 <FormField
                                     control={form.control}
                                     name="acquisition_cost"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Acquisition Cost</FormLabel>
-
                                             <FormControl>
                                                 <Input
                                                     type="number"
@@ -544,7 +544,6 @@ export function AssetFormDialog({
                                                     onChange={(e) => field.onChange(Number(e.target.value))}
                                                 />
                                             </FormControl>
-
                                             <FormMessage />
                                         </FormItem>
                                     )}
