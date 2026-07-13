@@ -193,7 +193,7 @@ class BorrowRequestController extends Controller
         $toastType = $validated['status'] === 'rejected' ? 'error' : 'success';
 
         return redirect()
-            ->route('custodian.borrow-requests.index')
+            ->back()
             ->with($toastType, $message);
     }
 

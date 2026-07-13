@@ -41,7 +41,7 @@ class EmployeeReturnController extends Controller
         foreach ($borrows as $borrow) {
             $borrow->update(['status' => 'awaiting_check']);
 
-            ActivityLog::record(
+            ActivityLogs::record(
                 $borrow->asset,
                 'return_submitted',
                 "{$employee->user->name} submitted {$borrow->asset->name} for return inspection."
