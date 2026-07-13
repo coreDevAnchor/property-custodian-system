@@ -12,6 +12,7 @@ export const assetSchema = z.object({
     serial_number: z.string().optional(),
 
     acquisition_date: z.string(),
+    acquisition_cost: z.number().min(0),
 
     status: z.enum([
         "available",

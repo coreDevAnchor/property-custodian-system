@@ -309,6 +309,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                 !searchTerm ||
                 asset.name.toLowerCase().includes(searchTerm) ||
                 asset.asset_tag.toLowerCase().includes(searchTerm) ||
+                asset.asset_type.name.toLowerCase().includes(searchTerm) ||
                 asset.category.name.toLowerCase().includes(searchTerm) ||
                 asset.location.name.toLowerCase().includes(searchTerm);
 

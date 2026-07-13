@@ -18,6 +18,13 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 
@@ -51,14 +58,31 @@ interface Props {
     mode: 'create' | 'edit';
     employee?: Employee;
     onOpenChange: (open: boolean) => void;
+    nextEmployeeId: string;
 }
 
-export function EmployeeFormDialog({ open, mode, employee, onOpenChange }: Props) {
+const departments = [
+    'IT Department',
+    'Human Resources',
+    'Finance',
+    'Accounting',
+    'Administration',
+    'Procurement',
+    'Maintenance',
+];
+
+export function EmployeeFormDialog({
+    open,
+    mode,
+    employee,
+    onOpenChange,
+    nextEmployeeId,
+}: Props) {
     const form = useForm<FormValues>({
         defaultValues: {
             name: '',
             email: '',
-            password: '',
+            password: 'Password123!',
             department: '',
             employee_id: '',
             contact: '',
@@ -164,22 +188,23 @@ export function EmployeeFormDialog({ open, mode, employee, onOpenChange }: Props
                         <FormField
                             control={form.control}
                             name="password"
-                            render={({ field }) => (
+                            render={() => (
                                 <FormItem>
-                                    <FormLabel>
-                                        {mode === 'create' ? 'Password' : 'New Password (optional)'}
-                                    </FormLabel>
+                                    <FormLabel>Password</FormLabel>
+
                                     <FormControl>
                                         <Input
-                                            type="password"
-                                            placeholder={
-                                                mode === 'create'
-                                                    ? 'At least 8 characters'
-                                                    : 'Leave blank to keep current password'
-                                            }
-                                            {...field}
+                                            type="text"
+                                            value="Password123!"
+                                            readOnly
+                                            className="bg-muted cursor-not-allowed"
                                         />
                                     </FormControl>
+
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Default password: Password123! Employee should change it after first login.
+                                    </p>
+
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -193,7 +218,25 @@ export function EmployeeFormDialog({ open, mode, employee, onOpenChange }: Props
                                     <FormItem>
                                         <FormLabel>Department</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="IT Department" {...field} />
+                                            <Select
+                                                value={field.value}
+                                                onValueChange={field.onChange}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Department" />
+                                                </SelectTrigger>
+
+                                                <SelectContent>
+                                                    {departments.map((department) => (
+                                                        <SelectItem
+                                                            key={department}
+                                                            value={department}
+                                                        >
+                                                            {department}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -206,7 +249,10 @@ export function EmployeeFormDialog({ open, mode, employee, onOpenChange }: Props
                                     <FormItem>
                                         <FormLabel>Employee ID</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="EMP-0001" {...field} />
+                                            <Input
+                                                value={mode === 'create' ? nextEmployeeId : employee?.employee_id ?? ''}
+                                                disabled
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
