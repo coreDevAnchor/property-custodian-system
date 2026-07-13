@@ -47,9 +47,14 @@ class Asset extends Model
             ->where('status', 'borrowed')
             ->latestOfMany();
     }
-    
+
     public function assetType(): BelongsTo
     {
         return $this->belongsTo(AssetType::class);
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLogs::class)->latest('created_at');
     }
 }

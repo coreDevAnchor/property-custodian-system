@@ -8,6 +8,7 @@ import {
     RefreshCcw,
     Settings,
     Users,
+    History,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -28,6 +29,7 @@ import assets from '@/routes/custodian/assets/index';
 import * as borrowRequests from '@/routes/custodian/borrow-requests';
 import * as employees from '@/routes/custodian/employees';
 import * as returns from '@/routes/custodian/returns';
+import * as activity from '@/routes/custodian/activity';
 
 import { logout } from '@/routes';
 import type { NavItem, SharedData } from '@/types';
@@ -64,6 +66,11 @@ export function AppSidebar() {
             title: 'Employees',
             href: employees.index.url(),
             icon: Users,
+        },
+        {
+            title: 'Audit Trail',
+            href: activity.index.url(),
+            icon: History,
         },
         {
             title: 'Reports',

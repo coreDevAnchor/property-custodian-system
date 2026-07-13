@@ -7,6 +7,7 @@ use App\Models\BorrowRequest;
 use Inertia\Inertia;
 use App\Models\Asset;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ActivityLogs;
 
 class BorrowRequestController extends Controller
 {
@@ -44,20 +45,21 @@ class BorrowRequestController extends Controller
                 'asset_id' => 'This asset is not available for borrowing.',
             ]);
         }
+
         $existing = BorrowRequest::query()
             ->where('asset_id', $asset->id)
             ->where('employee_id', Auth::user()->employee->id)
             ->where(function ($q) {
                 $q->where('status', 'pending')
-                  ->orWhere('status', 'borrowed');
+                    ->orWhere('status', 'borrowed');
             })
             ->exists();
 
         if ($existing) {
-        return back()->withErrors([
-            'asset_id' => 'You already have a pending or active request for this asset.',
-        ]);
-    }   
+            return back()->withErrors([
+                'asset_id' => 'You already have a pending or active request for this asset.',
+            ]);
+        }
 
         $employee = Auth::user()->employee;
 
@@ -72,6 +74,12 @@ class BorrowRequestController extends Controller
             'requested_at' => now(),
             'remarks' => $validated['remarks'] ?? null,
         ]);
+
+        ActivityLogs::record(
+            $asset,
+            'borrow_requested',
+            "{$employee->user->name} requested to borrow {$asset->name}."
+        );
 
         return redirect()
             ->route('employee.assets.index')
@@ -117,6 +125,8 @@ class BorrowRequestController extends Controller
 
         $borrowRequest = BorrowRequest::with('asset')->findOrFail($id);
         $wasPending = $borrowRequest->status === 'pending';
+        $asset = $borrowRequest->asset;
+        $requesterName = $borrowRequest->employee->user->name;
 
         $updateData = [
             'remarks' => $validated['remarks'] ?? $borrowRequest->remarks,
@@ -154,6 +164,32 @@ class BorrowRequestController extends Controller
             default => 'Borrow request updated successfully.',
         };
 
+        $logAction = match (true) {
+            $validated['status'] === 'borrowed' && $wasPending => 'borrow_approved',
+            $validated['status'] === 'rejected' => 'borrow_rejected',
+            $validated['status'] === 'awaiting_check' => 'return_submitted',
+            $validated['status'] === 'returned' => 'return_inspected',
+            default => 'borrow_updated',
+        };
+
+        $logDescription = match (true) {
+            $validated['status'] === 'borrowed' && $wasPending =>
+            "Borrow request from {$requesterName} was approved.",
+            $validated['status'] === 'rejected' =>
+            "Borrow request from {$requesterName} was rejected.",
+            $validated['status'] === 'awaiting_check' =>
+            "{$requesterName} submitted {$asset->name} for return inspection.",
+            $validated['status'] === 'returned' =>
+            "{$asset->name} was inspected and confirmed returned"
+            . ($updateData['return_condition'] ? " ({$updateData['return_condition']})." : '.'),
+            default => "Borrow request status changed to {$validated['status']}.",
+        };
+
+        ActivityLogs::record($asset, $logAction, $logDescription, [
+            'borrow_request_id' => $borrowRequest->id,
+            'status' => $validated['status'],
+        ]);
+
         $toastType = $validated['status'] === 'rejected' ? 'error' : 'success';
 
         return redirect()
@@ -166,7 +202,7 @@ class BorrowRequestController extends Controller
         BorrowRequest::destroy($id);
 
         return redirect()
-        ->route('custodian.borrow-requests.index')
-        ->with('success', 'Borrow request deleted successfully.');
+            ->route('custodian.borrow-requests.index')
+            ->with('success', 'Borrow request deleted successfully.');
     }
 }

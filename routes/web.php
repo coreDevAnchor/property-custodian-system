@@ -10,6 +10,9 @@ use App\Http\Controllers\EmployeeDashboardController;
 use App\Http\Controllers\AvailableAssetController;
 use App\Http\Controllers\MyBorrowController;
 use App\Http\Controllers\EmployeeReturnController;
+use App\Http\Controllers\AuditTrailController;
+use App\Http\Controllers\CustodianDashboardController;
+
 
 Route::redirect('/', '/login');
 
@@ -18,14 +21,14 @@ Route::middleware(['auth', 'verified'])
     ->name('custodian.')
     ->group(function () {
 
-        Route::get('/dashboard', function () {
-            return Inertia::render('custodian/dashboard');
-        })->name('dashboard');
-
+        Route::get('/dashboard', [CustodianDashboardController::class, 'index'])
+            ->name('dashboard');
         Route::resource('assets', AssetController::class);
         Route::resource('borrow-requests', BorrowRequestController::class);
         Route::resource('returns', ReturnController::class);
         Route::resource('employees', EmployeeController::class)->except(['create', 'edit']);
+        Route::get('/activity', [AuditTrailController::class, 'index'])
+            ->name('activity.index');
     });
 
 Route::get('/dev-custodian', function () {

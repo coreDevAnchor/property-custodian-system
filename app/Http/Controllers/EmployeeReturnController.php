@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\BorrowRequest;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ActivityLogs;
 
 class EmployeeReturnController extends Controller
 {
@@ -25,7 +26,8 @@ class EmployeeReturnController extends Controller
             abort(403, 'Only employees can submit returns.');
         }
 
-        $borrows = BorrowRequest::whereIn('id', $validated['borrow_ids'])
+        $borrows = BorrowRequest::with('asset')
+            ->whereIn('id', $validated['borrow_ids'])
             ->where('employee_id', $employee->id)
             ->where('status', 'borrowed')
             ->get();
@@ -37,9 +39,13 @@ class EmployeeReturnController extends Controller
         }
 
         foreach ($borrows as $borrow) {
-            $borrow->update([
-                'status' => 'awaiting_check',
-            ]);
+            $borrow->update(['status' => 'awaiting_check']);
+
+            ActivityLog::record(
+                $borrow->asset,
+                'return_submitted',
+                "{$employee->user->name} submitted {$borrow->asset->name} for return inspection."
+            );
         }
 
         return redirect()

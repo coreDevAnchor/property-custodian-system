@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use App\Models\AssetType;
+use App\Models\ActivityLogs;
+
 
 class AssetController extends Controller
 {
@@ -67,7 +69,13 @@ class AssetController extends Controller
             $validated['photo'] = $request->file('photo')->store('assets', 'public');
         }
 
-        Asset::create($validated);
+        $asset = Asset::create($validated);
+
+        ActivityLogs::record(
+            $asset,
+            'asset_created',
+            "{$asset->name} ({$asset->asset_tag}) was added to inventory."
+        );
 
         return redirect()
             ->route('custodian.assets.index')
@@ -82,6 +90,7 @@ class AssetController extends Controller
                 'assetType',
                 'location',
                 'currentBorrow',
+                'activityLogs.actor',
             ])
         );
     }
@@ -115,6 +124,16 @@ class AssetController extends Controller
             'asset_type_id' => ['required', 'exists:asset_types,id'],
         ]);
 
+        $previousStatus = $asset->status;
+
+        if ($asset->asset_type_id !== (int) $validated['asset_type_id']) {
+            $validated['acquisition_cost'] ??= $asset->acquisition_cost;
+            $validated['depreciation_rate'] ??= $asset->depreciation_rate;
+            $validated['condition'] ??= $asset->condition;
+        }
+
+        $validated['depreciation_rate'] ??= 0;
+
         if ($asset->asset_type_id !== (int) $validated['asset_type_id']) {
             $validated['acquisition_cost'] ??= $asset->acquisition_cost;
             $validated['depreciation_rate'] ??= $asset->depreciation_rate;
@@ -124,17 +143,35 @@ class AssetController extends Controller
         $validated['depreciation_rate'] ??= 0;
 
         if ($request->hasFile('photo')) {
-
             if ($asset->photo) {
                 Storage::disk('public')->delete($asset->photo);
             }
 
-            $validated['photo'] = $request
-                ->file('photo')
-                ->store('assets', 'public');
+            $validated['photo'] = $request->file('photo')->store('assets', 'public');
         }
 
         $asset->update($validated);
+
+        if ($previousStatus !== $asset->status) {
+            $action = match ($asset->status) {
+                'disposed' => 'asset_disposed',
+                'under_repair' => 'asset_repair_flagged',
+                default => 'asset_updated',
+            };
+
+            $description = match ($asset->status) {
+                'disposed' => "{$asset->name} was marked as disposed.",
+                'under_repair' => "{$asset->name} was flagged for repair.",
+                default => "{$asset->name} status changed to {$asset->status}.",
+            };
+
+            ActivityLogs::record($asset, $action, $description, [
+                'from' => $previousStatus,
+                'to' => $asset->status,
+            ]);
+        } else {
+            ActivityLogs::record($asset, 'asset_updated', "{$asset->name} details were updated.");
+        }
 
         return redirect()
             ->route('custodian.assets.index')
@@ -143,6 +180,8 @@ class AssetController extends Controller
 
     public function destroy(Asset $asset)
     {
+        ActivityLogs::record($asset, 'asset_deleted', "{$asset->name} ({$asset->asset_tag}) was removed from inventory.");
+
         if ($asset->photo) {
             Storage::disk('public')->delete($asset->photo);
         }

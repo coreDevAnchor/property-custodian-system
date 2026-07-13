@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { ImageOff, Pencil } from "lucide-react";
 
 import type { Asset } from "@/components/assets/types";
+import { useEffect, useState } from 'react';
+import { ActivityFeed } from '@/components/activity/activity-feed';
 
 // ── Extra fields that exist on the backend model but may not yet be
 // on the shared Asset type. Marked optional so this renders safely
@@ -135,6 +137,18 @@ function formatDate(value?: string) {
 
 export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
     if (!asset) return null;
+    const [logs, setLogs] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!open || !asset) return;
+
+        fetch(`/custodian/assets/${asset.id}`, {
+            headers: { Accept: 'application/json' },
+        })
+            .then((res) => res.json())
+            .then((data) => setLogs(data.activity_logs ?? []));
+    }, [open, asset?.id]);
+
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -273,6 +287,14 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
                                         No borrowing history.
                                     </p>
                                 )}
+                            </div>
+                        </div>
+                        <div>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                Activity Timeline
+                            </span>
+                            <div className="mt-2 rounded-lg border border-border p-3">
+                                <ActivityFeed items={logs} />
                             </div>
                         </div>
                     </div>
