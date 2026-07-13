@@ -56,7 +56,7 @@ class AssetController extends Controller
             'status' => ['required', 'in:available,borrowed,under_repair,disposed'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'asset_type_id' => ['required', 'exists:asset_types,id'],
         ]);
 
@@ -120,7 +120,7 @@ class AssetController extends Controller
             'status' => ['required', 'in:available,borrowed,under_repair,disposed'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'asset_type_id' => ['required', 'exists:asset_types,id'],
         ]);
 

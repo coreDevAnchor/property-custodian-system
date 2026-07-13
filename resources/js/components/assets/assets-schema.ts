@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from 'zod';
 
 export const assetSchema = z.object({
     name: z.string().min(1),
@@ -13,12 +13,7 @@ export const assetSchema = z.object({
 
     acquisition_date: z.string(),
     acquisition_cost: z.number().min(0),
+    depreciation_rate: z.number().min(0).max(100),
 
-    status: z.enum([
-        "available",
-        "borrowed",
-        "under_repair",
-        "disposed",
-    ]),
-
+    status: z.enum(['available', 'borrowed', 'under_repair', 'disposed']),
 });

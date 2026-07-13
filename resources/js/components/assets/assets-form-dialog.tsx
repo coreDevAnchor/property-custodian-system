@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { router } from "@inertiajs/react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ImagePlus, Star, X } from "lucide-react";
-import type { FormDataConvertible } from "@inertiajs/core";
+import { useEffect, useRef, useState } from 'react';
+import { router } from '@inertiajs/react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ImagePlus, Star, X } from 'lucide-react';
+import type { FormDataConvertible } from '@inertiajs/core';
 
 import {
     Dialog,
@@ -12,7 +12,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 import {
     Form,
@@ -21,10 +21,10 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
-} from "@/components/ui/form";
+} from '@/components/ui/form';
 
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 import {
     Select,
@@ -32,13 +32,13 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
-import { assetSchema } from "@/components/assets/assets-schema";
-import type { z } from "zod";
-import type { Asset, Category } from "@/components/assets/types";
+import { assetSchema } from '@/components/assets/assets-schema';
+import type { z } from 'zod';
+import type { Asset, Category } from '@/components/assets/types';
 
 type FormValues = z.infer<typeof assetSchema>;
 
@@ -49,7 +49,7 @@ interface AssetLocation {
 
 interface Props {
     open: boolean;
-    mode: "create" | "edit";
+    mode: 'create' | 'edit';
 
     asset?: Asset;
 
@@ -107,11 +107,13 @@ function ConditionScale({
                         key={option.value}
                         type="button"
                         onClick={() => onChange(option.value)}
-                        className={`flex-1 border-border px-3 py-2 text-sm font-semibold transition-colors cursor-pointer ${index !== 0 ? 'border-l' : ''
-                            } ${isActive
+                        className={`flex-1 cursor-pointer border-border px-3 py-2 text-sm font-semibold transition-colors ${
+                            index !== 0 ? 'border-l' : ''
+                        } ${
+                            isActive
                                 ? conditionActiveStyles[option.value]
                                 : 'bg-background text-muted-foreground hover:bg-muted/50'
-                            }`}
+                        }`}
                     >
                         {option.label}
                     </button>
@@ -139,46 +141,48 @@ export function AssetFormDialog({
         resolver: zodResolver(assetSchema),
 
         defaultValues: {
-            name: "",
-            description: "",
+            name: '',
+            description: '',
 
             category_id: undefined,
             location_id: undefined,
             asset_type_id: undefined,
             condition: undefined,
 
-            serial_number: "",
+            serial_number: '',
 
-            acquisition_date: "",
+            acquisition_date: '',
             acquisition_cost: 0,
+            depreciation_rate: 0,
 
-            status: "available",
+            status: 'available',
         },
     });
 
     useEffect(() => {
-        if (mode === "edit" && asset) {
+        if (mode === 'edit' && asset) {
             console.log(asset);
 
             form.reset({
                 name: asset.name,
-                description: asset.description ?? "",
+                description: asset.description ?? '',
 
                 category_id: asset.category.id,
                 location_id: asset.location.id,
                 asset_type_id: asset.asset_type.id,
                 condition: asset.condition,
 
-                serial_number: asset.serial_number ?? "",
+                serial_number: asset.serial_number ?? '',
 
                 acquisition_date: asset.acquisition_date,
                 acquisition_cost: asset.acquisition_cost,
+                depreciation_rate: asset.depreciation_rate,
 
                 status: asset.status,
             });
         }
 
-        if (mode === "create") {
+        if (mode === 'create') {
             form.reset();
         }
 
@@ -211,7 +215,7 @@ export function AssetFormDialog({
         setImages((prev) => [...prev, ...next]);
 
         // Allow re-selecting the same file again later.
-        if (fileInputRef.current) fileInputRef.current.value = "";
+        if (fileInputRef.current) fileInputRef.current.value = '';
     }
 
     function handleMakeMain(id: string) {
@@ -244,8 +248,8 @@ export function AssetFormDialog({
             payload.photo = mainImage.file;
         }
 
-        if (mode === "create") {
-            router.post("/custodian/assets", payload, {
+        if (mode === 'create') {
+            router.post('/custodian/assets', payload, {
                 forceFormData: true,
                 onSuccess: () => {
                     onOpenChange(false);
@@ -262,35 +266,35 @@ export function AssetFormDialog({
         }
     };
 
-    const selectedCategoryId = form.watch("category_id");
+    const selectedCategoryId = form.watch('category_id');
 
-    console.log("categories", categories);
-    console.log("locations", locations);
-    console.log("assetTypes", assetTypes);
+    console.log('categories', categories);
+    console.log('locations', locations);
+    console.log('assetTypes', assetTypes);
     const filteredAssetTypes = (assetTypes ?? []).filter(
         (assetType) =>
             !selectedCategoryId ||
-            assetType.category?.id === selectedCategoryId
+            assetType.category?.id === selectedCategoryId,
     );
 
-    console.log("categories", categories);
-    console.log("locations", locations);
-    console.log("assetTypes", assetTypes);
-    console.log("filteredAssetTypes", filteredAssetTypes);
-    console.log("subImages", subImages);
+    console.log('categories', categories);
+    console.log('locations', locations);
+    console.log('assetTypes', assetTypes);
+    console.log('filteredAssetTypes', filteredAssetTypes);
+    console.log('subImages', subImages);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
                 <DialogHeader>
                     <DialogTitle>
-                        {mode === "create" ? "Create Asset" : "Edit Asset"}
+                        {mode === 'create' ? 'Create Asset' : 'Edit Asset'}
                     </DialogTitle>
 
                     <DialogDescription>
-                        {mode === "create"
-                            ? "Add a new asset to inventory."
-                            : "Update asset information."}
+                        {mode === 'create'
+                            ? 'Add a new asset to inventory.'
+                            : 'Update asset information.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -351,7 +355,9 @@ export function AssetFormDialog({
                                             <Select
                                                 value={field.value?.toString()}
                                                 onValueChange={(value) =>
-                                                    field.onChange(Number(value))
+                                                    field.onChange(
+                                                        Number(value),
+                                                    )
                                                 }
                                             >
                                                 <FormControl className="cursor-pointer">
@@ -361,14 +367,18 @@ export function AssetFormDialog({
                                                 </FormControl>
 
                                                 <SelectContent>
-                                                    {(categories ?? []).map((category) => (
-                                                        <SelectItem
-                                                            key={category.id}
-                                                            value={category.id.toString()}
-                                                        >
-                                                            {category.name}
-                                                        </SelectItem>
-                                                    ))}
+                                                    {(categories ?? []).map(
+                                                        (category) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    category.id
+                                                                }
+                                                                value={category.id.toString()}
+                                                            >
+                                                                {category.name}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
                                                 </SelectContent>
                                             </Select>
 
@@ -386,7 +396,9 @@ export function AssetFormDialog({
                                             <Select
                                                 value={field.value?.toString()}
                                                 onValueChange={(value) =>
-                                                    field.onChange(Number(value))
+                                                    field.onChange(
+                                                        Number(value),
+                                                    )
                                                 }
                                             >
                                                 <FormControl className="cursor-pointer">
@@ -396,14 +408,18 @@ export function AssetFormDialog({
                                                 </FormControl>
 
                                                 <SelectContent>
-                                                    {filteredAssetTypes.map((assetType) => (
-                                                        <SelectItem
-                                                            key={assetType.id}
-                                                            value={assetType.id.toString()}
-                                                        >
-                                                            {assetType.name}
-                                                        </SelectItem>
-                                                    ))}
+                                                    {filteredAssetTypes.map(
+                                                        (assetType) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    assetType.id
+                                                                }
+                                                                value={assetType.id.toString()}
+                                                            >
+                                                                {assetType.name}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
                                                 </SelectContent>
                                             </Select>
 
@@ -421,24 +437,30 @@ export function AssetFormDialog({
                                             <Select
                                                 value={field.value?.toString()}
                                                 onValueChange={(value) =>
-                                                    field.onChange(Number(value))
+                                                    field.onChange(
+                                                        Number(value),
+                                                    )
                                                 }
                                             >
                                                 <FormControl className="cursor-pointer">
-                                                    <SelectTrigger >
+                                                    <SelectTrigger>
                                                         <SelectValue placeholder="Select location" />
                                                     </SelectTrigger>
                                                 </FormControl>
 
                                                 <SelectContent>
-                                                    {(locations ?? []).map((location) => (
-                                                        <SelectItem
-                                                            key={location.id}
-                                                            value={location.id.toString()}
-                                                        >
-                                                            {location.name}
-                                                        </SelectItem>
-                                                    ))}
+                                                    {(locations ?? []).map(
+                                                        (location) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    location.id
+                                                                }
+                                                                value={location.id.toString()}
+                                                            >
+                                                                {location.name}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
                                                 </SelectContent>
                                             </Select>
 
@@ -482,11 +504,7 @@ export function AssetFormDialog({
                                                 </SelectContent>
                                             </Select>
 
-
-
                                             <FormMessage />
-
-
                                         </FormItem>
                                     )}
                                 />
@@ -517,7 +535,9 @@ export function AssetFormDialog({
                                     name="acquisition_date"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Acquisition Date</FormLabel>
+                                            <FormLabel>
+                                                Acquisition Date
+                                            </FormLabel>
 
                                             <FormControl className="cursor-pointer">
                                                 <Input type="date" {...field} />
@@ -533,15 +553,60 @@ export function AssetFormDialog({
                                     name="acquisition_cost"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Acquisition Cost</FormLabel>
+                                            <FormLabel>
+                                                Acquisition Cost
+                                            </FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
                                                     min="0"
                                                     step="0.01"
                                                     placeholder="0.00"
-                                                    value={field.value === 0 ? "" : field.value}
-                                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                                    value={
+                                                        field.value === 0
+                                                            ? ''
+                                                            : field.value
+                                                    }
+                                                    onChange={(e) =>
+                                                        field.onChange(
+                                                            Number(
+                                                                e.target.value,
+                                                            ),
+                                                        )
+                                                    }
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="depreciation_rate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Depreciation Rate (% per year)
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    step="0.01"
+                                                    placeholder="0.00"
+                                                    value={
+                                                        field.value === 0
+                                                            ? ''
+                                                            : field.value
+                                                    }
+                                                    onChange={(e) =>
+                                                        field.onChange(
+                                                            Number(
+                                                                e.target.value,
+                                                            ),
+                                                        )
+                                                    }
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -575,17 +640,19 @@ export function AssetFormDialog({
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept="image/png,image/jpeg,image/jpg"
+                                accept="image/png,image/jpeg,image/jpg,image/webp"
                                 multiple
                                 className="hidden"
-                                onChange={(e) => handleFilesSelected(e.target.files)}
+                                onChange={(e) =>
+                                    handleFilesSelected(e.target.files)
+                                }
                             />
 
                             {/* Main image */}
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-primary/50 hover:bg-muted/50 cursor-pointer"
+                                className="group relative flex aspect-square w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-primary/50 hover:bg-muted/50"
                             >
                                 {mainImage ? (
                                     <>
@@ -594,7 +661,7 @@ export function AssetFormDialog({
                                             alt="Main asset preview"
                                             className="h-full w-full object-cover"
                                         />
-                                        <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-semibold text-white">
+                                        <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-semibold text-white">
                                             <Star className="size-3 fill-current" />
                                             Main
                                         </span>
@@ -627,7 +694,9 @@ export function AssetFormDialog({
                                         >
                                             <button
                                                 type="button"
-                                                onClick={() => handleMakeMain(img.id)}
+                                                onClick={() =>
+                                                    handleMakeMain(img.id)
+                                                }
                                                 className="h-full w-full"
                                                 title="Set as main photo"
                                             >
@@ -640,8 +709,10 @@ export function AssetFormDialog({
 
                                             <button
                                                 type="button"
-                                                onClick={() => handleRemove(img.id)}
-                                                className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                                onClick={() =>
+                                                    handleRemove(img.id)
+                                                }
+                                                className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
                                                 aria-label="Remove photo"
                                             >
                                                 <X className="size-3" />
@@ -652,7 +723,9 @@ export function AssetFormDialog({
                                     {/* Add more tile */}
                                     <button
                                         type="button"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
                                         className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
                                     >
                                         <ImagePlus className="size-4" />
@@ -671,7 +744,8 @@ export function AssetFormDialog({
                             )}
 
                             <p className="mt-3 text-xs text-muted-foreground">
-                                Click any thumbnail to make it the main photo. PNG or JPG, up to 2MB.
+                                Click any thumbnail to make it the main photo.
+                                PNG, JPG, or WebP, up to 2MB.
                             </p>
                         </div>
 
@@ -687,7 +761,9 @@ export function AssetFormDialog({
                             </Button>
 
                             <Button type="submit" className="cursor-pointer">
-                                {mode === "create" ? "Create Asset" : "Save Changes"}
+                                {mode === 'create'
+                                    ? 'Create Asset'
+                                    : 'Save Changes'}
                             </Button>
                         </DialogFooter>
                     </form>
