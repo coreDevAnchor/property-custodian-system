@@ -62,9 +62,13 @@ class CustodianController extends Controller
         $this->ensureCustodianAccount($custodian);
 
         abort_if($custodian->is($request->user()), 422, 'You cannot remove your own account.');
-        abort_if(User::where('role', 'custodian')->count() <= 1, 422, 'At least one custodian account must remain.');
+        abort_if(
+            User::query()->where('role', '=', 'custodian', 'and')->count('id') <= 1,
+            422,
+            'At least one custodian account must remain.',
+        );
 
-        $custodian->delete();
+        User::destroy($custodian->id);
 
         return back()->with('success', 'Custodian account removed successfully.');
     }
