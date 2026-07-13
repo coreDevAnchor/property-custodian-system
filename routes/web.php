@@ -13,6 +13,8 @@ use App\Http\Controllers\EmployeeReturnController;
 use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\CustodianDashboardController;
 use App\Http\Controllers\CustodianController;
+use
+App\Http\Controllers\Custodian\ReportController;
 
 Route::redirect('/', '/login');
 
@@ -30,6 +32,8 @@ Route::middleware(['auth', 'verified'])
         Route::get('/activity', [AuditTrailController::class, 'index'])
             ->name('activity.index');
         Route::resource('custodians', CustodianController::class)->except(['create', 'edit']);
+        Route::get('/reports', [ReportController::class, 'index'])
+            ->name('reports');
     });
 
 Route::get('/dev-custodian', function () {
