@@ -170,7 +170,9 @@ class BorrowRequestController extends Controller
 
         if ($validated['status'] === 'returned') {
             $asset->update([
-                'status' => 'available',
+                'status' => $validated['return_condition'] === 'defective'
+                    ? 'under_repair'
+                    : 'available',
             ]);
         }
 
