@@ -6,15 +6,30 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @property int $id
+ * @property int $asset_id
+ * @property int $employee_id
+ * @property 'pending'|'borrowed'|'awaiting_check'|'returned'|'rejected' $status
+ * @property string|null $remarks
+ * @property 'ok'|'defective'|null $return_condition
+ * @property-read Asset $asset
+ * @property-read Employee $employee
+ *
+ * @method static BorrowRequest|null find(int|string $id, array<int, string> $columns = ['*'])
+ * @method static BorrowRequest findOrFail(int|string $id, array<int, string> $columns = ['*'])
+ */
 class BorrowRequest extends Model
 {
     protected $table = 'borrows';
+
     protected $casts = [
         'requested_at' => 'datetime',
         'approved_at' => 'datetime',
         'returned_at' => 'datetime',
         'is_acknowledged' => 'boolean',
     ];
+
     protected $fillable = [
         'asset_id',
         'employee_id',

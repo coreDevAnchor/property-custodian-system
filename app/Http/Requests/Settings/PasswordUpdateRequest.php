@@ -4,7 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use App\Concerns\PasswordValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\FormRequest;
 
 class PasswordUpdateRequest extends FormRequest
 {

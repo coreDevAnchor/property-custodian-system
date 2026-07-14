@@ -2,16 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\BorrowRequest;
-use Inertia\Inertia;
-use App\Models\Asset;
-use Illuminate\Support\Facades\Auth;
 use App\Models\ActivityLogs;
+use App\Models\Asset;
+use App\Models\BorrowRequest;
+use App\Models\Employee;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class BorrowRequestController extends Controller
 {
-    public function index()
+    public function index(): Response
     {
         return Inertia::render('custodian/borrow-requests', [
             'borrowRequests' => BorrowRequest::with([
@@ -25,27 +30,37 @@ class BorrowRequestController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(): void
     {
         //
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'asset_id' => ['required', 'exists:assets,id'],
             'remarks' => ['nullable', 'string'],
         ]);
 
-        $asset = Asset::findOrFail($validated['asset_id']);
+        $asset = Asset::query()->find((int) $validated['asset_id']);
+
+        if (! $asset instanceof Asset) {
+            abort(404);
+        }
 
         if ($asset->status !== 'available') {
             return back()->with('error', 'This asset is not available for borrowing.');
         }
 
-        $employee = Auth::user()->employee;
+        $user = Auth::user();
 
-        if (!$employee) {
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        $employee = $user->employee;
+
+        if (! $employee instanceof Employee) {
             abort(403, 'Only employees can submit borrow requests.');
         }
 
@@ -69,7 +84,7 @@ class BorrowRequestController extends Controller
         ActivityLogs::record(
             $asset,
             'borrow_requested',
-            "{$employee->user->name} requested to borrow {$asset->name}."
+            "{$user->name} requested to borrow {$asset->name}."
         );
 
         return redirect()
@@ -77,7 +92,7 @@ class BorrowRequestController extends Controller
             ->with('success', 'Borrow request submitted successfully.');
     }
 
-    public function show(string $id)
+    public function show(string $id): JsonResponse
     {
         $borrowRequest = BorrowRequest::with([
             'asset.category',
@@ -90,7 +105,7 @@ class BorrowRequestController extends Controller
         return response()->json($borrowRequest);
     }
 
-    public function edit(string $id)
+    public function edit(string $id): JsonResponse
     {
         $borrowRequest = BorrowRequest::with([
             'asset.category',
@@ -103,7 +118,7 @@ class BorrowRequestController extends Controller
         return response()->json($borrowRequest);
     }
 
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id): RedirectResponse
     {
         $validated = $request->validate([
             'status' => [
@@ -114,10 +129,21 @@ class BorrowRequestController extends Controller
             'return_condition' => ['nullable', 'in:ok,defective'],
         ]);
 
-        $borrowRequest = BorrowRequest::with('asset')->findOrFail($id);
+        $borrowRequest = BorrowRequest::with(['asset', 'employee.user'])->findOrFail($id);
         $wasPending = $borrowRequest->status === 'pending';
         $asset = $borrowRequest->asset;
         $requesterName = $borrowRequest->employee->user->name;
+
+        if (
+            $validated['status'] === 'borrowed' &&
+            $wasPending &&
+            $asset->status !== 'available'
+        ) {
+            return back()->with(
+                'error',
+                'This asset has already been borrowed by another employee.'
+            );
+        }
 
         $updateData = [
             'remarks' => $validated['remarks'] ?? $borrowRequest->remarks,
@@ -137,16 +163,17 @@ class BorrowRequestController extends Controller
         ] + $updateData);
 
         if ($validated['status'] === 'borrowed') {
-            $borrowRequest->asset->update([
+            $asset->update([
                 'status' => 'borrowed',
             ]);
         }
 
         if ($validated['status'] === 'returned') {
-            $borrowRequest->asset->update([
+            $asset->update([
                 'status' => 'available',
             ]);
         }
+
         $message = match (true) {
             $validated['status'] === 'borrowed' && $wasPending => 'The request has been approved.',
             $validated['status'] === 'rejected' => 'The request has been rejected.',
@@ -164,15 +191,11 @@ class BorrowRequestController extends Controller
         };
 
         $logDescription = match (true) {
-            $validated['status'] === 'borrowed' && $wasPending =>
-            "Borrow request from {$requesterName} was approved.",
-            $validated['status'] === 'rejected' =>
-            "Borrow request from {$requesterName} was rejected.",
-            $validated['status'] === 'awaiting_check' =>
-            "{$requesterName} submitted {$asset->name} for return inspection.",
-            $validated['status'] === 'returned' =>
-            "{$asset->name} was inspected and confirmed returned"
-            . ($updateData['return_condition'] ? " ({$updateData['return_condition']})." : '.'),
+            $validated['status'] === 'borrowed' && $wasPending => "Borrow request from {$requesterName} was approved.",
+            $validated['status'] === 'rejected' => "Borrow request from {$requesterName} was rejected.",
+            $validated['status'] === 'awaiting_check' => "{$requesterName} submitted {$asset->name} for return inspection.",
+            $validated['status'] === 'returned' => "{$asset->name} was inspected and confirmed returned"
+            .($updateData['return_condition'] ? " ({$updateData['return_condition']})." : '.'),
             default => "Borrow request status changed to {$validated['status']}.",
         };
 
@@ -188,7 +211,7 @@ class BorrowRequestController extends Controller
             ->with($toastType, $message);
     }
 
-    public function destroy(string $id)
+    public function destroy(string $id): RedirectResponse
     {
         BorrowRequest::destroy($id);
 

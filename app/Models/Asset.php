@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property 'available'|'borrowed'|'under_repair'|'disposed' $status
+ *
+ * @method static Asset|null find(int|string $id, array<int, string> $columns = ['*'])
+ * @method static Asset findOrFail(int|string $id, array<int, string> $columns = ['*'])
+ */
 class Asset extends Model
 {
     protected $fillable = [
