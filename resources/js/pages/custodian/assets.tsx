@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import {
     AlertTriangle,
@@ -365,6 +365,16 @@ interface Location {
 interface Props {
     assets: {
         data: Asset[];
+        from: number;
+        to: number;
+        total: number;
+        current_page: number;
+        last_page: number;
+        links: {
+            url: string | null;
+            label: string;
+            active: boolean;
+        }[];
     };
 
     assetTypes: AssetType[];
@@ -385,10 +395,6 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
 
     const [editingAsset, setEditingAsset] =
         useState<Asset | undefined>();
-
-    // ── Pagination state ──
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[1]); // default 25
 
     const filteredAssets = useMemo(() => {
         const searchTerm = search.toLowerCase().trim();
@@ -422,24 +428,6 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
         categoryFilter,
         statusFilter,
     ]);
-
-    // Reset to page 1 whenever the filtered set changes (search/filter change)
-    useEffect(() => {
-        setPage(1);
-    }, [search, categoryFilter, statusFilter, pageSize]);
-
-    const totalPages = Math.max(1, Math.ceil(filteredAssets.length / pageSize));
-
-    // Guard against being stranded on a page that no longer exists
-    const currentPage = Math.min(page, totalPages);
-
-    const paginatedAssets = useMemo(() => {
-        const start = (currentPage - 1) * pageSize;
-        return filteredAssets.slice(start, start + pageSize);
-    }, [filteredAssets, currentPage, pageSize]);
-
-    const rangeStart = filteredAssets.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-    const rangeEnd = Math.min(currentPage * pageSize, filteredAssets.length);
 
     function openAddModal() {
         setEditingAsset(undefined);
@@ -568,7 +556,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                                 </tr>
                             </thead>
                             <tbody>
-                                {paginatedAssets.map((asset) => (
+                                {filteredAssets.map((asset) => (
                                     <AssetRow
                                         key={asset.id}
                                         asset={asset}
@@ -596,32 +584,28 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                             <p className="text-xs text-muted-foreground">
                                 {filteredAssets.length === 0
                                     ? 'Showing 0 assets'
-                                    : `Showing ${rangeStart}–${rangeEnd} of ${filteredAssets.length} assets`}
+                                    : `Showing ${assets.from}–${assets.to} of ${assets.total} assets`}
                             </p>
-
-                            <Select
-                                value={pageSize.toString()}
-                                onValueChange={(value) => setPageSize(Number(value))}
-                            >
-                                <SelectTrigger className="h-8 w-[110px] cursor-pointer text-xs">
-                                    <SelectValue placeholder="Per page" />
-                                </SelectTrigger>
-
-                                <SelectContent>
-                                    {PAGE_SIZE_OPTIONS.map((size) => (
-                                        <SelectItem key={size} value={size.toString()}>
-                                            {size} / page
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                         </div>
-
-                        <Pagination
-                            page={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={setPage}
-                        />
+                        <div className="flex items-center gap-2">
+                            {assets.links.map((link, index) => (
+                                <button
+                                    key={index}
+                                    disabled={!link.url}
+                                    onClick={() => {
+                                        if (link.url) {
+                                            router.visit(link.url);
+                                        }
+                                    }}
+                                    className={`rounded-md px-3 py-1 text-sm ${
+                                        link.active
+                                            ? 'bg-orange-500 text-white'
+                                            : 'border border-border hover:bg-muted'
+                                    } disabled:cursor-not-allowed disabled:opacity-50`}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
