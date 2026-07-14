@@ -175,15 +175,31 @@ export function AssetFormDialog({
                 serial_number: asset.serial_number ?? '',
 
                 acquisition_date: asset.acquisition_date,
-                acquisition_cost: asset.acquisition_cost,
-                depreciation_rate: asset.depreciation_rate,
+                acquisition_cost: Number(asset.acquisition_cost),
+                depreciation_rate: Number(asset.depreciation_rate),
 
                 status: asset.status,
             });
         }
 
         if (mode === 'create') {
-            form.reset();
+            form.reset({
+                name: '',
+                description: '',
+
+                category_id: undefined,
+                location_id: undefined,
+                asset_type_id: undefined,
+                condition: undefined,
+
+                serial_number: '',
+
+                acquisition_date: '',
+                acquisition_cost: 0,
+                depreciation_rate: 0,
+
+                status: 'available',
+            });
         }
 
         // Reset image staging whenever the dialog switches asset/mode.

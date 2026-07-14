@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import {
     AlertTriangle,
@@ -9,7 +9,6 @@ import {
     Pencil,
     Plus,
     Search,
-    Trash2,
     Video,
     X,
     Eye,
@@ -29,7 +28,6 @@ import {
 import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import { dashboard } from '@/routes/custodian';
 import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
-import { DeleteConfirmModal } from "@/components/assets/assets-delete.dialog";
 import { Asset } from "@/components/assets/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -143,12 +141,10 @@ function StatusBadge({ status }: { status: AssetStatus }) {
 function AssetRow({
     asset,
     onEdit,
-    onDelete,
     onView,
 }: {
     asset: Asset;
     onEdit: (asset: Asset) => void;
-    onDelete: (asset: Asset) => void;
     onView: (asset: Asset) => void;
 }) {
     const Icon = categoryIcon[asset.category.name];
@@ -195,17 +191,7 @@ function AssetRow({
                     >
                         <Pencil className="size-4" />
                     </button>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(asset);
-                        }}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
-                        aria-label={`Delete ${asset.name}`}
-                    >
-                        <Trash2 className="size-4" />
-                    </button>
-
+                    
                     <HoverCard>
                         <HoverCardTrigger asChild>
                             <button
@@ -299,7 +285,6 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
 
     const [editingAsset, setEditingAsset] =
         useState<Asset | undefined>();
-    const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null);
 
     const filteredAssets = useMemo(() => {
         const searchTerm = search.toLowerCase().trim();
@@ -342,19 +327,6 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
     function openEditModal(asset: Asset) {
         setEditingAsset(asset);
         setDialogOpen(true);
-    }
-
-
-
-    function handleDeleteConfirm() {
-        if (!deleteTarget) return;
-
-        router.delete(
-            `/custodian/assets/${deleteTarget.id}`,
-            {
-                onSuccess: () => setDeleteTarget(null),
-            }
-        );
     }
 
     return (
@@ -479,7 +451,6 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                                         key={asset.id}
                                         asset={asset}
                                         onEdit={openEditModal}
-                                        onDelete={setDeleteTarget}
                                         onView={setViewTarget}
                                     />
                                 ))}
@@ -521,12 +492,6 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                 asset={viewTarget}
                 onOpenChange={(open) => !open && setViewTarget(undefined)}
                 onEdit={openEditModal}
-            />
-
-            <DeleteConfirmModal
-                asset={deleteTarget}
-                onCancel={() => setDeleteTarget(null)}
-                onConfirm={handleDeleteConfirm}
             />
         </>
     );
