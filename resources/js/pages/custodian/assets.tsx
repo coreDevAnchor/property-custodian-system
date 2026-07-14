@@ -261,9 +261,6 @@ function AssetRow({
 }
 
 // ─── Pagination component ──────────────────────────────────────────────────
-
-// ─── Improved Pagination component ──────────────────────────────────────────────────
-
 function Pagination({
     page,
     totalPages,
