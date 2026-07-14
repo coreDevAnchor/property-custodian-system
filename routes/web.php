@@ -34,6 +34,8 @@ Route::middleware(['auth', 'verified'])
         Route::resource('custodians', CustodianController::class)->except(['create', 'edit']);
         Route::get('/reports', [ReportController::class, 'index'])
             ->name('reports');
+        Route::get('/reports/export-csv', [ReportController::class, 'exportCsv'])
+            ->name('reports.export');
     });
 
 Route::get('/dev-custodian', function () {
