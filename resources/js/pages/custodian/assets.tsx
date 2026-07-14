@@ -1,11 +1,9 @@
-import { Head } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
 import {
     AlertTriangle,
     Armchair,
     Car,
-    ChevronLeft,
-    ChevronRight,
     FlaskConical,
     Laptop,
     Pencil,
@@ -31,6 +29,7 @@ import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import { dashboard } from '@/routes/custodian';
 import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
 import { Asset } from "@/components/assets/types";
+import { PaginationBar } from '@/components/ui/pagination';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -54,7 +53,6 @@ interface Borrow {
         };
     };
 }
-
 
 interface Category {
     id: number;
@@ -94,8 +92,6 @@ const emptyForm: AssetFormValues = {
     serial_number: '',
 };
 
-
-
 const statusOptions: AssetStatus[] = [
     'available',
     'borrowed',
@@ -129,8 +125,6 @@ const statusStyles: Record<string, string> = {
     disposed:
         'bg-muted text-muted-foreground',
 };
-
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: AssetStatus }) {
@@ -260,101 +254,6 @@ function AssetRow({
     );
 }
 
-// ─── Pagination component ──────────────────────────────────────────────────
-function Pagination({
-    page,
-    totalPages,
-    onPageChange,
-}: {
-    page: number;
-    totalPages: number;
-    onPageChange: (page: number) => void;
-}) {
-    if (totalPages <= 1) return null;
-
-    // Build a compact list of page numbers with ellipses
-    const pages: (number | 'ellipsis')[] = [];
-
-    // Always show first page
-    pages.push(1);
-
-    // Dynamic sibling range strategy
-    const siblingCount = 1;
-    const leftSiblingIndex = Math.max(page - siblingCount, 2);
-    const rightSiblingIndex = Math.min(page + siblingCount, totalPages - 1);
-
-    const showLeftEllipsis = leftSiblingIndex > 2;
-    const showRightEllipsis = rightSiblingIndex < totalPages - 1;
-
-    if (showLeftEllipsis) {
-        pages.push('ellipsis');
-    }
-
-    // Render middle range pages
-    for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
-        pages.push(i);
-    }
-
-    if (showRightEllipsis) {
-        pages.push('ellipsis');
-    }
-
-    // Always show last page if it's more than page 1
-    if (totalPages > 1) {
-        pages.push(totalPages);
-    }
-
-    return (
-        <div className="flex items-center gap-1.5 justify-center sm:justify-end">
-            {/* Previous Page Button */}
-            <button
-                onClick={() => onPageChange(page - 1)}
-                disabled={page === 1}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer border border-border/50 bg-background"
-                aria-label="Go to previous page"
-            >
-                <ChevronLeft className="size-4" />
-            </button>
-
-            {/* Main Interactive Page Numbers Lineup */}
-            <div className="flex items-center gap-1">
-                {pages.map((p, idx) =>
-                    p === 'ellipsis' ? (
-                        <span
-                            key={`ellipsis-${idx}`}
-                            className="flex h-8 w-8 items-center justify-center text-sm text-muted-foreground select-none"
-                        >
-                            …
-                        </span>
-                    ) : (
-                        <button
-                            key={p}
-                            onClick={() => onPageChange(p)}
-                            aria-current={p === page ? 'page' : undefined}
-                            className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-all cursor-pointer ${p === page
-                                ? 'bg-orange-500 text-white shadow-sm font-semibold scale-105'
-                                : 'text-foreground hover:bg-muted border border-transparent hover:border-border'
-                                }`}
-                        >
-                            {p}
-                        </button>
-                    )
-                )}
-            </div>
-
-            {/* Next Page Button */}
-            <button
-                onClick={() => onPageChange(page + 1)}
-                disabled={page === totalPages}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer border border-border/50 bg-background"
-                aria-label="Go to next page"
-            >
-                <ChevronRight className="size-4" />
-            </button>
-        </div>
-    );
-}
-
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 interface Location {
@@ -362,84 +261,100 @@ interface Location {
     name: string;
 }
 
-interface Props {
-    assets: {
-        data: Asset[];
-    };
+interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
 
+interface Filters {
+    search: string;
+    category: string;
+    status: string;
+    per_page: number;
+}
+
+interface Props {
+    assets: Paginated<Asset>;
     assetTypes: AssetType[];
     categories: Category[];
     locations: Location[];
+    filters: Filters;
 }
 
-export default function Assets({ assets, assetTypes, categories, locations }: Props) {
-    const [search, setSearch] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState<string>('All');
-    const [statusFilter, setStatusFilter] = useState<'All' | AssetStatus>('All');
+export default function Assets({
+    assets,
+    assetTypes,
+    categories,
+    locations,
+    filters = { search: '', category: 'All', status: 'All', per_page: 10 },
+}: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [categoryFilter, setCategoryFilter] = useState<string>(filters.category ?? 'All');
+    const [statusFilter, setStatusFilter] = useState<'All' | AssetStatus>(
+        (filters.status as 'All' | AssetStatus) ?? 'All',
+    );
     const [viewTarget, setViewTarget] = useState<Asset | undefined>();
-    type AssetModalMode = 'create' | 'edit' | 'view';
 
     const categoryOptions = categories ?? [];
 
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [editingAsset, setEditingAsset] = useState<Asset | undefined>();
 
-    const [editingAsset, setEditingAsset] =
-        useState<Asset | undefined>();
+    // ── Server-driven filtering/pagination ──
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isFirstRun = useRef(true);
 
-    // ── Pagination state ──
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[1]); // default 25
+    function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        router.get(
+            '/custodian/assets',
+            {
+                search: overrides.search ?? search,
+                category: overrides.category ?? categoryFilter,
+                status: overrides.status ?? statusFilter,
+                per_page: overrides.per_page ?? assets.per_page,
+                page,
+            },
+            { preserveState: true, preserveScroll: true, replace: true, only: ['assets', 'filters'] },
+        );
+    }
 
-    const filteredAssets = useMemo(() => {
-        const searchTerm = search.toLowerCase().trim();
-
-        return (assets?.data ?? []).filter((asset) => {
-            const matchesSearch =
-                !searchTerm ||
-                asset.name.toLowerCase().includes(searchTerm) ||
-                asset.asset_tag.toLowerCase().includes(searchTerm) ||
-                asset.asset_type.name.toLowerCase().includes(searchTerm) ||
-                asset.category.name.toLowerCase().includes(searchTerm) ||
-                asset.location.name.toLowerCase().includes(searchTerm);
-
-            const matchesCategory =
-                categoryFilter === "All" ||
-                asset.category.id.toString() === categoryFilter;
-
-            const matchesStatus =
-                statusFilter === "All" ||
-                asset.status === statusFilter;
-
-            return (
-                matchesSearch &&
-                matchesCategory &&
-                matchesStatus
-            );
-        });
-    }, [
-        assets,
-        search,
-        categoryFilter,
-        statusFilter,
-    ]);
-
-    // Reset to page 1 whenever the filtered set changes (search/filter change)
     useEffect(() => {
-        setPage(1);
-    }, [search, categoryFilter, statusFilter, pageSize]);
+        if (isFirstRun.current) {
+            isFirstRun.current = false;
+            return;
+        }
 
-    const totalPages = Math.max(1, Math.ceil(filteredAssets.length / pageSize));
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
-    // Guard against being stranded on a page that no longer exists
-    const currentPage = Math.min(page, totalPages);
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
 
-    const paginatedAssets = useMemo(() => {
-        const start = (currentPage - 1) * pageSize;
-        return filteredAssets.slice(start, start + pageSize);
-    }, [filteredAssets, currentPage, pageSize]);
+    function handleCategoryChange(value: string) {
+        setCategoryFilter(value);
+        fetchPage(1, { category: value });
+    }
 
-    const rangeStart = filteredAssets.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-    const rangeEnd = Math.min(currentPage * pageSize, filteredAssets.length);
+    function handleStatusChange(value: 'All' | AssetStatus) {
+        setStatusFilter(value);
+        fetchPage(1, { status: value });
+    }
+
+    function handlePerPageChange(value: number) {
+        fetchPage(1, { per_page: value });
+    }
+
+    function handlePageChange(page: number) {
+        fetchPage(page);
+    }
 
     function openAddModal() {
         setEditingAsset(undefined);
@@ -493,7 +408,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                         <div className="flex items-center gap-2">
                             <Select
                                 value={categoryFilter}
-                                onValueChange={setCategoryFilter}
+                                onValueChange={handleCategoryChange}
                             >
                                 <SelectTrigger className="w-[180px] cursor-pointer">
                                     <SelectValue placeholder="Category" />
@@ -518,7 +433,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                             <Select
                                 value={statusFilter}
                                 onValueChange={(value) =>
-                                    setStatusFilter(value as "All" | AssetStatus)
+                                    handleStatusChange(value as "All" | AssetStatus)
                                 }
                             >
                                 <SelectTrigger className="w-[180px] cursor-pointer">
@@ -568,7 +483,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                                 </tr>
                             </thead>
                             <tbody>
-                                {paginatedAssets.map((asset) => (
+                                {assets.data.map((asset) => (
                                     <AssetRow
                                         key={asset.id}
                                         asset={asset}
@@ -579,7 +494,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                             </tbody>
                         </table>
 
-                        {filteredAssets.length === 0 && (
+                        {assets.data.length === 0 && (
                             <div className="flex flex-col items-center gap-1 py-12 text-center">
                                 <p className="text-sm font-semibold text-foreground">
                                     No assets found
@@ -591,38 +506,17 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                         )}
                     </div>
 
-                    <div className="flex flex-col gap-3 border-t border-border px-6 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-3">
-                            <p className="text-xs text-muted-foreground">
-                                {filteredAssets.length === 0
-                                    ? 'Showing 0 assets'
-                                    : `Showing ${rangeStart}–${rangeEnd} of ${filteredAssets.length} assets`}
-                            </p>
-
-                            <Select
-                                value={pageSize.toString()}
-                                onValueChange={(value) => setPageSize(Number(value))}
-                            >
-                                <SelectTrigger className="h-8 w-[110px] cursor-pointer text-xs">
-                                    <SelectValue placeholder="Per page" />
-                                </SelectTrigger>
-
-                                <SelectContent>
-                                    {PAGE_SIZE_OPTIONS.map((size) => (
-                                        <SelectItem key={size} value={size.toString()}>
-                                            {size} / page
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <Pagination
-                            page={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={setPage}
-                        />
-                    </div>
+                    <PaginationBar
+                        currentPage={assets.current_page}
+                        lastPage={assets.last_page}
+                        total={assets.total}
+                        from={assets.from}
+                        to={assets.to}
+                        perPage={assets.per_page}
+                        itemLabel="assets"
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
                 </div>
             </div>
 

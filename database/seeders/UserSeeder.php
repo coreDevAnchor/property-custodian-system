@@ -25,5 +25,8 @@ class UserSeeder extends Seeder
             'password' => 'password',
             'role' => 'employee',
         ]);
+
+        User::factory()->count(99)->custodian()->create();
+        User::factory()->count(200)->employee()->create();
     }
 }

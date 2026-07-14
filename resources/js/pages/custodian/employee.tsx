@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
 import {
     HoverCard,
     HoverCardContent,
@@ -20,6 +20,7 @@ import { dashboard } from '@/routes/custodian';
 import { EmployeeFormDialog } from '@/components/employees/employee-form-dialog';
 import { EmployeeDeleteDialog } from '@/components/employees/employee-delete-dialog';
 import { EmployeeViewDialog } from '@/components/employees/employee-views-dialog';
+import { PaginationBar } from '@/components/ui/pagination';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,22 @@ interface Employee {
     };
 
     borrows?: EmployeeBorrow[];
+}
+
+interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
+
+interface Filters {
+    search: string;
+    status: string;
+    per_page: number;
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
@@ -201,41 +218,66 @@ function EmployeeRow({
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 interface Props {
-    employees: {
-        data: Employee[];
-    };
-
+    employees: Paginated<Employee>;
     nextEmployeeId: string;
+    filters: Filters;
 }
 
-export default function Employees({ employees, nextEmployeeId }: Props) {
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'All' | 'active' | 'inactive'>('All');
+export default function Employees({ employees, nextEmployeeId, filters }: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [statusFilter, setStatusFilter] = useState<'All' | 'active' | 'inactive'>(
+        (filters.status as 'All' | 'active' | 'inactive') ?? 'All',
+    );
     const [viewTarget, setViewTarget] = useState<Employee | undefined>();
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | undefined>();
     const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
 
-    const filteredEmployees = useMemo(() => {
-        const searchTerm = search.toLowerCase().trim();
+    // ── Server-driven filtering/pagination ──
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isFirstRun = useRef(true);
 
-        return (employees?.data ?? []).filter((employee) => {
-            const matchesSearch =
-                !searchTerm ||
-                employee.user.name.toLowerCase().includes(searchTerm) ||
-                employee.user.email.toLowerCase().includes(searchTerm) ||
-                employee.department.toLowerCase().includes(searchTerm) ||
-                (employee.employee_id ?? '').toLowerCase().includes(searchTerm);
+    function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        router.get(
+            '/custodian/employees',
+            {
+                search: overrides.search ?? search,
+                status: overrides.status ?? statusFilter,
+                per_page: overrides.per_page ?? employees.per_page,
+                page,
+            },
+            { preserveState: true, preserveScroll: true, replace: true, only: ['employees', 'filters'] },
+        );
+    }
 
-            const matchesStatus =
-                statusFilter === 'All' ||
-                (statusFilter === 'active' && employee.is_active) ||
-                (statusFilter === 'inactive' && !employee.is_active);
+    useEffect(() => {
+        if (isFirstRun.current) {
+            isFirstRun.current = false;
+            return;
+        }
 
-            return matchesSearch && matchesStatus;
-        });
-    }, [employees, search, statusFilter]);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => fetchPage(1), 350);
+
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
+
+    function handleStatusChange(value: 'All' | 'active' | 'inactive') {
+        setStatusFilter(value);
+        fetchPage(1, { status: value });
+    }
+
+    function handlePerPageChange(value: number) {
+        fetchPage(1, { per_page: value });
+    }
+
+    function handlePageChange(page: number) {
+        fetchPage(page);
+    }
 
     function openAddModal() {
         setEditingEmployee(undefined);
@@ -298,7 +340,7 @@ export default function Employees({ employees, nextEmployeeId }: Props) {
                             <select
                                 value={statusFilter}
                                 onChange={(e) =>
-                                    setStatusFilter(e.target.value as 'All' | 'active' | 'inactive')
+                                    handleStatusChange(e.target.value as 'All' | 'active' | 'inactive')
                                 }
                                 className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                             >
@@ -334,7 +376,7 @@ export default function Employees({ employees, nextEmployeeId }: Props) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredEmployees.map((employee) => (
+                                {employees.data.map((employee) => (
                                     <EmployeeRow
                                         key={employee.id}
                                         employee={employee}
@@ -346,7 +388,7 @@ export default function Employees({ employees, nextEmployeeId }: Props) {
                             </tbody>
                         </table>
 
-                        {filteredEmployees.length === 0 && (
+                        {employees.data.length === 0 && (
                             <div className="flex flex-col items-center gap-1 py-12 text-center">
                                 <p className="text-sm font-semibold text-foreground">
                                     No employees found
@@ -358,12 +400,17 @@ export default function Employees({ employees, nextEmployeeId }: Props) {
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-border px-6 py-3.5">
-                        <p className="text-xs text-muted-foreground">
-                            Showing {filteredEmployees.length} of{' '}
-                            {employees?.data?.length ?? 0} employees
-                        </p>
-                    </div>
+                    <PaginationBar
+                        currentPage={employees.current_page}
+                        lastPage={employees.last_page}
+                        total={employees.total}
+                        from={employees.from}
+                        to={employees.to}
+                        perPage={employees.per_page}
+                        itemLabel="employees"
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
                 </div>
             </div>
 

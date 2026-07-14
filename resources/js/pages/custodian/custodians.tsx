@@ -8,7 +8,7 @@ import {
     Trash2,
     UserRound,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -21,6 +21,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { dashboard } from '@/routes/custodian';
 import { destroy, store, update } from '@/routes/custodian/custodians';
+import { router } from '@inertiajs/react';
+import { PaginationBar } from '@/components/ui/pagination';
 import type { SharedData } from '@/types';
 
 interface Custodian {
@@ -30,10 +32,24 @@ interface Custodian {
     created_at: string;
 }
 
+interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
+
+interface Filters {
+    search: string;
+    per_page: number;
+}
+
 interface Props {
-    custodians: {
-        data: Custodian[];
-    };
+    custodians: Paginated<Custodian>;
+    filters: Filters;
 }
 
 function CustodianFormDialog({
@@ -130,25 +146,52 @@ function CustodianFormDialog({
     );
 }
 
-export default function Custodians({ custodians }: Props) {
+export default function Custodians({ custodians, filters }: Props) {
     const { props } = usePage<SharedData>();
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(filters.search ?? '');
     const [formTarget, setFormTarget] = useState<
-        Custodian | null | undefined
-    >();
+        Custodian | null | undefined>();
     const [deleteTarget, setDeleteTarget] = useState<Custodian | null>(null);
     const deleteForm = useForm({});
 
-    const filteredCustodians = useMemo(() => {
-        const searchTerm = search.toLowerCase().trim();
+    // ── Server-driven filtering/pagination ──
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isFirstRun = useRef(true);
 
-        return custodians.data.filter(
-            (custodian) =>
-                !searchTerm ||
-                custodian.name.toLowerCase().includes(searchTerm) ||
-                custodian.email.toLowerCase().includes(searchTerm),
+    function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        router.get(
+            '/custodian/custodians',
+            {
+                search: overrides.search ?? search,
+                per_page: overrides.per_page ?? custodians.per_page,
+                page,
+            },
+            { preserveState: true, preserveScroll: true, replace: true, only: ['custodians', 'filters'] },
         );
-    }, [custodians, search]);
+    }
+
+    useEffect(() => {
+        if (isFirstRun.current) {
+            isFirstRun.current = false;
+            return;
+        }
+
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => fetchPage(1), 350);
+
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
+
+    function handlePerPageChange(value: number) {
+        fetchPage(1, { per_page: value });
+    }
+
+    function handlePageChange(page: number) {
+        fetchPage(page);
+    }
 
     function removeCustodian() {
         if (!deleteTarget) {
@@ -217,7 +260,7 @@ export default function Custodians({ custodians }: Props) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredCustodians.map((custodian) => {
+                                {custodians.data.map((custodian) => {
                                     const isCurrentUser =
                                         custodian.id === props.auth.user?.id;
 
@@ -289,7 +332,7 @@ export default function Custodians({ custodians }: Props) {
                             </tbody>
                         </table>
 
-                        {filteredCustodians.length === 0 && (
+                        {custodians.data.length === 0 && (
                             <div className="flex flex-col items-center gap-2 py-12 text-center">
                                 <UserRound className="size-8 text-muted-foreground" />
                                 <p className="text-sm font-semibold">
@@ -303,10 +346,17 @@ export default function Custodians({ custodians }: Props) {
                         )}
                     </div>
 
-                    <div className="border-t border-border px-6 py-3.5 text-xs text-muted-foreground">
-                        Showing {filteredCustodians.length} of{' '}
-                        {custodians.data.length} custodians
-                    </div>
+                    <PaginationBar
+                        currentPage={custodians.current_page}
+                        lastPage={custodians.last_page}
+                        total={custodians.total}
+                        from={custodians.from}
+                        to={custodians.to}
+                        perPage={custodians.per_page}
+                        itemLabel="custodians"
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
                 </div>
             </div>
 

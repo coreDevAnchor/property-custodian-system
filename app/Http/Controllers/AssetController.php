@@ -15,25 +15,42 @@ use App\Models\ActivityLogs;
 class AssetController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->string('search')->toString();
+        $category = $request->input('category', 'All');
+        $status = $request->input('status', 'All');
+        $perPage = (int) $request->input('per_page', 10);
+
+        $assets = Asset::with(['category', 'assetType', 'location', 'borrows.employee.user'])
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('asset_tag', 'like', "%{$search}%")
+                        ->orWhereHas('category', fn($c) => $c->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('assetType', fn($c) => $c->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('location', fn($c) => $c->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->when($category !== 'All', fn($q) => $q->where('category_id', $category))
+            ->when($status !== 'All', fn($q) => $q->where('status', $status))
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('custodian/assets', [
-            'assets' => Asset::with([
-                'category',
-                'assetType',
-                'location',
-                'borrows.employee.user',
-            ])
-                ->latest()
-                ->paginate(10),
-
-            'categories' => Category::orderBy('name', 'asc')->get(),
-
-            'assetTypes' => AssetType::with('category')
+            'assets' => $assets,
+            'categories' => Category::orderBy('name', 'asc')->get(['id', 'name']),
+            'assetTypes' => AssetType::with('category:id,name')
                 ->orderBy('name')
-                ->get(),
-
-            'locations' => Location::orderBy('name', 'asc')->get(),
+                ->get(['id', 'name', 'prefix', 'category_id']),
+            'locations' => Location::orderBy('name', 'asc')->get(['id', 'name']),
+            'filters' => [
+                'search' => $search,
+                'category' => $category,
+                'status' => $status,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 

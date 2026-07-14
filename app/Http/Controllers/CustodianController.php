@@ -15,11 +15,27 @@ class CustodianController extends Controller
     {
         $this->ensureCustodian($request);
 
+        $search = $request->string('search')->toString();
+        $perPage = (int) $request->input('per_page', 10);
+
+        $custodians = User::query()
+            ->where('role', 'custodian')
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('custodian/custodians', [
-            'custodians' => User::query()
-                ->where('role', 'custodian')
-                ->latest()
-                ->paginate(10),
+            'custodians' => $custodians,
+            'filters' => [
+                'search' => $search,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 

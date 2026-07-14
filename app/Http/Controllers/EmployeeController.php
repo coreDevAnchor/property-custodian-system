@@ -15,7 +15,7 @@ class EmployeeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $lastEmployee = Employee::latest('id')->first();
 
@@ -27,12 +27,32 @@ class EmployeeController extends Controller
             $nextEmployeeId = 'EMP-0001';
         }
 
-        return Inertia::render('custodian/employee', [
-            'employees' => Employee::with(['user', 'borrows.asset'])
-                ->latest()
-                ->paginate(10),
+        $search = $request->string('search')->toString();
+        $status = $request->input('status', 'All');
+        $perPage = (int) $request->input('per_page', 10);
 
+        $employees = Employee::with(['user', 'borrows.asset'])
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('department', 'like', "%{$search}%")
+                        ->orWhere('employee_id', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%"));
+                });
+            })
+            ->when($status !== 'All', fn($q) => $q->where('is_active', $status === 'active'))
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return Inertia::render('custodian/employee', [
+            'employees' => $employees,
             'nextEmployeeId' => $nextEmployeeId,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 
@@ -132,8 +152,8 @@ class EmployeeController extends Controller
             'contact' => ['nullable', 'string', 'max:255'],
             'is_active' => ['required', 'boolean'],
         ]);
-            
-            DB::transaction(function () use ($employee, $validated) {
+
+        DB::transaction(function () use ($employee, $validated) {
 
             $employee->user->update([
                 'name' => $validated['name'],
