@@ -87,11 +87,6 @@ export function AppSidebar() {
     ];
 
     const bottomNavItems: NavItem[] = [
-        {
-            title: 'Settings',
-            href: '#',
-            icon: Settings,
-        },
     ];
 
     const handleLogout = () => {
