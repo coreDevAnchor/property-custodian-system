@@ -69,10 +69,15 @@ class EmployeeController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:users,email'],
 
             'department' => ['required', 'string', 'max:255'],
-            'contact' => ['nullable', 'string', 'max:255'],
+            'contact' => ['nullable', 'regex:/^09\d{9}$/'],
+        ], [
+            'email.email' => 'Please enter a valid email address.',
+            'email.unique' => 'This email is already in use.',
+
+            'contact.regex' => 'Contact number must be 11 digits and start with 09.',
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -131,13 +136,14 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, string $id)
     {
+
         $employee = Employee::with('user')->findOrFail($id);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
-                'email',
+                'email:rfc,dns',
                 'max:255',
                 'unique:users,email,' . $employee->user_id,
             ],
@@ -149,8 +155,13 @@ class EmployeeController extends Controller
                 'max:255',
                 'unique:employees,employee_id,' . $employee->id,
             ],
-            'contact' => ['nullable', 'string', 'max:255'],
+            'contact' => ['nullable', 'regex:/^09\d{9}$/'],
             'is_active' => ['required', 'boolean'],
+        ], [
+            'email.email' => 'Please enter a valid email address.',
+            'email.unique' => 'This email is already in use.',
+            'contact.required' => 'Contact number is required.',
+            'contact.regex' => 'Contact number must be 11 digits and start with 09.',
         ]);
 
         DB::transaction(function () use ($employee, $validated) {
