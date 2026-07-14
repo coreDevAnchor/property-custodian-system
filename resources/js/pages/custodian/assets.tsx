@@ -1,9 +1,11 @@
 import { Head, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     AlertTriangle,
     Armchair,
     Car,
+    ChevronLeft,
+    ChevronRight,
     FlaskConical,
     Laptop,
     Pencil,
@@ -129,6 +131,9 @@ const statusStyles: Record<string, string> = {
     disposed:
         'bg-muted text-muted-foreground',
 };
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: AssetStatus }) {
     return (
@@ -269,6 +274,104 @@ function AssetRow({
     );
 }
 
+// ─── Pagination component ──────────────────────────────────────────────────
+
+// ─── Improved Pagination component ──────────────────────────────────────────────────
+
+function Pagination({
+    page,
+    totalPages,
+    onPageChange,
+}: {
+    page: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+}) {
+    if (totalPages <= 1) return null;
+
+    // Build a compact list of page numbers with ellipses
+    const pages: (number | 'ellipsis')[] = [];
+
+    // Always show first page
+    pages.push(1);
+
+    // Dynamic sibling range strategy
+    const siblingCount = 1;
+    const leftSiblingIndex = Math.max(page - siblingCount, 2);
+    const rightSiblingIndex = Math.min(page + siblingCount, totalPages - 1);
+
+    const showLeftEllipsis = leftSiblingIndex > 2;
+    const showRightEllipsis = rightSiblingIndex < totalPages - 1;
+
+    if (showLeftEllipsis) {
+        pages.push('ellipsis');
+    }
+
+    // Render middle range pages
+    for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
+        pages.push(i);
+    }
+
+    if (showRightEllipsis) {
+        pages.push('ellipsis');
+    }
+
+    // Always show last page if it's more than page 1
+    if (totalPages > 1) {
+        pages.push(totalPages);
+    }
+
+    return (
+        <div className="flex items-center gap-1.5 justify-center sm:justify-end">
+            {/* Previous Page Button */}
+            <button
+                onClick={() => onPageChange(page - 1)}
+                disabled={page === 1}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer border border-border/50 bg-background"
+                aria-label="Go to previous page"
+            >
+                <ChevronLeft className="size-4" />
+            </button>
+
+            {/* Main Interactive Page Numbers Lineup */}
+            <div className="flex items-center gap-1">
+                {pages.map((p, idx) =>
+                    p === 'ellipsis' ? (
+                        <span
+                            key={`ellipsis-${idx}`}
+                            className="flex h-8 w-8 items-center justify-center text-sm text-muted-foreground select-none"
+                        >
+                            …
+                        </span>
+                    ) : (
+                        <button
+                            key={p}
+                            onClick={() => onPageChange(p)}
+                            aria-current={p === page ? 'page' : undefined}
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-all cursor-pointer ${p === page
+                                    ? 'bg-orange-500 text-white shadow-sm font-semibold scale-105'
+                                    : 'text-foreground hover:bg-muted border border-transparent hover:border-border'
+                                }`}
+                        >
+                            {p}
+                        </button>
+                    )
+                )}
+            </div>
+
+            {/* Next Page Button */}
+            <button
+                onClick={() => onPageChange(page + 1)}
+                disabled={page === totalPages}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer border border-border/50 bg-background"
+                aria-label="Go to next page"
+            >
+                <ChevronRight className="size-4" />
+            </button>
+        </div>
+    );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 interface Location {
@@ -300,6 +403,10 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
     const [editingAsset, setEditingAsset] =
         useState<Asset | undefined>();
     const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null);
+
+    // ── Pagination state ──
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[1]); // default 25
 
     const filteredAssets = useMemo(() => {
         const searchTerm = search.toLowerCase().trim();
@@ -333,6 +440,24 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
         categoryFilter,
         statusFilter,
     ]);
+
+    // Reset to page 1 whenever the filtered set changes (search/filter change)
+    useEffect(() => {
+        setPage(1);
+    }, [search, categoryFilter, statusFilter, pageSize]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredAssets.length / pageSize));
+
+    // Guard against being stranded on a page that no longer exists
+    const currentPage = Math.min(page, totalPages);
+
+    const paginatedAssets = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredAssets.slice(start, start + pageSize);
+    }, [filteredAssets, currentPage, pageSize]);
+
+    const rangeStart = filteredAssets.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+    const rangeEnd = Math.min(currentPage * pageSize, filteredAssets.length);
 
     function openAddModal() {
         setEditingAsset(undefined);
@@ -474,7 +599,7 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredAssets.map((asset) => (
+                                {paginatedAssets.map((asset) => (
                                     <AssetRow
                                         key={asset.id}
                                         asset={asset}
@@ -498,10 +623,37 @@ export default function Assets({ assets, assetTypes, categories, locations }: Pr
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-border px-6 py-3.5">
-                        <p className="text-xs text-muted-foreground">
-                            Showing {filteredAssets.length} of {assets?.data?.length ?? 0} assets
-                        </p>
+                    <div className="flex flex-col gap-3 border-t border-border px-6 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <p className="text-xs text-muted-foreground">
+                                {filteredAssets.length === 0
+                                    ? 'Showing 0 assets'
+                                    : `Showing ${rangeStart}–${rangeEnd} of ${filteredAssets.length} assets`}
+                            </p>
+
+                            <Select
+                                value={pageSize.toString()}
+                                onValueChange={(value) => setPageSize(Number(value))}
+                            >
+                                <SelectTrigger className="h-8 w-[110px] cursor-pointer text-xs">
+                                    <SelectValue placeholder="Per page" />
+                                </SelectTrigger>
+
+                                <SelectContent>
+                                    {PAGE_SIZE_OPTIONS.map((size) => (
+                                        <SelectItem key={size} value={size.toString()}>
+                                            {size} / page
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <Pagination
+                            page={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setPage}
+                        />
                     </div>
                 </div>
             </div>
