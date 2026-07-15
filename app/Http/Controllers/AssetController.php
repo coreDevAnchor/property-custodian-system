@@ -24,12 +24,15 @@ class AssetController extends Controller
 
         $assets = Asset::with(['category', 'assetType', 'location', 'borrows.employee.user'])
             ->when($search, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('asset_tag', 'like', "%{$search}%")
-                        ->orWhereHas('category', fn($c) => $c->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('assetType', fn($c) => $c->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('location', fn($c) => $c->where('name', 'like', "%{$search}%"));
+                $search = mb_strtolower($search);
+                $searchPattern = "%{$search}%";
+
+                $query->where(function ($q) use ($searchPattern) {
+                    $q->whereRaw('LOWER(name) LIKE ?', [$searchPattern])
+                        ->orWhereRaw('LOWER(asset_tag) LIKE ?', [$searchPattern])
+                        ->orWhereHas('category', fn($c) => $c->whereRaw('LOWER(name) LIKE ?', [$searchPattern]))
+                        ->orWhereHas('assetType', fn($c) => $c->whereRaw('LOWER(name) LIKE ?', [$searchPattern]))
+                        ->orWhereHas('location', fn($c) => $c->whereRaw('LOWER(name) LIKE ?', [$searchPattern]));
                 });
             })
             ->when($category !== 'All', fn($q) => $q->where('category_id', $category))
