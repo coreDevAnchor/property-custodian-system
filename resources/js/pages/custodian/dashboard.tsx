@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     AlertCircle,
     ArrowRight,
@@ -9,7 +9,9 @@ import {
     Plus,
     UserPlus,
 } from 'lucide-react';
+import { ActivityFeed } from '@/components/activity/activity-feed';
 import { dashboard } from '@/routes/custodian';
+import { index as auditTrail } from '@/routes/custodian/activity';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -48,6 +50,15 @@ interface CategoryBreakdown {
     count: number;
 }
 
+interface ActivityItem {
+    id: number;
+    action: string;
+    description: string;
+    created_at: string;
+    asset?: { id: number; name: string; asset_tag: string } | null;
+    actor?: { id: number; name: string } | null;
+}
+
 interface Props {
     stats: Stats;
     pendingRequests: PendingRequest[];
@@ -55,6 +66,7 @@ interface Props {
         total: number;
         breakdown: CategoryBreakdown[];
     };
+    recentActivity: ActivityItem[];
 }
 
 // ─── Style helpers ──────────────────────────────────────────────────────────
@@ -217,7 +229,12 @@ function RequestRow({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function Dashboard({ stats, pendingRequests, assetCategories }: Props) {
+export default function Dashboard({
+    stats,
+    pendingRequests,
+    assetCategories,
+    recentActivity,
+}: Props) {
     const today = new Date().toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -302,7 +319,7 @@ export default function Dashboard({ stats, pendingRequests, assetCategories }: P
                 {/* ── Main content grid ── */}
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                     {/* Pending Borrow Requests table — takes 2/3 width */}
-                    <div className="xl:col-span-2">
+                    <div className="flex flex-col gap-6 xl:col-span-2">
                         <div className="
                                 rounded-xl
                                 border border-gray-100 dark:border-zinc-800
@@ -372,6 +389,29 @@ export default function Dashboard({ stats, pendingRequests, assetCategories }: P
                                         </p>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-gray-100 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                            <div className="flex items-start justify-between border-b border-gray-100 px-6 py-4 dark:border-zinc-800">
+                                <div>
+                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                                        Recent Activity
+                                    </h2>
+                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                        Latest updates from the audit trail
+                                    </p>
+                                </div>
+                                <Link
+                                    href={auditTrail()}
+                                    className="flex items-center gap-1 text-xs font-semibold text-[#0d7a5f] hover:underline"
+                                >
+                                    View all
+                                    <ArrowRight className="size-3" />
+                                </Link>
+                            </div>
+                            <div className="px-6 py-1">
+                                <ActivityFeed items={recentActivity} />
                             </div>
                         </div>
                     </div>
@@ -461,6 +501,7 @@ export default function Dashboard({ stats, pendingRequests, assetCategories }: P
                         </div>
                     </div>
                 </div>
+
             </div>
         </>
     );

@@ -45,7 +45,7 @@ class CustodianDashboardController extends Controller
 
             'recentActivity' => ActivityLogs::with(['asset', 'actor'])
                 ->latest('created_at')
-                ->take(10)
+                ->take(5)
                 ->get(),
         ]);
     }
