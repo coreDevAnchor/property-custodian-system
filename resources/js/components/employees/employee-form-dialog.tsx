@@ -27,6 +27,11 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { employeeSchema } from "./employee-schema";
+import type { z } from "zod";
+
+type FormValues = z.infer<typeof employeeSchema>;
 
 interface EmployeeUser {
     id: number;
@@ -43,15 +48,6 @@ interface Employee {
     user: EmployeeUser;
 }
 
-interface FormValues {
-    name: string;
-    email: string;
-    password: string;
-    department: string;
-    employee_id: string;
-    contact: string;
-    is_active: boolean;
-}
 
 interface Props {
     open: boolean;
@@ -79,6 +75,8 @@ export function EmployeeFormDialog({
     nextEmployeeId,
 }: Props) {
     const form = useForm<FormValues>({
+        resolver: zodResolver(employeeSchema),
+
         defaultValues: {
             name: '',
             email: '',
@@ -99,7 +97,7 @@ export function EmployeeFormDialog({
                 department: employee.department,
                 employee_id: employee.employee_id ?? '',
                 contact: employee.contact ?? '',
-                is_active: employee.is_active,
+                is_active: Boolean(employee.is_active),
             });
         }
 
@@ -117,27 +115,29 @@ export function EmployeeFormDialog({
     }, [employee, mode]);
 
     const submit = (data: FormValues) => {
-        const payload = { ...data };
+        const payload = {
+            name: data.name,
+            email: data.email,
+            department: data.department,
+            contact: data.contact,
+            employee_id:
+                mode === 'create'
+                    ? nextEmployeeId
+                    : employee?.employee_id,
+            is_active: data.is_active,
+        };
 
-        // Don't send an empty password on edit — backend keeps the old one.
-        if (mode === 'edit' && !payload.password) {
-            delete (payload as Partial<FormValues>).password;
-        }
+        console.log('Submitting:', payload);
 
-        if (mode === 'create') {
-            router.post('/custodian/employees', payload, {
-                onSuccess: () => {
-                    onOpenChange(false);
-                    form.reset();
-                },
-            });
-        } else {
-            router.put(`/custodian/employees/${employee?.id}`, payload, {
-                onSuccess: () => {
-                    onOpenChange(false);
-                },
-            });
-        }
+        router.put(`/custodian/employees/${employee?.id}`, payload, {
+            preserveScroll: true,
+            onSuccess: () => {
+                onOpenChange(false);
+            },
+            onError: (errors) => {
+                console.log(errors);
+            },
+        });
     };
 
     return (
@@ -217,27 +217,29 @@ export function EmployeeFormDialog({
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Department</FormLabel>
-                                        <FormControl>
-                                            <Select
-                                                value={field.value}
-                                                onValueChange={field.onChange}
-                                            >
+
+                                        <Select
+                                            value={field.value}
+                                            onValueChange={field.onChange}
+                                        >
+                                            <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select Department" />
                                                 </SelectTrigger>
+                                            </FormControl>
 
-                                                <SelectContent>
-                                                    {departments.map((department) => (
-                                                        <SelectItem
-                                                            key={department}
-                                                            value={department}
-                                                        >
-                                                            {department}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </FormControl>
+                                            <SelectContent>
+                                                {departments.map((department) => (
+                                                    <SelectItem
+                                                        key={department}
+                                                        value={department}
+                                                    >
+                                                        {department}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -267,7 +269,19 @@ export function EmployeeFormDialog({
                                 <FormItem>
                                     <FormLabel>Contact Number</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="09XX XXX XXXX" {...field} />
+                                        <Input
+                                            placeholder="09123456789"
+                                            maxLength={11}
+                                            inputMode="numeric"
+                                            value={field.value}
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/\D/g, '');
+
+                                                if (value.length <= 11) {
+                                                    field.onChange(value);
+                                                }
+                                            }}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -287,8 +301,8 @@ export function EmployeeFormDialog({
                                     </div>
                                     <FormControl>
                                         <Switch
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
+                                            checked={!!field.value}
+                                            onCheckedChange={(checked) => field.onChange(checked)}
                                         />
                                     </FormControl>
                                 </FormItem>
@@ -296,10 +310,10 @@ export function EmployeeFormDialog({
                         />
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            <Button className="cursor-pointer" type="button" variant="outline" onClick={() => onOpenChange(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit">
+                            <Button className="cursor-pointer" type="submit">
                                 {mode === 'create' ? 'Add Employee' : 'Save Changes'}
                             </Button>
                         </DialogFooter>

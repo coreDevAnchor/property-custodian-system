@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { useState } from 'react';
+import { Download } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -7,6 +8,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { dashboard } from '@/routes/custodian';
+import { PaginationBar } from '@/components/ui/pagination';
 
 interface Category {
     id: number;
@@ -30,8 +33,8 @@ interface Asset {
     };
 }
 
-interface PaginatedAssets {
-    data: Asset[];
+interface Paginated<T> {
+    data: T[];
     current_page: number;
     last_page: number;
     per_page: number;
@@ -45,8 +48,17 @@ interface Props {
     selectedCategory: string;
     selectedSort: string;
     selectedPerPage: number;
-    assets: PaginatedAssets;
+    assets: Paginated<Asset>;
 }
+
+const sortOptions = [
+    { value: 'latest', label: 'Latest to Oldest' },
+    { value: 'oldest', label: 'Oldest to Latest' },
+    { value: 'name_asc', label: 'Name A-Z' },
+    { value: 'name_desc', label: 'Name Z-A' },
+    { value: 'cost_high', label: 'Highest Cost' },
+    { value: 'cost_low', label: 'Lowest Cost' },
+];
 
 export default function Reports({
     categories,
@@ -55,318 +67,207 @@ export default function Reports({
     selectedSort,
     selectedPerPage,
 }: Props) {
+    const [category, setCategory] = useState(selectedCategory);
+    const [sort, setSort] = useState(selectedSort);
+
+    function fetchPage(
+        page: number,
+        overrides: { category?: string; sort?: string; per_page?: number } = {},
+    ) {
+        router.get(
+            '/custodian/reports',
+            {
+                category: overrides.category ?? category,
+                sort: overrides.sort ?? sort,
+                per_page: overrides.per_page ?? assets.per_page,
+                page,
+            },
+            { preserveState: true, preserveScroll: true, replace: true, only: ['assets', 'selectedCategory', 'selectedSort', 'selectedPerPage'] },
+        );
+    }
+
+    function handleCategoryChange(value: string) {
+        setCategory(value);
+        fetchPage(1, { category: value });
+    }
+
+    function handleSortChange(value: string) {
+        setSort(value);
+        fetchPage(1, { sort: value });
+    }
+
+    function handlePerPageChange(value: number) {
+        fetchPage(1, { per_page: value });
+    }
+
+    function handlePageChange(page: number) {
+        fetchPage(page);
+    }
+
     return (
         <>
             <Head title="Reports" />
 
-            <div className="flex flex-col gap-6 p-6 lg:p-8">
-                {/* Header */}
-                <div>
-                    <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                        Reports
-                    </h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Asset insights and overdue monitoring
-                    </p>
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 lg:p-8">
+                {/* ── Page header ── */}
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+                            Reports
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            Asset insights and overdue monitoring
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={() =>
+                            (window.location.href = `/custodian/reports/export-csv?category=${category}&sort=${sort}`)
+                        }
+                        className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
+                    >
+                        <Download className="size-4" />
+                        Export CSV
+                    </button>
                 </div>
 
-                {/* Main Container */}
-                <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-
-                    {/* Filters */}
-                    <div className="flex flex-wrap items-end justify-between gap-4 mb-2">
-                        <div className="flex flex-wrap items-end gap-4">
-
-                            <div className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                    Category
-                                </p>
-                                <Select
-                                    value={selectedCategory}
-                                    onValueChange={(value) =>
-                                        router.get(
-                                            '/custodian/reports',
-                                            { category: value, sort: selectedSort },
-                                            { preserveState: true, preserveScroll: true }
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger className="w-[220px] cursor-pointer">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all" className="cursor-pointer">
-                                            All Categories
+                {/* ── Filters + table ── */}
+                <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                    <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Select value={category} onValueChange={handleCategoryChange}>
+                                <SelectTrigger className="w-[180px] cursor-pointer">
+                                    <SelectValue placeholder="Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Categories</SelectItem>
+                                    {categories.map((cat) => (
+                                        <SelectItem key={cat.id} value={String(cat.id)}>
+                                            {cat.name}
                                         </SelectItem>
-                                        {categories.map(category => (
-                                            <SelectItem
-                                                key={category.id}
-                                                value={String(category.id)}
-                                                className="cursor-pointer"
-                                            >
-                                                {category.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                    Sort By
-                                </p>
-                                <Select
-                                    value={selectedSort}
-                                    onValueChange={(value) =>
-                                        router.get(
-                                            '/custodian/reports',
-                                            { category: selectedCategory, sort: value },
-                                            { preserveState: true, preserveScroll: true }
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger className="w-[220px] cursor-pointer">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="latest" className="cursor-pointer">Latest to Oldest</SelectItem>
-                                        <SelectItem value="oldest" className="cursor-pointer">Oldest to Latest</SelectItem>
-                                        <SelectItem value="name_asc" className="cursor-pointer">Name A-Z</SelectItem>
-                                        <SelectItem value="name_desc" className="cursor-pointer">Name Z-A</SelectItem>
-                                        <SelectItem value="cost_high" className="cursor-pointer">Highest Cost</SelectItem>
-                                        <SelectItem value="cost_low" className="cursor-pointer">Lowest Cost</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                    Items Per Page
-                                </p>
-
-                                <Select
-                                    value={String(selectedPerPage)}
-                                    onValueChange={(value) =>
-                                        router.get(
-                                            '/custodian/reports',
-                                            {
-                                                category: selectedCategory,
-                                                sort: selectedSort,
-                                                per_page: value,
-                                            },
-                                            {
-                                                preserveState: true,
-                                                preserveScroll: true,
-                                            }
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger className="w-[150px] cursor-pointer">
-                                        <SelectValue />
-                                    </SelectTrigger>
-
-                                    <SelectContent>
-                                        <SelectItem value="10" className="cursor-pointer">
-                                            10
-                                        </SelectItem>
-
-                                        <SelectItem value="15" className="cursor-pointer">
-                                            15
-                                        </SelectItem>
-
-                                        <SelectItem value="25" className="cursor-pointer">
-                                            25
-                                        </SelectItem>
-
-                                        <SelectItem value="50" className="cursor-pointer">
-                                            50
-                                        </SelectItem>
-
-                                        <SelectItem value="100" className="cursor-pointer">
-                                            100
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className='flex flex-wrap items-end gap-4'>
-                            <button
-                                onClick={() =>
-                                    window.location.href =
-                                    `/custodian/reports/export-csv?category=${selectedCategory}&sort=${selectedSort}`
-                                }
-                                className="
-                                    inline-flex items-center gap-2
-                                    rounded-xl
-                                    bg-[#0d7a5f]
-                                    px-4 py-2.5
-                                    text-sm font-semibold text-white
-                                    shadow-sm
-                                    transition-all
-                                    hover:bg-[#0b6a52]
-                                    hover:shadow-md
-                                    cursor-pointer
-                                "
-                            >
-                                <Download className="h-4 w-4" />
-
-                                Export CSV
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Table and Pagination Wrapper */}
-                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse">
-                                <thead className="sticky top-0 bg-gray-50 dark:bg-zinc-900 z-10">
-                                    <tr className="border-b border-gray-200 dark:border-zinc-800">
-                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                            Asset Name
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                            Asset Tag
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                            Category
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                            Asset Type
-                                        </th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                            Cost
-                                        </th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                            Rate
-                                        </th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                            Total Depreciation
-                                        </th>
-                                    </tr>
-                                </thead>
-
-                                <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
-                                    {assets.data.map(asset => (
-                                        <tr key={asset.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                                {asset.name}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-zinc-800 dark:text-gray-300">
-                                                    {asset.asset_tag}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-                                                    {asset.category?.name}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
-                                                    {asset.asset_type?.name ?? '-'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right whitespace-nowrap font-mono text-sm">
-                                                ₱{Number(asset.acquisition_cost).toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-4 text-right whitespace-nowrap">
-                                                {asset.depreciation_rate ? (
-                                                    <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-950/30 dark:text-orange-400">
-                                                        {asset.depreciation_rate}%
-                                                    </span>
-                                                ) : (
-                                                    '-'
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-right whitespace-nowrap font-mono text-sm">
-                                                {asset.total_depreciation
-                                                    ? `₱${asset.total_depreciation.toLocaleString()}`
-                                                    : '-'}
-                                            </td>
-                                        </tr>
                                     ))}
-                                </tbody>
-                            </table>
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={sort} onValueChange={handleSortChange}>
+                                <SelectTrigger className="w-[180px] cursor-pointer">
+                                    <SelectValue placeholder="Sort by" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {sortOptions.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-
-                        {/* Pagination Section */}
-                        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 px-6 py-4 bg-white dark:bg-zinc-900 dark:border-zinc-800 gap-4">
-                            {/* Responsive spacing left balance */}
-                            <div className="hidden sm:block w-[200px]" />
-
-                            {/* Navigation controls */}
-                            <div className="flex items-center gap-2">
-                                <button
-                                    disabled={assets.current_page === 1}
-                                    onClick={() =>
-                                        router.get('/custodian/reports',
-                                            { page: assets.current_page - 1, category: selectedCategory, sort: selectedSort },
-                                            { preserveScroll: true, preserveState: true }
-                                        )
-                                    }
-                                    className="flex items-center justify-center rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-zinc-800 cursor-pointer disabled:cursor-not-allowed"
-                                    aria-label="Previous Page"
-                                >
-                                    <ChevronLeft className="h-5 w-5" />
-                                </button>
-
-                                {assets.current_page > 1 && (
-                                    <button
-                                        onClick={() =>
-                                            router.get('/custodian/reports',
-                                                { page: assets.current_page - 1, category: selectedCategory, sort: selectedSort },
-                                                { preserveScroll: true, preserveState: true }
-                                            )
-                                        }
-                                        className="px-3 py-1.5 text-sm text-gray-500 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 font-medium cursor-pointer"
-                                    >
-                                        {assets.current_page - 1}
-                                    </button>
-                                )}
-
-                                <span className="rounded-lg bg-[#0d7a5f] px-4 py-1.5 text-sm font-semibold text-white selection:bg-transparent">
-                                    {assets.current_page}
-                                </span>
-
-                                {assets.current_page < assets.last_page && (
-                                    <button
-                                        onClick={() =>
-                                            router.get('/custodian/reports',
-                                                { page: assets.current_page + 1, category: selectedCategory, sort: selectedSort },
-                                                { preserveScroll: true, preserveState: true }
-                                            )
-                                        }
-                                        className="px-3 py-1.5 text-sm text-gray-500 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 font-medium cursor-pointer"
-                                    >
-                                        {assets.current_page + 1}
-                                    </button>
-                                )}
-
-                                <button
-                                    disabled={assets.current_page === assets.last_page}
-                                    onClick={() =>
-                                        router.get('/custodian/reports',
-                                            { page: assets.current_page + 1, category: selectedCategory, sort: selectedSort },
-                                            { preserveScroll: true, preserveState: true }
-                                        )
-                                    }
-                                    className="flex items-center justify-center rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-zinc-800 cursor-pointer disabled:cursor-not-allowed"
-                                    aria-label="Next Page"
-                                >
-                                    <ChevronRight className="h-5 w-5" />
-                                </button>
-                            </div>
-
-                            {/* Asset info tracking right side */}
-                            <div className="w-full sm:w-[200px] text-center sm:text-right text-sm text-gray-500">
-                                Showing {assets.from ?? 0}-{assets.to ?? 0} of {assets.total} assets
-                            </div>
-                        </div>
-
                     </div>
+
+                    <div className="overflow-x-auto px-6 pb-2">
+                        <table className="w-full min-w-[760px]">
+                            <thead>
+                                <tr className="border-b border-border">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Asset
+                                    </th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Category
+                                    </th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Asset Type
+                                    </th>
+                                    <th className="py-3 pr-4 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Cost
+                                    </th>
+                                    <th className="py-3 pr-4 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Rate
+                                    </th>
+                                    <th className="py-3 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Total Depreciation
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {assets.data.map((asset) => (
+                                    <tr
+                                        key={asset.id}
+                                        className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                                    >
+                                        <td className="py-3.5 pr-4">
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm font-semibold text-foreground">
+                                                    {asset.name}
+                                                </p>
+                                                <p className="truncate text-xs text-muted-foreground">
+                                                    {asset.asset_tag}
+                                                </p>
+                                            </div>
+                                        </td>
+                                        <td className="py-3.5 pr-4">
+                                            <span className="text-sm text-foreground">
+                                                {asset.category?.name ?? '—'}
+                                            </span>
+                                        </td>
+                                        <td className="py-3.5 pr-4">
+                                            <span className="text-sm text-muted-foreground">
+                                                {asset.asset_type?.name ?? '—'}
+                                            </span>
+                                        </td>
+                                        <td className="py-3.5 pr-4 text-right whitespace-nowrap font-mono text-sm text-foreground">
+                                            ₱{Number(asset.acquisition_cost).toLocaleString()}
+                                        </td>
+                                        <td className="py-3.5 pr-4 text-right whitespace-nowrap">
+                                            {asset.depreciation_rate ? (
+                                                <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                                    {asset.depreciation_rate}%
+                                                </span>
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground">—</span>
+                                            )}
+                                        </td>
+                                        <td className="py-3.5 text-right whitespace-nowrap font-mono text-sm text-foreground">
+                                            {asset.total_depreciation
+                                                ? `₱${asset.total_depreciation.toLocaleString()}`
+                                                : '—'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {assets.data.length === 0 && (
+                            <div className="flex flex-col items-center gap-1 py-12 text-center">
+                                <p className="text-sm font-semibold text-foreground">
+                                    No assets found
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    Try adjusting your filters
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    <PaginationBar
+                        currentPage={assets.current_page}
+                        lastPage={assets.last_page}
+                        total={assets.total}
+                        from={assets.from}
+                        to={assets.to}
+                        perPage={assets.per_page}
+                        itemLabel="assets"
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
                 </div>
             </div>
         </>
     );
 }
+
+Reports.layout = {
+    breadcrumbs: [
+        { title: 'Dashboard', href: dashboard() },
+        { title: 'Reports', href: '/custodian/reports' },
+    ],
+};

@@ -78,6 +78,16 @@ class AssetController extends Controller
             'remarks' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'asset_type_id' => ['required', 'exists:asset_types,id'],
+        ], [
+            'name.required' => 'Asset name is required.',
+            'category_id.required' => 'Category is required.',
+            'asset_type_id.required' => 'Asset type is required.',
+            'acquisition_date.required' => 'Acquisition date is required.',
+            'status.required' => 'Status is required.',
+            'serial_number.unique' => 'This serial number already exists.',
+            'photo.image' => 'The uploaded file must be an image.',
+            'photo.mimes' => 'Only JPG, JPEG, PNG, and WebP images are allowed.',
+            'photo.max' => 'The image must not exceed 2MB.',
         ]);
 
         $validated['asset_tag'] = $this->generateAssetTag($validated['asset_type_id']);
