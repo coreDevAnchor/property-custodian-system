@@ -29,7 +29,11 @@ interface Asset {
 interface Props {
     asset?: Asset;
     onOpenChange: (open: boolean) => void;
-    onSubmit: (assetId: number, remarks: string) => void;
+    onSubmit: (
+        assetId: number,
+        expectedReturnDate: string,
+        remarks: string
+    ) => void;
 }
 
 const conditionLabels: Record<number, string> = {
@@ -99,9 +103,11 @@ function formatDate(value?: string | null) {
 
 export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
     const [remarks, setRemarks] = useState('');
+    const [expectedReturnDate, setExpectedReturnDate] = useState('');
 
     useEffect(() => {
         setRemarks('');
+        setExpectedReturnDate('');
     }, [asset]);
 
     if (!asset) return null;
@@ -161,8 +167,23 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">
+                        Expected Return Date
+                    </label>
+
+                    <input
+                        type="date"
+                        value={expectedReturnDate}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setExpectedReturnDate(e.target.value)}
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
                         Reason / Remarks (optional)
                     </label>
+
                     <Textarea
                         rows={3}
                         placeholder="What will you use this for?"
@@ -179,7 +200,10 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
                     </Button>
                     <Button
                         className='cursor-pointer'
-                        onClick={() => onSubmit(asset.id, remarks)}>
+                        onClick={() =>
+                                onSubmit(asset.id, expectedReturnDate, remarks)
+                            }
+                        >
                         Submit Request
                     </Button>
                 </DialogFooter>

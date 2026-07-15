@@ -136,16 +136,24 @@ export default function AvailableAssets({ assets, categories }: Props) {
         });
     }, [assets, search, categoryFilter]);
 
-    function handleSubmitRequest(assetId: number, remarks: string) {
-        router.post(
-            '/employee/borrow-requests',
-            { asset_id: assetId, remarks },
-            {
-                preserveScroll: true,
-                onSuccess: () => setRequestTarget(undefined),
-            }
-        );
-    }
+    function handleSubmitRequest(
+            assetId: number,
+            expectedReturnDate: string,
+            remarks: string
+        ) {
+            router.post(
+                '/employee/borrow-requests',
+                {
+                    asset_id: assetId,
+                    expected_return_date: expectedReturnDate,
+                    remarks,
+                },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => setRequestTarget(undefined),
+                }
+            );
+        }
 
     return (
         <>
