@@ -28,6 +28,7 @@ class BorrowRequest extends Model
         'approved_at' => 'datetime',
         'returned_at' => 'datetime',
         'is_acknowledged' => 'boolean',
+        'expected_return_date' => 'date',
     ];
 
     protected $fillable = [
@@ -42,6 +43,7 @@ class BorrowRequest extends Model
         'return_condition',
         'is_acknowledged',
         'remarks',
+        'expected_return_date',
     ];
 
     public function asset(): BelongsTo

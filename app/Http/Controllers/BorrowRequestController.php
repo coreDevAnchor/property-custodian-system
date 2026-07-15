@@ -39,6 +39,7 @@ class BorrowRequestController extends Controller
     {
         $validated = $request->validate([
             'asset_id' => ['required', 'exists:assets,id'],
+            'expected_return_date' => ['required', 'date', 'after_or_equal:today'],
             'remarks' => ['nullable', 'string'],
         ]);
 
@@ -78,6 +79,7 @@ class BorrowRequestController extends Controller
             'employee_id' => $employee->id,
             'status' => 'pending',
             'requested_at' => now(),
+            'expected_return_date' => $validated['expected_return_date'],
             'remarks' => $validated['remarks'] ?? null,
         ]);
 
@@ -127,6 +129,7 @@ class BorrowRequestController extends Controller
             ],
             'remarks' => ['nullable', 'string'],
             'return_condition' => ['nullable', 'in:ok,defective'],
+            'expected_return_date' => ['nullable', 'date', 'after_or_equal:today'],
         ]);
 
         $borrowRequest = BorrowRequest::with(['asset', 'employee.user'])->findOrFail($id);
@@ -148,11 +151,15 @@ class BorrowRequestController extends Controller
         $updateData = [
             'remarks' => $validated['remarks'] ?? $borrowRequest->remarks,
             'return_condition' => $validated['return_condition'] ?? $borrowRequest->return_condition,
+            'expected_return_date' => $borrowRequest->expected_return_date,
         ];
 
         if ($validated['status'] === 'borrowed') {
             $updateData['approved_by'] = Auth::id();
             $updateData['approved_at'] = now();
+                if (! empty($validated['expected_return_date'])) {
+                    $updateData['expected_return_date'] = $validated['expected_return_date'];
+                }
         } elseif ($validated['status'] === 'returned') {
             $updateData['checked_by'] = Auth::id();
             $updateData['returned_at'] = now();
