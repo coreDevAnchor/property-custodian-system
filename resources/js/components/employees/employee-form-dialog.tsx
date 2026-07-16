@@ -129,15 +129,27 @@ export function EmployeeFormDialog({
 
         console.log('Submitting:', payload);
 
-        router.put(`/custodian/employees/${employee?.id}`, payload, {
-            preserveScroll: true,
-            onSuccess: () => {
-                onOpenChange(false);
-            },
-            onError: (errors) => {
-                console.log(errors);
-            },
-        });
+        if (mode === 'create') {
+            router.post('/custodian/employees', payload, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    onOpenChange(false);
+                },
+                onError: (errors) => {
+                    console.log(errors);
+                },
+            });
+        } else {
+            router.put(`/custodian/employees/${employee?.id}`, payload, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    onOpenChange(false);
+                },
+                onError: (errors) => {
+                    console.log(errors);
+                },
+            });
+        }
     };
 
     return (
