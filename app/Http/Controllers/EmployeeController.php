@@ -9,6 +9,7 @@ use Inertia\Inertia;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Models\ActivityLogs;
 
 class EmployeeController extends Controller
 {

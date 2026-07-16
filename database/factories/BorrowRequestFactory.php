@@ -43,10 +43,13 @@ class BorrowRequestFactory extends Factory
             ? fake()->dateTimeBetween($approvedAt ?? '-1 week', 'now')
             : null;
 
+        // 25% chance of overdue if item is still active
+        $isOverdue = in_array($status, ['borrowed', 'awaiting_check'])
+            && fake()->boolean(25);
+
         return [
             'asset_id' => Asset::inRandomOrder()->value('id'),
 
-            // Existing employee from database
             'employee_id' => Employee::inRandomOrder()->value('id'),
 
             'approved_by' => $approvedAt
@@ -75,7 +78,18 @@ class BorrowRequestFactory extends Factory
 
             'remarks' => fake()->optional()->sentence(),
 
-            'expected_return_date' => fake()->dateTimeBetween('now', '+30 days'),
+            'expected_return_date' => match (true) {
+                $status === 'returned' =>
+                fake()->dateTimeBetween($approvedAt, $returnedAt),
+
+                $isOverdue =>
+                fake()->dateTimeBetween('-30 days', '-1 day'),
+
+                in_array($status, ['borrowed', 'awaiting_check']) =>
+                fake()->dateTimeBetween('now', '+30 days'),
+
+                default => null,
+            },
         ];
     }
 }

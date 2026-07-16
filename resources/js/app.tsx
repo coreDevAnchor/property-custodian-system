@@ -27,7 +27,6 @@ createInertiaApp({
     withApp(app) {
         return (
             <TooltipProvider delayDuration={0}>
-                <FlashToastListener />
                 {app}
                 <Toaster richColors />
             </TooltipProvider>
