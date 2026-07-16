@@ -66,8 +66,6 @@ class ProfileController extends Controller
 
         $user->save();
 
-        dd($user->fresh()->profile_photo_path);
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
 
         return to_route('profile.edit');
