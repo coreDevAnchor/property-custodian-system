@@ -25,11 +25,19 @@ class ReturnController extends Controller
             'checkedBy',
         ])
             ->whereIn('status', ['awaiting_check', 'returned'])
+
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->whereHas('employee.user', fn($u) => $u->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('asset', fn($a) => $a->where('name', 'like', "%{$search}%")
-                            ->orWhere('asset_tag', 'like', "%{$search}%"));
+                    $q->whereHas('employee.user', fn($u) =>
+                        $u->where('name', 'ilike', "%{$search}%")
+                    )
+                    ->orWhereHas('asset', function ($a) use ($search) {
+                        $a->where('name', 'ilike', "%{$search}%")
+                            ->orWhere('asset_tag', 'ilike', "%{$search}%")
+                            ->orWhereHas('assetType', function ($type) use ($search) {
+                                $type->where('name', 'ilike', "%{$search}%");
+                            });
+                    });
                 });
             })
             ->when($status !== 'All', fn($q) => $q->where('status', $status))
