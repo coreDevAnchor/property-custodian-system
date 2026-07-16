@@ -155,6 +155,15 @@ class AssetController extends Controller
         ]);
 
         $previousStatus = $asset->status;
+        
+        if (
+            $asset->status === 'borrowed' &&
+            $validated['status'] === 'available'
+        ) {
+            return back()->withErrors([
+                'status' => 'This asset is currently borrowed and cannot be marked as available until it has been returned.',
+            ]);
+        }
 
         if ($asset->asset_type_id !== (int) $validated['asset_type_id']) {
             $validated['acquisition_cost'] ??= $asset->acquisition_cost;

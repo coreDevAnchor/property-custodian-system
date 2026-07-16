@@ -537,6 +537,7 @@ export function AssetFormDialog({
                                             <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}
+                                                disabled={mode === 'edit' && asset?.status === 'borrowed'}
                                             >
                                                 <FormControl className="cursor-pointer">
                                                     <SelectTrigger>
@@ -559,7 +560,11 @@ export function AssetFormDialog({
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>
-
+                                                {mode === 'edit' && asset?.status === 'borrowed' && (
+                                                    <p className="text-sm text-muted-foreground mt-2">
+                                                        This asset is currently borrowed. Its status can only be changed after it is returned.
+                                                    </p>
+                                                )}
                                             <FormMessage />
                                         </FormItem>
                                     )}
