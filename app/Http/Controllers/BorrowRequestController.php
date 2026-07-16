@@ -16,17 +16,51 @@ use Inertia\Response;
 
 class BorrowRequestController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = $request->string('search')->toString();
+        $status = $request->input('status', 'pending');
+        $sort = $request->input('sort', 'newest');
+        $perPage = (int) $request->input('per_page', 10);
+
+        $borrowRequests = BorrowRequest::with([
+            'asset.category',
+            'employee.user',
+            'approvedBy',
+            'checkedBy',
+        ])
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('employee.user', fn($u) => $u->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('asset', fn($a) => $a->where('name', 'like', "%{$search}%")
+                            ->orWhere('asset_tag', 'like', "%{$search}%"));
+                });
+            })
+            ->when($status !== 'All', fn($q) => $q->where('status', $status))
+            ->when($sort === 'newest', fn($q) => $q->latest('requested_at'))
+            ->when($sort === 'oldest', fn($q) => $q->oldest('requested_at'))
+            ->when($sort === 'requester_az', fn($q) => $q->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
+                ->join('users', 'users.id', '=', 'employees.user_id')
+                ->orderBy('users.name', 'asc')
+                ->select('borrow_requests.*'))
+            ->when($sort === 'requester_za', fn($q) => $q->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
+                ->join('users', 'users.id', '=', 'employees.user_id')
+                ->orderBy('users.name', 'desc')
+                ->select('borrow_requests.*'))
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $pendingCount = BorrowRequest::where('status', 'pending')->count();
+
         return Inertia::render('custodian/borrow-requests', [
-            'borrowRequests' => BorrowRequest::with([
-                'asset.category',
-                'employee.user',
-                'approvedBy',
-                'checkedBy',
-            ])
-                ->latest()
-                ->paginate(10),
+            'borrowRequests' => $borrowRequests,
+            'pendingCount' => $pendingCount,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'sort' => $sort,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 
@@ -45,7 +79,7 @@ class BorrowRequestController extends Controller
 
         $asset = Asset::query()->find((int) $validated['asset_id']);
 
-        if (! $asset instanceof Asset) {
+        if (!$asset instanceof Asset) {
             abort(404);
         }
 
@@ -55,13 +89,13 @@ class BorrowRequestController extends Controller
 
         $user = Auth::user();
 
-        if (! $user instanceof User) {
+        if (!$user instanceof User) {
             abort(403);
         }
 
         $employee = $user->employee;
 
-        if (! $employee instanceof Employee) {
+        if (!$employee instanceof Employee) {
             abort(403, 'Only employees can submit borrow requests.');
         }
 
@@ -157,9 +191,9 @@ class BorrowRequestController extends Controller
         if ($validated['status'] === 'borrowed') {
             $updateData['approved_by'] = Auth::id();
             $updateData['approved_at'] = now();
-                if (! empty($validated['expected_return_date'])) {
-                    $updateData['expected_return_date'] = $validated['expected_return_date'];
-                }
+            if (!empty($validated['expected_return_date'])) {
+                $updateData['expected_return_date'] = $validated['expected_return_date'];
+            }
         } elseif ($validated['status'] === 'returned') {
             $updateData['checked_by'] = Auth::id();
             $updateData['returned_at'] = now();
@@ -204,7 +238,7 @@ class BorrowRequestController extends Controller
             $validated['status'] === 'rejected' => "Borrow request from {$requesterName} was rejected.",
             $validated['status'] === 'awaiting_check' => "{$requesterName} submitted {$asset->name} for return inspection.",
             $validated['status'] === 'returned' => "{$asset->name} was inspected and confirmed returned"
-            .($updateData['return_condition'] ? " ({$updateData['return_condition']})." : '.'),
+            . ($updateData['return_condition'] ? " ({$updateData['return_condition']})." : '.'),
             default => "Borrow request status changed to {$validated['status']}.",
         };
 

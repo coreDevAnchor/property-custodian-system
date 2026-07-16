@@ -12,17 +12,51 @@ class ReturnController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->string('search')->toString();
+        $status = $request->input('status', 'awaiting_check');
+        $sort = $request->input('sort', 'newest');
+        $perPage = (int) $request->input('per_page', 10);
+
+        $returns = BorrowRequest::with([
+            'asset.category',
+            'employee.user',
+            'checkedBy',
+        ])
+            ->whereIn('status', ['awaiting_check', 'returned'])
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('employee.user', fn($u) => $u->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('asset', fn($a) => $a->where('name', 'like', "%{$search}%")
+                            ->orWhere('asset_tag', 'like', "%{$search}%"));
+                });
+            })
+            ->when($status !== 'All', fn($q) => $q->where('status', $status))
+            ->when($sort === 'newest', fn($q) => $q->latest('requested_at'))
+            ->when($sort === 'oldest', fn($q) => $q->oldest('requested_at'))
+            ->when($sort === 'borrower_az', fn($q) => $q->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
+                ->join('users', 'users.id', '=', 'employees.user_id')
+                ->orderBy('users.name', 'asc')
+                ->select('borrow_requests.*'))
+            ->when($sort === 'borrower_za', fn($q) => $q->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
+                ->join('users', 'users.id', '=', 'employees.user_id')
+                ->orderBy('users.name', 'desc')
+                ->select('borrow_requests.*'))
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $awaitingCount = BorrowRequest::where('status', 'awaiting_check')->count();
+
         return Inertia::render('custodian/returns', [
-            'returns' => BorrowRequest::with([
-                'asset.category',
-                'employee.user',
-                'checkedBy',
-            ])
-                ->whereIn('status', ['awaiting_check', 'returned'])
-                ->latest('requested_at')
-                ->paginate(10),
+            'returns' => $returns,
+            'awaitingCount' => $awaitingCount,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'sort' => $sort,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 

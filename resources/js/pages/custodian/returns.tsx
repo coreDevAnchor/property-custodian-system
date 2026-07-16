@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     AlertTriangle,
     CheckCircle2,
@@ -15,6 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { dashboard } from '@/routes/custodian';
+import { PaginationBar } from '@/components/ui/pagination';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,23 @@ interface ReturnItem {
 }
 
 type SortKey = 'newest' | 'oldest' | 'borrower_az' | 'borrower_za';
+
+interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
+
+interface Filters {
+    search: string;
+    status: 'All' | ReturnStatus;
+    sort: SortKey;
+    per_page: number;
+}
 
 const statusLabels: Record<ReturnStatus, string> = {
     awaiting_check: 'Awaiting Check',
@@ -196,66 +214,69 @@ function ReturnRow({
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 interface Props {
-    returns: {
-        data: ReturnItem[];
-    };
+    returns: Paginated<ReturnItem>;
+    awaitingCount: number;
+    filters: Filters;
 }
 
-export default function Returns({ returns }: Props) {
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'All' | ReturnStatus>(
-        'awaiting_check'
-    );
-    const [sortKey, setSortKey] = useState<SortKey>('newest');
+export default function Returns({
+    returns,
+    awaitingCount,
+    filters = { search: '', status: 'awaiting_check', sort: 'newest', per_page: 10 },
+}: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [statusFilter, setStatusFilter] = useState<'All' | ReturnStatus>(filters.status ?? 'awaiting_check');
+    const [sortKey, setSortKey] = useState<SortKey>(filters.sort ?? 'newest');
 
-    const filteredReturns = useMemo(() => {
-        const searchTerm = search.toLowerCase().trim();
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isFirstRun = useRef(true);
 
-        const filtered = (returns?.data ?? []).filter((item) => {
-            const matchesSearch =
-                !searchTerm ||
-                item.employee.user.name.toLowerCase().includes(searchTerm) ||
-                item.asset.name.toLowerCase().includes(searchTerm) ||
-                item.asset.asset_tag.toLowerCase().includes(searchTerm);
+    function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        router.get(
+            '/custodian/returns',
+            {
+                search: overrides.search ?? search,
+                status: overrides.status ?? statusFilter,
+                sort: overrides.sort ?? sortKey,
+                per_page: overrides.per_page ?? returns.per_page,
+                page,
+            },
+            { preserveState: true, preserveScroll: true, replace: true, only: ['returns', 'awaitingCount', 'filters'] },
+        );
+    }
 
-            const matchesStatus =
-                statusFilter === 'All' || item.status === statusFilter;
+    useEffect(() => {
+        if (isFirstRun.current) {
+            isFirstRun.current = false;
+            return;
+        }
 
-            return matchesSearch && matchesStatus;
-        });
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
-        return [...filtered].sort((a, b) => {
-            switch (sortKey) {
-                case 'newest':
-                    return (
-                        new Date(b.requested_at).getTime() -
-                        new Date(a.requested_at).getTime()
-                    );
-                case 'oldest':
-                    return (
-                        new Date(a.requested_at).getTime() -
-                        new Date(b.requested_at).getTime()
-                    );
-                case 'borrower_az':
-                    return a.employee.user.name.localeCompare(
-                        b.employee.user.name
-                    );
-                case 'borrower_za':
-                    return b.employee.user.name.localeCompare(
-                        a.employee.user.name
-                    );
-                default:
-                    return 0;
-            }
-        });
-    }, [returns, search, statusFilter, sortKey]);
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
 
-    const awaitingCount = useMemo(
-        () =>
-            (returns?.data ?? []).filter((r) => r.status === 'awaiting_check')
-                .length,
-        [returns]
-    );
+    function handleStatusChange(value: 'All' | ReturnStatus) {
+        setStatusFilter(value);
+        fetchPage(1, { status: value });
+    }
+
+    function handleSortChange(value: SortKey) {
+        setSortKey(value);
+        fetchPage(1, { sort: value });
+    }
+
+    function handlePerPageChange(value: number) {
+        fetchPage(1, { per_page: value });
+    }
+
+    function handlePageChange(page: number) {
+        fetchPage(page);
+    }
 
     function handleConfirmReturn(item: ReturnItem, condition: ReturnCondition) {
         router.put(
@@ -310,7 +331,7 @@ export default function Returns({ returns }: Props) {
                             <Select
                                 value={statusFilter}
                                 onValueChange={(value) =>
-                                    setStatusFilter(value as 'All' | ReturnStatus)
+                                    handleStatusChange(value as 'All' | ReturnStatus)
                                 }
                             >
                                 <SelectTrigger className="w-[180px] cursor-pointer">
@@ -328,7 +349,7 @@ export default function Returns({ returns }: Props) {
 
                             <Select
                                 value={sortKey}
-                                onValueChange={(value) => setSortKey(value as SortKey)}
+                                onValueChange={(value) => handleSortChange(value as SortKey)}
                             >
                                 <SelectTrigger className="w-[180px] cursor-pointer">
                                     <SelectValue placeholder="Sort by" />
@@ -376,7 +397,7 @@ export default function Returns({ returns }: Props) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredReturns.map((item) => (
+                                {returns.data.map((item) => (
                                     <ReturnRow
                                         key={item.id}
                                         item={item}
@@ -386,7 +407,7 @@ export default function Returns({ returns }: Props) {
                             </tbody>
                         </table>
 
-                        {filteredReturns.length === 0 && (
+                        {returns.data.length === 0 && (
                             <div className="flex flex-col items-center gap-1 py-12 text-center">
                                 <p className="text-sm font-semibold text-foreground">
                                     No returns found
@@ -398,12 +419,17 @@ export default function Returns({ returns }: Props) {
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-border px-6 py-3.5">
-                        <p className="text-xs text-muted-foreground">
-                            Showing {filteredReturns.length} of{' '}
-                            {returns?.data?.length ?? 0} returns
-                        </p>
-                    </div>
+                    <PaginationBar
+                        currentPage={returns.current_page}
+                        lastPage={returns.last_page}
+                        total={returns.total}
+                        from={returns.from}
+                        to={returns.to}
+                        perPage={returns.per_page}
+                        itemLabel="returns"
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
                 </div>
             </div>
         </>

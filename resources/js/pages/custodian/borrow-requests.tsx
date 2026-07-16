@@ -1,5 +1,4 @@
 import { Head, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
 import {
     Check,
     ClipboardCheck,
@@ -17,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { dashboard } from '@/routes/custodian';
 import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
+import { PaginationBar } from '@/components/ui/pagination';
+import { useEffect, useRef, useState } from 'react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,23 @@ interface BorrowRequest {
 }
 
 type SortKey = 'newest' | 'oldest' | 'requester_az' | 'requester_za';
+
+interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
+
+interface Filters {
+    search: string;
+    status: 'All' | BorrowStatus;
+    sort: SortKey;
+    per_page: number;
+}
 
 const statusLabels: Record<BorrowStatus, string> = {
     pending: 'Pending',
@@ -196,65 +214,70 @@ function BorrowRequestRow({
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 interface Props {
-    borrowRequests: {
-        data: BorrowRequest[];
-    };
+    borrowRequests: Paginated<BorrowRequest>;
+    pendingCount: number;
+    filters: Filters;
 }
 
-export default function BorrowRequests({ borrowRequests }: Props) {
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'All' | BorrowStatus>('pending');
-    const [sortKey, setSortKey] = useState<SortKey>('newest');
+export default function BorrowRequests({
+    borrowRequests,
+    pendingCount,
+    filters = { search: '', status: 'pending', sort: 'newest', per_page: 10 },
+}: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [statusFilter, setStatusFilter] = useState<'All' | BorrowStatus>(filters.status ?? 'pending');
+    const [sortKey, setSortKey] = useState<SortKey>(filters.sort ?? 'newest');
     const [approvalRequest, setApprovalRequest] = useState<BorrowRequest | null>(null);
 
-    const filteredRequests = useMemo(() => {
-        const searchTerm = search.toLowerCase().trim();
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isFirstRun = useRef(true);
 
-        const filtered = (borrowRequests?.data ?? []).filter((request) => {
-            const matchesSearch =
-                !searchTerm ||
-                request.employee.user.name.toLowerCase().includes(searchTerm) ||
-                request.asset.name.toLowerCase().includes(searchTerm) ||
-                request.asset.asset_tag.toLowerCase().includes(searchTerm);
+    function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        router.get(
+            '/custodian/borrow-requests',
+            {
+                search: overrides.search ?? search,
+                status: overrides.status ?? statusFilter,
+                sort: overrides.sort ?? sortKey,
+                per_page: overrides.per_page ?? borrowRequests.per_page,
+                page,
+            },
+            { preserveState: true, preserveScroll: true, replace: true, only: ['borrowRequests', 'pendingCount', 'filters'] },
+        );
+    }
 
-            const matchesStatus =
-                statusFilter === 'All' || request.status === statusFilter;
+    useEffect(() => {
+        if (isFirstRun.current) {
+            isFirstRun.current = false;
+            return;
+        }
 
-            return matchesSearch && matchesStatus;
-        });
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
-        return [...filtered].sort((a, b) => {
-            switch (sortKey) {
-                case 'newest':
-                    return (
-                        new Date(b.requested_at).getTime() -
-                        new Date(a.requested_at).getTime()
-                    );
-                case 'oldest':
-                    return (
-                        new Date(a.requested_at).getTime() -
-                        new Date(b.requested_at).getTime()
-                    );
-                case 'requester_az':
-                    return a.employee.user.name.localeCompare(
-                        b.employee.user.name
-                    );
-                case 'requester_za':
-                    return b.employee.user.name.localeCompare(
-                        a.employee.user.name
-                    );
-                default:
-                    return 0;
-            }
-        });
-    }, [borrowRequests, search, statusFilter, sortKey]);
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
 
-    const pendingCount = useMemo(
-        () =>
-            (borrowRequests?.data ?? []).filter((r) => r.status === 'pending')
-                .length,
-        [borrowRequests]
-    );
+    function handleStatusChange(value: 'All' | BorrowStatus) {
+        setStatusFilter(value);
+        fetchPage(1, { status: value });
+    }
+
+    function handleSortChange(value: SortKey) {
+        setSortKey(value);
+        fetchPage(1, { sort: value });
+    }
+
+    function handlePerPageChange(value: number) {
+        fetchPage(1, { per_page: value });
+    }
+
+    function handlePageChange(page: number) {
+        fetchPage(page);
+    }
 
     function handleUpdateStatus(
         request: BorrowRequest,
@@ -316,30 +339,8 @@ export default function BorrowRequests({ borrowRequests }: Props) {
 
                         <div className="flex items-center gap-2">
                             <Select
-                                value={statusFilter}
-                                onValueChange={(value) =>
-                                    setStatusFilter(value as "All" | BorrowStatus)
-                                }
-                            >
-                                <SelectTrigger className="w-[180px] cursor-pointer">
-                                    <SelectValue placeholder="Filter by status" />
-                                </SelectTrigger>
-
-                                <SelectContent>
-                                    <SelectItem value="All">All Statuses</SelectItem>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="borrowed">Borrowed</SelectItem>
-                                    <SelectItem value="awaiting_check">
-                                        Awaiting Check
-                                    </SelectItem>
-                                    <SelectItem value="returned">Returned</SelectItem>
-                                    <SelectItem value="rejected">Rejected</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            <Select
                                 value={sortKey}
-                                onValueChange={(value) => setSortKey(value as SortKey)}
+                                onValueChange={(value) => handleSortChange(value as SortKey)}
                             >
                                 <SelectTrigger className="w-[180px] cursor-pointer">
                                     <SelectValue placeholder="Sort by" />
@@ -381,7 +382,7 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredRequests.map((request) => (
+                                {borrowRequests.data.map((request) => (
                                     <BorrowRequestRow
                                         key={request.id}
                                         request={request}
@@ -391,7 +392,7 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                             </tbody>
                         </table>
 
-                        {filteredRequests.length === 0 && (
+                        {borrowRequests.data.length === 0 && (
                             <div className="flex flex-col items-center gap-1 py-12 text-center">
                                 <p className="text-sm font-semibold text-foreground">
                                     No borrow requests found
@@ -403,12 +404,17 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-border px-6 py-3.5">
-                        <p className="text-xs text-muted-foreground">
-                            Showing {filteredRequests.length} of{' '}
-                            {borrowRequests?.data?.length ?? 0} requests
-                        </p>
-                    </div>
+                    <PaginationBar
+                        currentPage={borrowRequests.current_page}
+                        lastPage={borrowRequests.last_page}
+                        total={borrowRequests.total}
+                        from={borrowRequests.from}
+                        to={borrowRequests.to}
+                        perPage={borrowRequests.per_page}
+                        itemLabel="requests"
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
                 </div>
             </div>
 

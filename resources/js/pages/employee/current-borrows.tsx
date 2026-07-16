@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useMemo } from 'react';
+import { useState } from 'react';
 import {
     AlertCircle,
     CalendarClock,
@@ -8,10 +8,15 @@ import {
     Package,
     PackageOpen,
 } from 'lucide-react';
-import * as currentBorrows from '@/routes/employee/current-borrows';
-import * as employeeReturns from '@/routes/employee/returns';
-import { useState } from 'react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
+import { PaginationBar } from '@/components/ui/pagination';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -42,8 +47,31 @@ interface BorrowItem {
     };
 }
 
+interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
+
+interface Counts {
+    borrowed: number;
+    pending: number;
+    awaiting_check: number;
+}
+
+interface Filters {
+    status: 'All' | BorrowStatus;
+    per_page: number;
+}
+
 interface Props {
-    borrows: BorrowItem[];
+    borrows: Paginated<BorrowItem>;
+    counts: Counts;
+    filters: Filters;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -244,149 +272,160 @@ function BorrowCard({ item }: { item: BorrowItem }) {
     );
 }
 
-
-
-
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function CurrentBorrows({ borrows }: Props) {
-    const groups = useMemo(() => {
-        const borrowed = borrows.filter((b) => b.status === 'borrowed');
-        const pending = borrows.filter((b) => b.status === 'pending');
-        const awaiting = borrows.filter((b) => b.status === 'awaiting_check');
-        return { borrowed, pending, awaiting };
-    }, [borrows]);
+const statusFilterOptions: { value: 'All' | BorrowStatus; label: string }[] = [
+    { value: 'All', label: 'All Statuses' },
+    { value: 'borrowed', label: 'Currently Borrowed' },
+    { value: 'pending', label: 'Pending Approval' },
+    { value: 'awaiting_check', label: 'Under Inspection' },
+];
 
-    const isEmpty = borrows.length === 0;
+export default function CurrentBorrows({
+    borrows,
+    counts,
+    filters = { status: 'All', per_page: 12 },
+}: Props) {
+    const [status, setStatus] = useState<'All' | BorrowStatus>(filters.status ?? 'All');
+
+    const isEmpty = borrows.total === 0;
+
+    function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        router.get(
+            '/employee/current-borrows',
+            {
+                status: overrides.status ?? status,
+                per_page: overrides.per_page ?? borrows.per_page,
+                page,
+            },
+            { preserveState: true, preserveScroll: true, replace: true, only: ['borrows', 'filters'] },
+        );
+    }
+
+    function handleStatusChange(value: 'All' | BorrowStatus) {
+        setStatus(value);
+        fetchPage(1, { status: value });
+    }
+
+    function handlePerPageChange(value: number) {
+        fetchPage(1, { per_page: value });
+    }
+
+    function handlePageChange(page: number) {
+        fetchPage(page);
+    }
 
     return (
         <>
             <Head title="My Current Borrows" />
 
-            <div className="flex h-full flex-1 flex-col gap-8 p-6 lg:p-8">
+            <div className="flex h-full flex-1 flex-col gap-6 p-6 lg:p-8">
                 {/* ── Page header ── */}
-                <div className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-                        My Current Borrows
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Assets you currently have in your possession or pending approval
-                    </p>
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+                            My Current Borrows
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            Assets you currently have in your possession or pending approval
+                        </p>
+                    </div>
+
+                    <Select value={status} onValueChange={handleStatusChange}>
+                        <SelectTrigger className="w-[220px] cursor-pointer">
+                            <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {statusFilterOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {/* ── Stats row ── */}
-                {!isEmpty && (
-                    <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                        {[
-                            {
-                                label: 'Active',
-                                count: groups.borrowed.length,
-                                color: 'text-emerald-600 dark:text-emerald-400',
-                                bg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
-                                icon: CheckCircle2,
-                            },
-                            {
-                                label: 'Pending',
-                                count: groups.pending.length,
-                                color: 'text-amber-600 dark:text-amber-400',
-                                bg: 'bg-amber-500/10 dark:bg-amber-500/20',
-                                icon: Clock,
-                            },
-                            {
-                                label: 'Inspection',
-                                count: groups.awaiting.length,
-                                color: 'text-purple-600 dark:text-purple-400',
-                                bg: 'bg-purple-500/10 dark:bg-purple-500/20',
-                                icon: AlertCircle,
-                            },
-                        ].map(({ label, count, color, bg, icon: Ico }) => (
-                            <div
-                                key={label}
-                                className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
-                            >
-                                <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${bg}`}>
-                                    <Ico className={`size-4 ${color}`} />
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                    {[
+                        {
+                            label: 'Active',
+                            count: counts.borrowed,
+                            color: 'text-emerald-600 dark:text-emerald-400',
+                            bg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
+                            icon: CheckCircle2,
+                        },
+                        {
+                            label: 'Pending',
+                            count: counts.pending,
+                            color: 'text-amber-600 dark:text-amber-400',
+                            bg: 'bg-amber-500/10 dark:bg-amber-500/20',
+                            icon: Clock,
+                        },
+                        {
+                            label: 'Inspection',
+                            count: counts.awaiting_check,
+                            color: 'text-purple-600 dark:text-purple-400',
+                            bg: 'bg-purple-500/10 dark:bg-purple-500/20',
+                            icon: AlertCircle,
+                        },
+                    ].map(({ label, count, color, bg, icon: Ico }) => (
+                        <div
+                            key={label}
+                            className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
+                        >
+                            <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${bg}`}>
+                                <Ico className={`size-4 ${color}`} />
+                            </div>
+                            <div>
+                                <p className={`text-xl font-extrabold leading-none ${color}`}>{count}</p>
+                                <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* ── Card grid + pagination ── */}
+                <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                    <div className="px-6 py-6">
+                        {isEmpty ? (
+                            <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+                                <div className="flex size-16 items-center justify-center rounded-2xl bg-muted/50">
+                                    <PackageOpen className="size-8 text-muted-foreground" />
                                 </div>
                                 <div>
-                                    <p className={`text-xl font-extrabold leading-none ${color}`}>{count}</p>
-                                    <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+                                    <p className="text-base font-bold text-foreground">
+                                        No active borrows
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        You have no assets currently borrowed or awaiting approval.
+                                    </p>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* ── Empty state ── */}
-                {isEmpty ? (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border py-20 text-center">
-                        <div className="flex size-16 items-center justify-center rounded-2xl bg-muted/50">
-                            <PackageOpen className="size-8 text-muted-foreground" />
-                        </div>
-                        <div>
-                            <p className="text-base font-bold text-foreground">
-                                No active borrows
-                            </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                You have no assets currently borrowed or awaiting approval.
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-8">
-                        {/* Borrowed */}
-                        {groups.borrowed.length > 0 && (
-                            <section className="space-y-3">
-                                <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                                    <CheckCircle2 className="size-4" />
-                                    Currently Borrowed
-                                </h2>
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {groups.borrowed.map((item) => (
-                                        <BorrowCard key={item.id} item={item} />
-                                    ))}
-                                </div>
-                            </section>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {borrows.data.map((item) => (
+                                    <BorrowCard key={item.id} item={item} />
+                                ))}
+                            </div>
                         )}
-
-                        {/* Pending */}
-                        {groups.pending.length > 0 && (
-                            <section className="space-y-3">
-                                <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
-                                    <Clock className="size-4" />
-                                    Awaiting Approval
-                                </h2>
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {groups.pending.map((item) => (
-                                        <BorrowCard key={item.id} item={item} />
-                                    ))}
-                                </div>
-                            </section>
-                        )}
-
-                        {/* Awaiting check */}
-                        {groups.awaiting.length > 0 && (
-                            <section className="space-y-3">
-                                <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
-                                    <AlertCircle className="size-4" />
-                                    Under Inspection
-                                </h2>
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {groups.awaiting.map((item) => (
-                                        <BorrowCard key={item.id} item={item} />
-                                    ))}
-                                </div>
-                            </section>
-                        )}
-
-
-
                     </div>
 
-                )}
+                    {!isEmpty && (
+                        <PaginationBar
+                            currentPage={borrows.current_page}
+                            lastPage={borrows.last_page}
+                            total={borrows.total}
+                            from={borrows.from}
+                            to={borrows.to}
+                            perPage={borrows.per_page}
+                            itemLabel="borrows"
+                            onPageChange={handlePageChange}
+                            onPerPageChange={handlePerPageChange}
+                        />
+                    )}
+                </div>
             </div>
-
         </>
-
     );
 }
