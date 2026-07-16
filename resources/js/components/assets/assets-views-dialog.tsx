@@ -16,20 +16,7 @@ import { ActivityFeed } from '@/components/activity/activity-feed';
 // ── Extra fields that exist on the backend model but may not yet be
 // on the shared Asset type. Marked optional so this renders safely
 // either way. ──
-type ViewableAsset = Asset & {
-    acquisition_cost?: number | string;
-    depreciation_rate?: number | string;
-    condition?: number;
-    photo?: string | null;
-    remarks?: string | null;
-
-    assetType?: {
-        id: number;
-        name: string;
-        prefix: string;
-    };
-
-};
+type ViewableAsset = Asset;
 
 type AssetStatus = "available" | "borrowed" | "under_repair" | "disposed";
 
@@ -74,7 +61,7 @@ const conditionStyles: Record<number, string> = {
     4: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 };
 
-function ConditionBadge({ condition }: { condition?: number }) {
+function ConditionBadge({ condition }: { condition?: number | null }) {
     if (!condition || !conditionLabels[condition]) {
         return <span className="text-sm text-muted-foreground">—</span>;
     }
@@ -112,9 +99,15 @@ interface Props {
     asset?: ViewableAsset;
     onOpenChange: (open: boolean) => void;
     onEdit?: (asset: ViewableAsset) => void;
+    /**
+     * When false, hides the Edit button and skips fetching the
+     * custodian-only activity log endpoint. Use this for read-only
+     * contexts like the employee "Available Assets" page.
+     */
+    readOnly?: boolean;
 }
 
-function formatCurrency(value?: number | string) {
+function formatCurrency(value?: number | string | null) {
     if (value === undefined || value === null || value === "") return undefined;
     const num = typeof value === "string" ? parseFloat(value) : value;
     if (Number.isNaN(num)) return undefined;
@@ -124,7 +117,7 @@ function formatCurrency(value?: number | string) {
     }).format(num);
 }
 
-function formatDate(value?: string) {
+function formatDate(value?: string | null) {
     if (!value) return undefined;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
@@ -135,20 +128,23 @@ function formatDate(value?: string) {
     });
 }
 
-export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
-    if (!asset) return null;
+export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = false }: Props) {
+    // Hooks must run unconditionally on every render — moved above the
+    // early return below (previously this threw "Rendered fewer hooks
+    // than expected" whenever `asset` was undefined on a given render).
     const [logs, setLogs] = useState<any[]>([]);
 
     useEffect(() => {
-        if (!open || !asset) return;
+        if (!open || !asset || readOnly) return;
 
         fetch(`/custodian/assets/${asset.id}`, {
             headers: { Accept: 'application/json' },
         })
             .then((res) => res.json())
             .then((data) => setLogs(data.activity_logs ?? []));
-    }, [open, asset?.id]);
+    }, [open, asset?.id, readOnly]);
 
+    if (!asset) return null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,33 +204,39 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
                                 value={asset.asset_type?.name}
                             />
                             <DetailRow label="Location" value={asset.location?.name} />
-                            <DetailRow
-                                label="Serial Number"
-                                value={asset.serial_number}
-                            />
+                            {!readOnly && (
+                                <DetailRow
+                                    label="Serial Number"
+                                    value={asset.serial_number}
+                                />
+                            )}
                             <DetailRow
                                 label="Acquisition Date"
                                 value={formatDate(asset.acquisition_date)}
                             />
-                            <DetailRow
-                                label="Acquisition Cost"
-                                value={formatCurrency(asset.acquisition_cost)}
-                            />
-                            <DetailRow
-                                label="Depreciation Rate"
-                                value={
-                                    asset.depreciation_rate !== undefined
-                                        ? `${asset.depreciation_rate}%`
-                                        : undefined
-                                }
-                            />
+                            {!readOnly && (
+                                <DetailRow
+                                    label="Acquisition Cost"
+                                    value={formatCurrency(asset.acquisition_cost)}
+                                />
+                            )}
+                            {!readOnly && (
+                                <DetailRow
+                                    label="Depreciation Rate"
+                                    value={
+                                        asset.depreciation_rate !== undefined
+                                            ? `${asset.depreciation_rate}%`
+                                            : undefined
+                                    }
+                                />
+                            )}
                             <DetailRow
                                 label="Condition"
                                 value={<ConditionBadge condition={asset.condition} />}
                             />
                         </div>
 
-                        {asset.remarks && (
+                        {asset.remarks && !readOnly && (
                             <div>
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                     Remarks
@@ -289,14 +291,17 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
                                 )}
                             </div>
                         </div>
-                        <div>
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Activity Timeline
-                            </span>
-                            <div className="mt-2 rounded-lg border border-border p-3">
-                                <ActivityFeed items={logs} />
+
+                        {!readOnly && (
+                            <div>
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    Activity Timeline
+                                </span>
+                                <div className="mt-2 rounded-lg border border-border p-3">
+                                    <ActivityFeed items={logs} />
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
 
@@ -305,7 +310,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit }: Props) {
                         Close
                     </Button>
 
-                    {onEdit && (
+                    {onEdit && !readOnly && (
                         <Button
                             className="cursor-pointer"
                             onClick={() => {

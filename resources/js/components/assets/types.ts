@@ -1,3 +1,4 @@
+// @/components/assets/types.ts
 
 export interface AssetType {
     id: number;
@@ -10,12 +11,11 @@ export interface AssetType {
     };
 }
 
-type AssetStatus =
+export type AssetStatus =
     | 'available'
     | 'borrowed'
     | 'under_repair'
     | 'disposed';
-
 
 export interface Borrow {
     id: number;
@@ -36,16 +36,17 @@ export interface Asset {
     id: number;
     asset_tag: string;
     name: string;
-    description?: string;
-    serial_number?: string;
+    description: string | null;
+    serial_number: string | null;
+    remarks: string | null;
+    photo: string | null;
 
     status: AssetStatus;
-    acquisition_date: string;
+    acquisition_date: string | null;
 
-    condition: number;
-    acquisition_cost: number;
-    depreciation_rate: number;
-    photo?: string | null;
+    condition: number | null;
+    acquisition_cost: number | string | null;
+    depreciation_rate: number | string | null;
 
     asset_type?: AssetType | null;
 

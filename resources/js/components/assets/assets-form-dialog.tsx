@@ -211,13 +211,13 @@ export function AssetFormDialog({
                 category_id: asset.category?.id,
                 location_id: asset.location?.id,
                 asset_type_id: asset.asset_type?.id,
-                condition: asset.condition,
+                condition: asset.condition ?? undefined,
 
                 serial_number: asset.serial_number ?? '',
 
-                acquisition_date: asset.acquisition_date,
+                acquisition_date: asset.acquisition_date ?? '',
                 acquisition_cost: Number(asset.acquisition_cost),
-                depreciation_rate: Number(asset.depreciation_rate),
+                depreciation_rate: Number(asset.depreciation_rate ?? 0),
 
                 status: asset.status,
             });

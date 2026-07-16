@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     Armchair,
     ImageOff,
@@ -16,32 +16,29 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { BorrowRequestDialog } from '@/components/borrow/borrow-request-dialog';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-interface Asset {
-    id: number;
-    asset_tag: string;
-    name: string;
-    description?: string | null;
-    photo?: string | null;
-    acquisition_date?: string | null;
-    condition?: number | null;
-
-    category: {
-        id: number;
-        name: string;
-    };
-
-    location?: {
-        id: number;
-        name: string;
-    } | null;
-}
+import { PaginationBar } from '@/components/ui/pagination';
+import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
+import type { Asset } from "@/components/assets/types";
 
 interface Category {
     id: number;
     name: string;
+}
+
+interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
+
+interface Filters {
+    search: string;
+    category: string;
+    per_page: number;
 }
 
 const categoryIcon: Record<string, typeof Laptop> = {
@@ -55,14 +52,19 @@ const categoryIcon: Record<string, typeof Laptop> = {
 function AssetCard({
     asset,
     onRequest,
+    onView,
 }: {
     asset: Asset;
     onRequest: (asset: Asset) => void;
+    onView: (asset: Asset) => void;
 }) {
     const Icon = categoryIcon[asset.category.name] ?? Laptop;
 
     return (
-        <div className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md">
+        <div
+            onClick={() => onView(asset)}
+            className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md"
+        >
             <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden bg-muted/30">
                 {asset.photo ? (
                     <img
@@ -94,7 +96,10 @@ function AssetCard({
                 )}
 
                 <button
-                    onClick={() => onRequest(asset)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onRequest(asset);
+                    }}
                     className="mt-auto flex h-9 w-full items-center justify-center rounded-lg bg-orange-500 text-sm font-bold text-white transition-colors hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
                 >
                     Request to Borrow
@@ -107,53 +112,84 @@ function AssetCard({
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 interface Props {
-    assets: {
-        data: Asset[];
-    };
+    assets: Paginated<Asset>;
     categories: Category[];
+    filters: Filters;
 }
 
-export default function AvailableAssets({ assets, categories }: Props) {
-    const [search, setSearch] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState<string>('All');
+export default function AvailableAssets({
+    assets,
+    categories,
+    filters = { search: '', category: 'All', per_page: 12 },
+}: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [categoryFilter, setCategoryFilter] = useState<string>(filters.category ?? 'All');
     const [requestTarget, setRequestTarget] = useState<Asset | undefined>();
+    const [viewTarget, setViewTarget] = useState<Asset | undefined>();
 
-    const filteredAssets = useMemo(() => {
-        const searchTerm = search.toLowerCase().trim();
+    // ── Server-driven filtering/pagination ──
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isFirstRun = useRef(true);
 
-        return (assets?.data ?? []).filter((asset) => {
-            const matchesSearch =
-                !searchTerm ||
-                asset.name.toLowerCase().includes(searchTerm) ||
-                asset.asset_tag.toLowerCase().includes(searchTerm) ||
-                asset.category.name.toLowerCase().includes(searchTerm);
+    function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        router.get(
+            '/employee/assets',
+            {
+                search: overrides.search ?? search,
+                category: overrides.category ?? categoryFilter,
+                per_page: overrides.per_page ?? assets.per_page,
+                page,
+            },
+            { preserveState: true, preserveScroll: true, replace: true, only: ['assets', 'filters'] },
+        );
+    }
 
-            const matchesCategory =
-                categoryFilter === 'All' ||
-                asset.category.id.toString() === categoryFilter;
+    useEffect(() => {
+        if (isFirstRun.current) {
+            isFirstRun.current = false;
+            return;
+        }
 
-            return matchesSearch && matchesCategory;
-        });
-    }, [assets, search, categoryFilter]);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => fetchPage(1), 350);
+
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
+
+    function handleCategoryChange(value: string) {
+        setCategoryFilter(value);
+        fetchPage(1, { category: value });
+    }
+
+    function handlePerPageChange(value: number) {
+        fetchPage(1, { per_page: value });
+    }
+
+    function handlePageChange(page: number) {
+        fetchPage(page);
+    }
 
     function handleSubmitRequest(
-            assetId: number,
-            expectedReturnDate: string,
-            remarks: string
-        ) {
-            router.post(
-                '/employee/borrow-requests',
-                {
-                    asset_id: assetId,
-                    expected_return_date: expectedReturnDate,
-                    remarks,
-                },
-                {
-                    preserveScroll: true,
-                    onSuccess: () => setRequestTarget(undefined),
-                }
-            );
-        }
+        assetId: number,
+        expectedReturnDate: string,
+        remarks: string
+    ) {
+        router.post(
+            '/employee/borrow-requests',
+            {
+                asset_id: assetId,
+                expected_return_date: expectedReturnDate,
+                remarks,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => setRequestTarget(undefined),
+            }
+        );
+    }
 
     return (
         <>
@@ -170,69 +206,89 @@ export default function AvailableAssets({ assets, categories }: Props) {
                     </p>
                 </div>
 
-                {/* ── Filters ── */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="relative w-full max-w-xs">
-                        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search by name or tag…"
-                            className="h-10 w-full rounded-lg border border-border bg-background pl-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                        />
-                    </div>
-
-                    <Select
-                        value={categoryFilter}
-                        onValueChange={(value) => setCategoryFilter(value)}
-                    >
-                        <SelectTrigger className="w-[200px] cursor-pointer">
-                            <SelectValue placeholder="Filter by category" />
-                        </SelectTrigger>
-
-                        <SelectContent>
-                            <SelectItem value="All">All Categories</SelectItem>
-                            {categories.map((category) => (
-                                <SelectItem
-                                    key={category.id}
-                                    value={category.id.toString()}
-                                >
-                                    {category.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                {/* ── Asset grid ── */}
-                {filteredAssets.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {filteredAssets.map((asset) => (
-                            <AssetCard
-                                key={asset.id}
-                                asset={asset}
-                                onRequest={setRequestTarget}
+                {/* ── Filters + grid + pagination ── */}
+                <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                    <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="relative w-full max-w-xs">
+                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search by name or tag…"
+                                className="h-10 w-full rounded-lg border border-border bg-background pl-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                             />
-                        ))}
+                        </div>
+
+                        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
+                            <SelectTrigger className="w-[200px] cursor-pointer">
+                                <SelectValue placeholder="Filter by category" />
+                            </SelectTrigger>
+
+                            <SelectContent>
+                                <SelectItem value="All">All Categories</SelectItem>
+                                {categories.map((category) => (
+                                    <SelectItem
+                                        key={category.id}
+                                        value={category.id.toString()}
+                                    >
+                                        {category.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
-                ) : (
-                    <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card py-16 text-center">
-                        <PackageSearch className="size-8 text-muted-foreground" />
-                        <p className="text-sm font-semibold text-foreground">
-                            No available assets found
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            Try adjusting your search or filters
-                        </p>
+
+                    <div className="px-6 py-6">
+                        {assets.data.length > 0 ? (
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                                {assets.data.map((asset) => (
+                                    <AssetCard
+                                        key={asset.id}
+                                        asset={asset}
+                                        onRequest={setRequestTarget}
+                                        onView={setViewTarget}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center gap-2 py-16 text-center">
+                                <PackageSearch className="size-8 text-muted-foreground" />
+                                <p className="text-sm font-semibold text-foreground">
+                                    No available assets found
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    Try adjusting your search or filters
+                                </p>
+                            </div>
+                        )}
                     </div>
-                )}
+
+                    <PaginationBar
+                        currentPage={assets.current_page}
+                        lastPage={assets.last_page}
+                        total={assets.total}
+                        from={assets.from}
+                        to={assets.to}
+                        perPage={assets.per_page}
+                        itemLabel="assets"
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
+                </div>
             </div>
 
             <BorrowRequestDialog
                 asset={requestTarget}
                 onOpenChange={(open) => !open && setRequestTarget(undefined)}
                 onSubmit={handleSubmitRequest}
+            />
+
+            <AssetViewDialog
+                open={!!viewTarget}
+                asset={viewTarget}
+                onOpenChange={(open) => !open && setViewTarget(undefined)}
+                readOnly
             />
         </>
     );
