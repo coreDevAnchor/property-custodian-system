@@ -1,4 +1,5 @@
 import { Form, Head, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
@@ -6,6 +7,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
@@ -23,6 +25,8 @@ export default function Profile({
     status?: string;
 }) {
     const { auth } = usePage<PageProps>().props;
+    console.log(auth.user);
+    const [preview, setPreview] = useState<string | null>(null);
 
     return (
         <>
@@ -42,47 +46,113 @@ export default function Profile({
                     options={{
                         preserveScroll: true,
                     }}
+                    encType="multipart/form-data"
                     className="space-y-6"
                 >
                     {({ processing, errors }) => (
                         <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto]">
+                                <div className="space-y-6">
 
-                                <Input
-                                    id="name"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.name}
-                                    name="name"
-                                    required
-                                    autoComplete="name"
-                                    placeholder="Full name"
-                                />
+                                    {/* Name */}
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="name">Name</Label>
 
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.name}
-                                />
-                            </div>
+                                        <Input
+                                            id="name"
+                                            className="mt-1 block w-full"
+                                            defaultValue={auth.user.name}
+                                            name="name"
+                                            required
+                                            autoComplete="name"
+                                            placeholder="Full name"
+                                        />
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                        <InputError
+                                            className="mt-2"
+                                            message={errors.name}
+                                        />
+                                    </div>
 
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.email}
-                                    name="email"
-                                    required
-                                    autoComplete="username"
-                                    placeholder="Email address"
-                                />
+                                    {/* Email */}
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="email">Email address</Label>
 
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.email}
-                                />
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            className="mt-1 block w-full"
+                                            defaultValue={auth.user.email}
+                                            name="email"
+                                            required
+                                            autoComplete="username"
+                                            placeholder="Email address"
+                                        />
+
+                                        <InputError
+                                            className="mt-2"
+                                            message={errors.email}
+                                        />
+                                    </div>
+
+                                </div>
+
+                                <div>
+                                    <div className="flex flex-col items-center gap-3 self-start -mt-12">
+                                        <label
+                                            htmlFor="profile_photo"
+                                            className="group cursor-pointer"
+                                        >
+                                            <Avatar className="h-52 w-52 border-2 border-border transition-all duration-200 group-hover:brightness-75">
+                                                <AvatarImage
+                                                    src={
+                                                        preview ??
+                                                        (auth.user.profile_photo_path
+                                                            ? `/storage/${auth.user.profile_photo_path}`
+                                                            : "")
+                                                    }
+                                                    alt={auth.user.name}
+                                                />
+
+                                                <AvatarFallback className="text-4xl">
+                                                    {auth.user.name
+                                                        .split(' ')
+                                                        .map((name) => name[0])
+                                                        .slice(0, 2)
+                                                        .join('')
+                                                        .toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </label>
+                                            <Input
+                                                id="profile_photo"
+                                                type="file"
+                                                name="profile_photo"
+                                                accept="image/png,image/jpeg,image/jpg,image/webp"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+
+                                                    if (file) {
+                                                        setPreview(URL.createObjectURL(file));
+                                                    }
+                                                }}
+                                            />
+
+                                            <p className="text-center text-sm text-muted-foreground">
+                                                Click the photo to change it
+                                            </p>
+
+                                            <p className="text-center text-xs text-muted-foreground">
+                                                JPG, PNG or WebP • Max 2 MB
+                                            </p>
+
+                                            <InputError
+                                                className="text-center"
+                                                message={errors.profile_photo}
+                                            />
+                                    </div>
+                                </div>
                             </div>
 
                             {mustVerifyEmail &&
