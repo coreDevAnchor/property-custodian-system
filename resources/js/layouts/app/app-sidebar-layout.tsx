@@ -12,7 +12,6 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     const { auth } = usePage<SharedData>().props;
 
-    console.log(auth.user);
 
     const isCustodian = auth.user?.role === 'custodian';
 

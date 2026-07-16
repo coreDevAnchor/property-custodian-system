@@ -173,7 +173,11 @@ function AssetRow({
                 <StatusBadge status={asset.status} />
             </td>
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-muted-foreground">{asset.location.name}</span>
+                <span className="text-sm text-muted-foreground">
+                    {asset.status === 'borrowed'
+                        ? (asset.borrows?.find((b) => b.status === 'borrowed')?.employee?.user?.name ?? 'Borrowed')
+                        : (asset.location?.name ?? '—')}
+                </span>
             </td>
             <td className="py-3.5 pr-4">
                 <span className="text-sm text-muted-foreground">{asset.acquisition_date}</span>

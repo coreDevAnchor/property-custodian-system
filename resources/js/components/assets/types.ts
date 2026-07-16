@@ -47,17 +47,17 @@ export interface Asset {
     depreciation_rate: number;
     photo?: string | null;
 
-    asset_type: AssetType;
+    asset_type?: AssetType | null;
 
     category: {
         id: number;
         name: string;
     };
 
-    location: {
+    location?: {
         id: number;
         name: string;
-    };
+    } | null;
 
     borrows?: Borrow[];
 }

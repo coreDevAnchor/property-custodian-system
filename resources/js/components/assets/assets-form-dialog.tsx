@@ -203,15 +203,14 @@ export function AssetFormDialog({
 
     useEffect(() => {
         if (mode === 'edit' && asset) {
-            console.log(asset);
 
             form.reset({
                 name: asset.name,
                 description: asset.description ?? '',
 
-                category_id: asset.category.id,
-                location_id: asset.location.id,
-                asset_type_id: asset.asset_type.id,
+                category_id: asset.category?.id,
+                location_id: asset.location?.id,
+                asset_type_id: asset.asset_type?.id,
                 condition: asset.condition,
 
                 serial_number: asset.serial_number ?? '',
@@ -560,11 +559,11 @@ export function AssetFormDialog({
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                                {mode === 'edit' && asset?.status === 'borrowed' && (
-                                                    <p className="text-sm text-muted-foreground mt-2">
-                                                        This asset is currently borrowed. Its status can only be changed after it is returned.
-                                                    </p>
-                                                )}
+                                            {mode === 'edit' && asset?.status === 'borrowed' && (
+                                                <p className="text-sm text-muted-foreground mt-2">
+                                                    This asset is currently borrowed. Its status can only be changed after it is returned.
+                                                </p>
+                                            )}
                                             <FormMessage />
                                         </FormItem>
                                     )}

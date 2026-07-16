@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { dashboard } from '@/routes/custodian';
+import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ interface BorrowRequest {
     requested_at: string;
     approved_at?: string | null;
     returned_at?: string | null;
+    expected_return_date?: string | null;
 
     asset: {
         id: number;
@@ -203,6 +205,7 @@ export default function BorrowRequests({ borrowRequests }: Props) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'All' | BorrowStatus>('pending');
     const [sortKey, setSortKey] = useState<SortKey>('newest');
+    const [approvalRequest, setApprovalRequest] = useState<BorrowRequest | null>(null);
 
     const filteredRequests = useMemo(() => {
         const searchTerm = search.toLowerCase().trim();
@@ -253,10 +256,22 @@ export default function BorrowRequests({ borrowRequests }: Props) {
         [borrowRequests]
     );
 
-    function handleUpdateStatus(request: BorrowRequest, status: BorrowStatus) {
+    function handleUpdateStatus(
+        request: BorrowRequest,
+        status: BorrowStatus,
+        expectedReturnDate?: string
+    ) {
+        if (status === 'borrowed' && !expectedReturnDate) {
+            setApprovalRequest(request);
+            return;
+        }
+
         router.put(
             `/custodian/borrow-requests/${request.id}`,
-            { status },
+            {
+                status,
+                expected_return_date: expectedReturnDate,
+            },
             { preserveScroll: true }
         );
     }
@@ -396,6 +411,17 @@ export default function BorrowRequests({ borrowRequests }: Props) {
                     </div>
                 </div>
             </div>
+
+            <BorrowApprovalDialog
+                request={approvalRequest}
+                onClose={() => setApprovalRequest(null)}
+                onConfirm={(expectedReturnDate) => {
+                    if (approvalRequest) {
+                        handleUpdateStatus(approvalRequest, 'borrowed', expectedReturnDate);
+                    }
+                    setApprovalRequest(null);
+                }}
+            />
         </>
     );
 }

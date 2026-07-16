@@ -9,6 +9,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeDashboardController;
 use App\Http\Controllers\AvailableAssetController;
 use App\Http\Controllers\MyBorrowController;
+use App\Http\Controllers\CurrentBorrowsController;
 use App\Http\Controllers\EmployeeReturnController;
 use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\CustodianDashboardController;
@@ -53,6 +54,9 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('/borrows', [MyBorrowController::class, 'index'])
             ->name('borrows.index');
+
+        Route::get('/current-borrows', [CurrentBorrowsController::class, 'index'])
+            ->name('current-borrows.index');
 
         Route::post('/borrow-requests', [BorrowRequestController::class, 'store'])
             ->name('borrow-requests.store');

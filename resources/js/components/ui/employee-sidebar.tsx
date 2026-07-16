@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { LogOut, PackageSearch, Undo2, LayoutDashboard } from 'lucide-react';
+import { LogOut, PackageSearch, Undo2, LayoutDashboard, BoxSelect } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -16,6 +16,7 @@ import {
 
 import * as availableAssets from '@/routes/employee/assets';
 import * as myBorrows from '@/routes/employee/borrows';
+import * as currentBorrows from '@/routes/employee/current-borrows';
 import * as employeeDashboard from '@/routes/employee';
 
 import { logout } from '@/routes';
@@ -32,6 +33,11 @@ const mainNavItems: NavItem[] = [
         title: 'Available Assets',
         href: availableAssets.index.url(),
         icon: PackageSearch,
+    },
+    {
+        title: 'My Current Borrows',
+        href: currentBorrows.index.url(),
+        icon: BoxSelect,
     },
     {
         title: 'My Borrow History',
