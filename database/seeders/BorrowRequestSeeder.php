@@ -24,5 +24,14 @@ class BorrowRequestSeeder extends Seeder
             ->create([
                 'employee_id' => $employee->id,
             ]);
+
+        BorrowRequest::factory()
+            ->count(50)
+            ->create([
+                'employee_id' => $employee->id,
+                'status' => 'borrowed',
+                'returned_at' => null,
+                'expected_return_date' => now()->subDays(rand(1, 30)),
+            ]);
     }
 }

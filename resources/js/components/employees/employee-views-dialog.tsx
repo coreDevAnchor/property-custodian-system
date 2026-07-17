@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -9,11 +10,14 @@ import {
 import { Button } from '@/components/ui/button';
 import {
     Building2,
+    ChevronLeft,
+    ChevronRight,
     IdCard,
     Mail,
     Pencil,
     Phone,
     UserRound,
+    Wallet,
 } from 'lucide-react';
 
 interface EmployeeBorrow {
@@ -26,6 +30,7 @@ interface EmployeeBorrow {
         id: number;
         name: string;
         asset_tag: string;
+        acquisition_cost?: number | string | null;
     };
 }
 
@@ -45,12 +50,20 @@ interface Employee {
     borrows?: EmployeeBorrow[];
 }
 
+const BORROWS_PER_PAGE = 5;
+
+const currencyFormatter = new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    maximumFractionDigits: 0,
+});
+
 function StatusBadge({ isActive }: { isActive: boolean }) {
     return (
         <span
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${isActive
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-muted text-muted-foreground'
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                : 'bg-muted text-muted-foreground'
                 }`}
         >
             {isActive ? 'Active' : 'Inactive'}
@@ -124,6 +137,41 @@ interface Props {
 }
 
 export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Props) {
+    const [page, setPage] = useState(1);
+
+    // Reset to the first page whenever the dialog is opened for a
+    // (possibly different) employee, so pagination doesn't carry over.
+    useEffect(() => {
+        if (open) {
+            setPage(1);
+        }
+    }, [open, employee?.id]);
+
+    const borrows = employee?.borrows ?? [];
+
+    const totalBorrowedValue = useMemo(
+        () =>
+            borrows
+                .filter((borrow) => borrow.status === 'borrowed')
+                .reduce(
+                    (sum, borrow) => sum + (Number(borrow.asset.acquisition_cost) || 0),
+                    0
+                ),
+        [borrows]
+    );
+
+    const currentlyBorrowedCount = useMemo(
+        () => borrows.filter((borrow) => borrow.status === 'borrowed').length,
+        [borrows]
+    );
+
+    const totalPages = Math.max(1, Math.ceil(borrows.length / BORROWS_PER_PAGE));
+    const currentPage = Math.min(page, totalPages);
+    const paginatedBorrows = borrows.slice(
+        (currentPage - 1) * BORROWS_PER_PAGE,
+        currentPage * BORROWS_PER_PAGE
+    );
+
     if (!employee) return null;
 
     return (
@@ -161,6 +209,23 @@ export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Pro
                     />
                 </div>
 
+                {/* ── Total value of currently borrowed items ── */}
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Wallet className="size-4 text-primary" />
+                    </div>
+                    <div>
+                        <p className="text-lg font-extrabold tracking-tight text-primary">
+                            {currencyFormatter.format(totalBorrowedValue)}
+                        </p>
+                        <p className="text-[11px] font-medium text-muted-foreground">
+                            Total value of {currentlyBorrowedCount}{' '}
+                            {currentlyBorrowedCount === 1 ? 'item' : 'items'} currently
+                            borrowed
+                        </p>
+                    </div>
+                </div>
+
                 {/* ── Borrow history ── */}
                 <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -168,8 +233,8 @@ export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Pro
                     </span>
 
                     <div className="mt-2 space-y-2 rounded-lg border border-border p-3">
-                        {employee.borrows?.length ? (
-                            employee.borrows.map((borrow) => (
+                        {paginatedBorrows.length ? (
+                            paginatedBorrows.map((borrow) => (
                                 <div
                                     key={borrow.id}
                                     className="flex items-center justify-between border-b border-border pb-2 last:border-0 last:pb-0"
@@ -194,15 +259,48 @@ export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Pro
                             </p>
                         )}
                     </div>
+
+                    {borrows.length > BORROWS_PER_PAGE && (
+                        <div className="mt-2 flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground">
+                                Page {currentPage} of {totalPages}
+                            </p>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-7 cursor-pointer"
+                                    disabled={currentPage === 1}
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    aria-label="Previous page"
+                                >
+                                    <ChevronLeft className="size-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-7 cursor-pointer"
+                                    disabled={currentPage === totalPages}
+                                    onClick={() =>
+                                        setPage((p) => Math.min(totalPages, p + 1))
+                                    }
+                                    aria-label="Next page"
+                                >
+                                    <ChevronRight className="size-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button variant="outline" className="cursor-pointer" onClick={() => onOpenChange(false)}>
                         Close
                     </Button>
 
                     {onEdit && (
                         <Button
+                            className="cursor-pointer"
                             onClick={() => {
                                 onOpenChange(false);
                                 onEdit(employee);

@@ -244,7 +244,7 @@ export default function Dashboard({
     recentActivity,
 }: Props) {
     const [selectedRequest, setSelectedRequest] =
-    useState<PendingRequest | null>(null);
+        useState<PendingRequest | null>(null);
     const today = new Date().toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
