@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             AssetSeeder::class,
             EmployeeSeeder::class,
             BorrowRequestSeeder::class,
-            ReturnRecordSeeder::class,
         ]);
     }
 }
