@@ -12,6 +12,8 @@ import {
 import { ActivityFeed } from '@/components/activity/activity-feed';
 import { dashboard } from '@/routes/custodian';
 import { index as auditTrail } from '@/routes/custodian/activity';
+import { useState } from 'react';
+import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +33,7 @@ interface PendingRequest {
     asset: {
         id: number;
         name: string;
+        asset_tag: string;
         category: {
             id: number;
             name: string;
@@ -147,10 +150,12 @@ function RequestRow({
     request,
     onApprove,
     onReject,
+    onSelect,
 }: {
     request: PendingRequest;
-    onApprove: (id: number) => void;
+    onApprove: (id: number, expectedReturnDate: string) => void;
     onReject: (id: number) => void;
+    onSelect: (request: PendingRequest) => void;
 }) {
     return (
         <tr className="
@@ -170,7 +175,7 @@ function RequestRow({
                     >
                         {getInitials(request.employee.user.name)}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 max-w-[140px]">
                         <p className="truncate text-sm font-semibold text-gray-800 dark:text-white">
                             {request.employee.user.name}
                         </p>
@@ -183,8 +188,11 @@ function RequestRow({
                 </div>
             </td>
             {/* Asset */}
-            <td className="py-3.5 pr-4">
-                <span className="text-sm text-gray-700 dark:text-gray-300">
+            <td className="py-3.5 pr-4 w-[180px]">
+                <span
+                    className="block truncate text-sm text-gray-700 dark:text-gray-300"
+                    title={request.asset.name}
+                >
                     {request.asset.name}
                 </span>
             </td>
@@ -208,7 +216,7 @@ function RequestRow({
             <td className="py-3.5">
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={() => onApprove(request.id)}
+                        onClick={() => onSelect(request)}
                         className="rounded-lg bg-[#0d7a5f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#0a6550] active:scale-95 cursor-pointer"
                         aria-label={`Approve request from ${request.employee.user.name}`}
                     >
@@ -235,6 +243,8 @@ export default function Dashboard({
     assetCategories,
     recentActivity,
 }: Props) {
+    const [selectedRequest, setSelectedRequest] =
+    useState<PendingRequest | null>(null);
     const today = new Date().toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -280,10 +290,13 @@ export default function Dashboard({
         },
     ];
 
-    function handleApprove(id: number) {
+    function handleApprove(id: number, expectedReturnDate: string) {
         router.put(
             `/custodian/borrow-requests/${id}`,
-            { status: 'borrowed' },
+            {
+                status: 'borrowed',
+                expected_return_date: expectedReturnDate,
+            },
             { preserveScroll: true }
         );
     }
@@ -375,6 +388,7 @@ export default function Dashboard({
                                                     request={req}
                                                     onApprove={handleApprove}
                                                     onReject={handleReject}
+                                                    onSelect={setSelectedRequest}
                                                 />
                                             ))}
                                         </tbody>
@@ -503,6 +517,16 @@ export default function Dashboard({
                 </div>
 
             </div>
+            <BorrowApprovalDialog
+                request={selectedRequest}
+                onClose={() => setSelectedRequest(null)}
+                onConfirm={(expectedReturnDate) => {
+                    if (selectedRequest) {
+                        handleApprove(selectedRequest.id, expectedReturnDate);
+                    }
+                    setSelectedRequest(null);
+                }}
+            />
         </>
     );
 }
