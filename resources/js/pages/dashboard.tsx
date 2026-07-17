@@ -155,11 +155,16 @@ function RequestRow({
                     >
                         {initials}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 max-w-[220px]">
                         <p className="truncate text-sm font-semibold text-gray-800">
                             {employee}
                         </p>
-                        <p className="truncate text-xs text-gray-400">{department}</p>
+                        <p
+                            className="truncate text-xs text-gray-400"
+                            title={department}
+                        >
+                            {department}
+                        </p>
                     </div>
                 </div>
             </td>
@@ -177,15 +182,15 @@ function RequestRow({
             </td>
             {/* Actions */}
             <td className="py-3.5">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 whitespace-nowrap">
                     <button
-                        className="rounded-lg bg-[#0d7a5f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#0a6550] active:scale-95"
+                        className="shrink-0 rounded-lg bg-[#0d7a5f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#0a6550] active:scale-95"
                         aria-label={`Approve request from ${employee}`}
                     >
                         Approve
                     </button>
                     <button
-                        className="rounded-lg px-3.5 py-1.5 text-xs font-bold text-red-500 transition-colors hover:bg-red-50 active:scale-95"
+                        className="shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-bold text-red-500 transition-colors hover:bg-red-50 active:scale-95"
                         aria-label={`Reject request from ${employee}`}
                     >
                         Reject
@@ -277,7 +282,7 @@ export default function Dashboard() {
                                             <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">
                                                 Duration
                                             </th>
-                                            <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                            <th className="w-[170px] py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">
                                                 Actions
                                             </th>
                                         </tr>
