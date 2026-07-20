@@ -21,14 +21,14 @@ class ReturnController extends Controller
 
         $returns = BorrowRequest::with([
             'asset.category',
-            'employee.user',
+            'borrower',
             'checkedBy',
         ])
             ->whereIn('status', ['awaiting_check', 'returned'])
 
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->whereHas('employee.user', fn($u) =>
+                    $q->whereHas('borrower', fn ($u) =>
                         $u->where('name', 'ilike', "%{$search}%")
                     )
                     ->orWhereHas('asset', function ($a) use ($search) {
@@ -43,14 +43,12 @@ class ReturnController extends Controller
             ->when($status !== 'All', fn($q) => $q->where('status', $status))
             ->when($sort === 'newest', fn($q) => $q->latest('requested_at'))
             ->when($sort === 'oldest', fn($q) => $q->oldest('requested_at'))
-            ->when($sort === 'borrower_az', fn($q) => $q->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
-                ->join('users', 'users.id', '=', 'employees.user_id')
+            ->when($sort === 'borrower_az', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'asc')
-                ->select('borrow_requests.*'))
-            ->when($sort === 'borrower_za', fn($q) => $q->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
-                ->join('users', 'users.id', '=', 'employees.user_id')
+                ->select('borrows.*'))
+            ->when($sort === 'borrower_za', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'desc')
-                ->select('borrow_requests.*'))
+                ->select('borrows.*'))
             ->paginate($perPage)
             ->withQueryString();
 

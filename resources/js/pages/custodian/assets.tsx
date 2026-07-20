@@ -39,21 +39,6 @@ type AssetStatus =
     | 'under_repair'
     | 'disposed';
 
-interface Borrow {
-    id: number;
-    status: string;
-    requested_at: string;
-    returned_at?: string | null;
-
-    employee: {
-        id: number;
-
-        user: {
-            name: string;
-        };
-    };
-}
-
 interface Category {
     id: number;
     name: string;
@@ -175,7 +160,7 @@ function AssetRow({
             <td className="py-3.5 pr-4">
                 <span className="text-sm text-muted-foreground">
                     {asset.status === 'borrowed'
-                        ? (asset.borrows?.find((b) => b.status === 'borrowed')?.employee?.user?.name ?? 'Borrowed')
+                        ? (asset.borrows?.find((b) => b.status === 'borrowed')?.borrower?.name ?? 'Borrowed')
                         : (asset.location?.name ?? '—')}
                 </span>
             </td>
@@ -220,7 +205,7 @@ function AssetRow({
                                             className="border-b border-border pb-2 last:border-0"
                                         >
                                             <div className="font-medium">
-                                                {borrow.employee.user.name}
+                                                {borrow.borrower.name}
                                             </div>
 
                                             <div className="text-xs text-muted-foreground">

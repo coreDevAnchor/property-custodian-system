@@ -262,7 +262,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                                         >
                                             <div className="flex items-center justify-between">
                                                 <span className="text-sm font-semibold text-foreground">
-                                                    {borrow.employee.user.name}
+                                                    {borrow.borrower.name}
                                                 </span>
                                                 <span className="text-xs capitalize text-muted-foreground">
                                                     {borrow.status}

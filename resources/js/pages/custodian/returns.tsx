@@ -42,11 +42,9 @@ interface ReturnItem {
         };
     };
 
-    employee: {
+    borrower: {
         id: number;
-        user: {
-            name: string;
-        };
+        name: string;
     };
 
     checked_by?: {
@@ -134,7 +132,7 @@ function ReturnRow({
         <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
             <td className="py-3.5 pr-4">
                 <p className="truncate text-sm font-semibold text-foreground">
-                    {item.employee.user.name}
+                    {item.borrower.name}
                 </p>
                 {item.remarks && (
                     <p className="truncate text-xs text-muted-foreground">

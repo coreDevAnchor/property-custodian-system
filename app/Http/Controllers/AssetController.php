@@ -22,7 +22,7 @@ class AssetController extends Controller
         $status = $request->input('status', 'All');
         $perPage = (int) $request->input('per_page', 10);
 
-        $assets = Asset::with(['category', 'assetType', 'location', 'borrows.employee.user', 'borrows.borrower'])
+        $assets = Asset::with(['category', 'assetType', 'location', 'borrows.borrower'])
             ->when($search, function ($query) use ($search) {
                 $search = mb_strtolower($search);
                 $searchPattern = "%{$search}%";

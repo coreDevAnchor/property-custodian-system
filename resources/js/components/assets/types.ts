@@ -23,12 +23,9 @@ export interface Borrow {
     requested_at: string;
     returned_at?: string | null;
 
-    employee: {
+    borrower: {
         id: number;
-
-        user: {
-            name: string;
-        };
+        name: string;
     };
 }
 
