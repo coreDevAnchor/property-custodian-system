@@ -11,6 +11,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { dashboard } from '@/routes/custodian';
 import { PaginationBar } from '@/components/ui/pagination';
+import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
 
 interface Category {
     id: number;
@@ -56,12 +57,19 @@ interface Paginated<T> {
 
 type ReportView = 'assets' | 'overdue';
 
+interface MonthlyUsagePoint {
+    month: string;
+    label: string;
+    count: number;
+}
+
 interface Props {
     categories: Category[];
     selectedCategory: string;
     selectedSort: string;
     selectedView: ReportView;
     overdueCount: number;
+    monthlyUsage: MonthlyUsagePoint[];
     assets: Paginated<Asset> | null;
     overdueItems: Paginated<OverdueItem> | null;
 }
@@ -104,6 +112,7 @@ export default function Reports({
     selectedSort,
     selectedView,
     overdueCount,
+    monthlyUsage,
     assets,
     overdueItems,
 }: Props) {
@@ -131,7 +140,7 @@ export default function Reports({
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
-                only: ['assets', 'overdueItems', 'selectedCategory', 'selectedSort', 'selectedView', 'overdueCount'],
+                only: ['assets', 'overdueItems', 'monthlyUsage', 'selectedCategory', 'selectedSort', 'selectedView', 'overdueCount'],
             },
         );
     }
@@ -214,6 +223,8 @@ export default function Reports({
                         </div>
                     </div>
                 )}
+
+                <MonthlyUsageChart data={monthlyUsage} />
 
                 {/* ── Tabs ── */}
                 <Tabs value={view} onValueChange={handleViewChange}>

@@ -7,6 +7,7 @@ use App\Models\Asset;
 use App\Models\BorrowRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -29,6 +30,8 @@ class ReportController extends Controller
             ->whereNotNull('expected_return_date')
             ->whereDate('expected_return_date', '<', now())
             ->count();
+
+        $monthlyUsage = $this->monthlyAssetUsage($selectedCategory);
 
         if ($view === 'overdue') {
             $query = BorrowRequest::with([
@@ -79,6 +82,7 @@ class ReportController extends Controller
                 'selectedSort' => $sort,
                 'selectedView' => $view,
                 'overdueCount' => $overdueCount,
+                'monthlyUsage' => $monthlyUsage,
                 'assets' => null,
                 'overdueItems' => $overdueItems,
             ]);
@@ -136,9 +140,50 @@ class ReportController extends Controller
             'selectedSort' => $sort,
             'selectedView' => $view,
             'overdueCount' => $overdueCount,
+            'monthlyUsage' => $monthlyUsage,
             'assets' => $assets,
             'overdueItems' => null,
         ]);
+    }
+
+    /**
+     * @return array<int, array{month: string, label: string, count: int}>
+     */
+    private function monthlyAssetUsage(string $selectedCategory): array
+    {
+        $start = now()->subMonths(11)->startOfMonth();
+
+        $monthExpression = match (DB::connection()->getDriverName()) {
+            'pgsql' => "TO_CHAR(approved_at, 'YYYY-MM')",
+            'sqlite' => "strftime('%Y-%m', approved_at)",
+            default => "DATE_FORMAT(approved_at, '%Y-%m')",
+        };
+
+        $query = BorrowRequest::query()
+            ->whereNotNull('approved_at')
+            ->where('approved_at', '>=', $start);
+
+        if ($selectedCategory !== 'all') {
+            $query->whereHas('asset', fn ($q) => $q->where('category_id', $selectedCategory));
+        }
+
+        $counts = $query
+            ->selectRaw("{$monthExpression} as month, COUNT(*) as count")
+            ->groupBy('month')
+            ->pluck('count', 'month');
+
+        return collect(range(0, 11))
+            ->map(function (int $offset) use ($start, $counts) {
+                $month = $start->copy()->addMonths($offset);
+                $key = $month->format('Y-m');
+
+                return [
+                    'month' => $key,
+                    'label' => $month->format('M'),
+                    'count' => (int) ($counts[$key] ?? 0),
+                ];
+            })
+            ->all();
     }
 
     public function exportCsv(Request $request): StreamedResponse
