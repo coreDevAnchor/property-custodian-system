@@ -9,6 +9,8 @@ import {
     Settings,
     Users,
     History,
+    PackageSearch,
+    BoxSelect,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -32,6 +34,8 @@ import * as employees from '@/routes/custodian/employees';
 import * as returns from '@/routes/custodian/returns';
 import * as activity from '@/routes/custodian/activity';
 import * as reports from '@/actions/App/Http/Controllers/Custodian/ReportController';
+import * as availableAssets from '@/routes/employee/assets';
+import * as currentBorrows from '@/routes/employee/current-borrows';
 
 import { logout } from '@/routes';
 import type { NavItem, SharedData } from '@/types';
@@ -51,6 +55,16 @@ export function AppSidebar() {
             title: 'Assets',
             href: assets.index.url(),
             icon: Box,
+        },
+        {
+            title: 'Borrow Assets',
+            href: availableAssets.index.url(),
+            icon: PackageSearch,
+        },
+        {
+            title: 'My Current Borrows',
+            href: currentBorrows.index.url(),
+            icon: BoxSelect,
         },
         {
             title: 'Borrow Requests',

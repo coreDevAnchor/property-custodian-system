@@ -54,6 +54,11 @@ class User extends Authenticatable implements PasskeyUser
         return $this->hasMany(BorrowRequest::class, 'approved_by');
     }
 
+    public function borrows(): HasMany
+    {
+        return $this->hasMany(BorrowRequest::class, 'borrower_id');
+    }
+
     public function checkedBorrows(): HasMany
     {
         return $this->hasMany(BorrowRequest::class, 'checked_by');

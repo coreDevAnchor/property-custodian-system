@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLogs;
 use App\Models\Asset;
 use App\Models\BorrowRequest;
-use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -25,13 +24,13 @@ class BorrowRequestController extends Controller
 
         $borrowRequests = BorrowRequest::with([
             'asset.category',
-            'employee.user',
+            'borrower',
             'approvedBy',
             'checkedBy',
         ])
             ->when($search, function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
-                        $q->whereHas('employee.user', fn($u) =>
+                        $q->whereHas('borrower', fn($u) =>
                             $u->where('name', 'ilike', "%{$search}%")
                         )
                         ->orWhereHas('asset', function ($a) use ($search) {
@@ -46,12 +45,10 @@ class BorrowRequestController extends Controller
             ->when($status !== 'All', fn($q) => $q->where('status', $status))
             ->when($sort === 'newest', fn($q) => $q->latest('requested_at'))
             ->when($sort === 'oldest', fn($q) => $q->oldest('requested_at'))
-            ->when($sort === 'requester_az', fn($q) => $q->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
-                ->join('users', 'users.id', '=', 'employees.user_id')
+            ->when($sort === 'requester_az', fn($q) => $q->join('users', 'users.id', '=', 'borrow_requests.borrower_id')
                 ->orderBy('users.name', 'asc')
                 ->select('borrow_requests.*'))
-            ->when($sort === 'requester_za', fn($q) => $q->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
-                ->join('users', 'users.id', '=', 'employees.user_id')
+            ->when($sort === 'requester_za', fn($q) => $q->join('users', 'users.id', '=', 'borrow_requests.borrower_id')
                 ->orderBy('users.name', 'desc')
                 ->select('borrow_requests.*'))
             ->paginate($perPage)
@@ -100,14 +97,8 @@ class BorrowRequestController extends Controller
             abort(403);
         }
 
-        $employee = $user->employee;
-
-        if (!$employee instanceof Employee) {
-            abort(403, 'Only employees can submit borrow requests.');
-        }
-
         $hasDuplicate = BorrowRequest::where('asset_id', $asset->id)
-            ->where('employee_id', $employee->id)
+            ->where('borrower_id', $user->id)
             ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
             ->exists();
 
@@ -117,7 +108,8 @@ class BorrowRequestController extends Controller
 
         BorrowRequest::create([
             'asset_id' => $asset->id,
-            'employee_id' => $employee->id,
+            'employee_id' => $user->employee?->id,
+            'borrower_id' => $user->id,
             'status' => 'pending',
             'requested_at' => now(),
             'expected_return_date' => $validated['expected_return_date'],
@@ -140,7 +132,7 @@ class BorrowRequestController extends Controller
         $borrowRequest = BorrowRequest::with([
             'asset.category',
             'asset.location',
-            'employee.user',
+            'borrower',
             'approvedBy',
             'checkedBy',
         ])->findOrFail($id);
@@ -153,7 +145,7 @@ class BorrowRequestController extends Controller
         $borrowRequest = BorrowRequest::with([
             'asset.category',
             'asset.location',
-            'employee.user',
+            'borrower',
             'approvedBy',
             'checkedBy',
         ])->findOrFail($id);
@@ -173,10 +165,10 @@ class BorrowRequestController extends Controller
             'expected_return_date' => ['nullable', 'date', 'after_or_equal:today'],
         ]);
 
-        $borrowRequest = BorrowRequest::with(['asset', 'employee.user'])->findOrFail($id);
+        $borrowRequest = BorrowRequest::with(['asset', 'borrower'])->findOrFail($id);
         $wasPending = $borrowRequest->status === 'pending';
         $asset = $borrowRequest->asset;
-        $requesterName = $borrowRequest->employee->user->name;
+        $requesterName = $borrowRequest->borrower->name;
 
         if (
             $validated['status'] === 'borrowed' &&

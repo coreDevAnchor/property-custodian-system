@@ -32,7 +32,7 @@ class CustodianDashboardController extends Controller
                 'awaitingReturns' => BorrowRequest::where('status', 'awaiting_check')->count(),
             ],
 
-            'pendingRequests' => BorrowRequest::with(['asset.category', 'employee.user'])
+            'pendingRequests' => BorrowRequest::with(['asset.category', 'borrower'])
                 ->where('status', 'pending')
                 ->latest('requested_at')
                 ->take(5)

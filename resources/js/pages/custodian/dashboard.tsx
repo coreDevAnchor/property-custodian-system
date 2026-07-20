@@ -40,12 +40,7 @@ interface PendingRequest {
         };
     };
 
-    employee: {
-        id: number;
-        user: {
-            name: string;
-        };
-    };
+    borrower: { id: number; name: string };
 }
 
 interface CategoryBreakdown {
@@ -170,14 +165,14 @@ function RequestRow({
                 <div className="flex items-center gap-3">
                     <div
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${avatarColorFor(
-                            request.employee.id
+                            request.borrower.id
                         )} text-xs font-bold text-white`}
                     >
-                        {getInitials(request.employee.user.name)}
+                        {getInitials(request.borrower.name)}
                     </div>
                     <div className="min-w-0 max-w-[140px]">
                         <p className="truncate text-sm font-semibold text-gray-800 dark:text-white">
-                            {request.employee.user.name}
+                            {request.borrower.name}
                         </p>
                         {request.remarks && (
                             <p className="truncate text-xs text-gray-500 dark:text-gray-400">
@@ -218,14 +213,14 @@ function RequestRow({
                     <button
                         onClick={() => onSelect(request)}
                         className="rounded-lg bg-[#0d7a5f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#0a6550] active:scale-95 cursor-pointer"
-                        aria-label={`Approve request from ${request.employee.user.name}`}
+                        aria-label={`Approve request from ${request.borrower.name}`}
                     >
                         Approve
                     </button>
                     <button
                         onClick={() => onReject(request.id)}
                         className="rounded-lg px-3.5 py-1.5 text-xs font-bold text-red-500 transition-colors hover:bg-red-50 active:scale-95 cursor-pointer"
-                        aria-label={`Reject request from ${request.employee.user.name}`}
+                        aria-label={`Reject request from ${request.borrower.name}`}
                     >
                         Reject
                     </button>

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int $id
  * @property int $asset_id
  * @property int $employee_id
+ * @property int $borrower_id
  * @property 'pending'|'borrowed'|'awaiting_check'|'returned'|'rejected' $status
  * @property string|null $remarks
  * @property 'ok'|'defective'|null $return_condition
@@ -36,6 +37,7 @@ class BorrowRequest extends Model
     protected $fillable = [
         'asset_id',
         'employee_id',
+        'borrower_id',
         'approved_by',
         'checked_by',
         'status',
@@ -56,6 +58,11 @@ class BorrowRequest extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function borrower(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'borrower_id');
     }
 
     public function approvedBy(): BelongsTo

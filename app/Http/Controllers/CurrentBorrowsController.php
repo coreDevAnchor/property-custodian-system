@@ -12,13 +12,13 @@ class CurrentBorrowsController extends Controller
 {
     public function index(Request $request)
     {
-        $employee = Auth::user()->employee;
+        $user = Auth::user();
 
         $status = $request->input('status', 'All');
         $perPage = (int) $request->input('per_page', 12);
 
         $borrows = BorrowRequest::with(['asset.category', 'asset.location'])
-            ->where('employee_id', $employee->id)
+            ->where('borrower_id', $user->id)
             ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
             ->when($status !== 'All', fn($q) => $q->where('status', $status))
             ->latest('requested_at')
@@ -27,7 +27,7 @@ class CurrentBorrowsController extends Controller
 
         // Counts for the stats row need to reflect the full active set,
         // not just the current filtered/paginated page.
-        $counts = BorrowRequest::where('employee_id', $employee->id)
+        $counts = BorrowRequest::where('borrower_id', $user->id)
             ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')

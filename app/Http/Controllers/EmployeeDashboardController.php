@@ -12,10 +12,10 @@ class EmployeeDashboardController extends Controller
 {
     public function index()
     {
-        $employee = Auth::user()->employee;
+        $user = Auth::user();
 
         $borrows = BorrowRequest::with(['asset.category'])
-            ->where('employee_id', $employee->id)
+            ->where('borrower_id', $user->id)
             ->latest('requested_at')
             ->get();
 

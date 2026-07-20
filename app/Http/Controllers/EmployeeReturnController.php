@@ -20,15 +20,11 @@ class EmployeeReturnController extends Controller
             'borrow_ids.*' => ['integer', 'exists:borrows,id'],
         ]);
 
-        $employee = Auth::user()->employee;
-
-        if (!$employee) {
-            abort(403, 'Only employees can submit returns.');
-        }
+        $user = Auth::user();
 
         $borrows = BorrowRequest::with('asset')
             ->whereIn('id', $validated['borrow_ids'])
-            ->where('employee_id', $employee->id)
+            ->where('borrower_id', $user->id)
             ->where('status', 'borrowed')
             ->get();
 
@@ -44,7 +40,7 @@ class EmployeeReturnController extends Controller
             ActivityLogs::record(
                 $borrow->asset,
                 'return_submitted',
-                "{$employee->user->name} submitted {$borrow->asset->name} for return inspection."
+                "{$user->name} submitted {$borrow->asset->name} for return inspection."
             );
         }
 
