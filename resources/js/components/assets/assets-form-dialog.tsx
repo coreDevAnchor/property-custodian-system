@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ImagePlus, Star, X } from 'lucide-react';
+import { ImagePlus, X } from 'lucide-react';
 import type { FormDataConvertible } from '@inertiajs/core';
 
 import {
@@ -90,6 +90,12 @@ const conditionActiveStyles: Record<number, string> = {
     4: 'bg-emerald-500 text-white border-emerald-500',
 };
 
+// Keep this in sync with the backend's `photo` validation rule
+// (`max:2048` KB) so oversized files are rejected before they're even
+// staged, instead of only failing after a round-trip to the server.
+const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024;
+const ACCEPTED_PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+
 function ConditionScale({
     value,
     onChange,
@@ -151,7 +157,10 @@ export function AssetFormDialog({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // ── Image staging state ──
-    const [images, setImages] = useState<StagedImage[]>([]);
+    // Single photo only: the asset can have exactly one image, so this is
+    // one nullable slot rather than an array with "add more" support.
+    const [image, setImage] = useState<StagedImage | null>(null);
+    const [photoError, setPhotoError] = useState<string | null>(null);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(assetSchema),
@@ -164,46 +173,16 @@ export function AssetFormDialog({
             form.reset(defaultValues);
             form.clearErrors();
 
-            setImages((prev) => {
-                prev.forEach((img) => URL.revokeObjectURL(img.url));
-                return [];
+            setImage((prev) => {
+                if (prev) URL.revokeObjectURL(prev.url);
+                return null;
             });
+            setPhotoError(null);
         }
     }, [open]);
 
-
-    useEffect(() => {
-        if (!open) {
-            form.reset({
-                name: '',
-                description: '',
-
-                category_id: undefined,
-                location_id: undefined,
-                asset_type_id: undefined,
-                condition: undefined,
-
-                serial_number: '',
-
-                acquisition_date: '',
-                acquisition_cost: 0,
-                depreciation_rate: 0,
-
-                status: 'available',
-            });
-
-            form.clearErrors();
-
-            setImages((prev) => {
-                prev.forEach((img) => URL.revokeObjectURL(img.url));
-                return [];
-            });
-        }
-    }, [open, form]);
-
     useEffect(() => {
         if (mode === 'edit' && asset) {
-
             form.reset({
                 name: asset.name,
                 description: asset.description ?? '',
@@ -244,66 +223,87 @@ export function AssetFormDialog({
         }
 
         // Reset image staging whenever the dialog switches asset/mode.
-        setImages((prev) => {
-            prev.forEach((img) => URL.revokeObjectURL(img.url));
-            return [];
+        setImage((prev) => {
+            if (prev) URL.revokeObjectURL(prev.url);
+            return null;
         });
+        setPhotoError(null);
     }, [asset, mode]);
 
-    // Clean up object URLs on unmount.
+    // Clean up the object URL on unmount.
     useEffect(() => {
         return () => {
-            images.forEach((img) => URL.revokeObjectURL(img.url));
+            if (image) URL.revokeObjectURL(image.url);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    function handleFilesSelected(fileList: FileList | null) {
+    function handleFileSelected(fileList: FileList | null) {
         if (!fileList || fileList.length === 0) return;
 
-        const next: StagedImage[] = Array.from(fileList).map((file) => ({
-            id: `${file.name}-${file.lastModified}-${Math.random()
-                .toString(36)
-                .slice(2)}`,
-            file,
-            url: URL.createObjectURL(file),
-        }));
+        const file = fileList[0];
+        setPhotoError(null);
 
-        setImages((prev) => [...prev, ...next]);
+        if (!ACCEPTED_PHOTO_TYPES.includes(file.type)) {
+            setPhotoError('Only JPG, PNG, or WebP images are allowed.');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
 
-        // Allow re-selecting the same file again later.
+        if (file.size > MAX_PHOTO_SIZE_BYTES) {
+            setPhotoError('That image exceeds the 2MB limit.');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        // Replace whatever was staged before — only one photo is kept.
+        setImage((prev) => {
+            if (prev) URL.revokeObjectURL(prev.url);
+            return {
+                id: `${file.name}-${file.lastModified}-${Math.random()
+                    .toString(36)
+                    .slice(2)}`,
+                file,
+                url: URL.createObjectURL(file),
+            };
+        });
+
         if (fileInputRef.current) fileInputRef.current.value = '';
     }
 
-    function handleMakeMain(id: string) {
-        setImages((prev) => {
-            const index = prev.findIndex((img) => img.id === id);
-            if (index <= 0) return prev;
-            const copy = [...prev];
-            const [chosen] = copy.splice(index, 1);
-            copy.unshift(chosen);
-            return copy;
+    function handleRemove() {
+        setImage((prev) => {
+            if (prev) URL.revokeObjectURL(prev.url);
+            return null;
         });
     }
-
-    function handleRemove(id: string) {
-        setImages((prev) => {
-            const target = prev.find((img) => img.id === id);
-            if (target) URL.revokeObjectURL(target.url);
-            return prev.filter((img) => img.id !== id);
-        });
-    }
-
-    const mainImage = images[0];
-    const subImages = images.slice(1);
 
     const submit = (data: FormValues) => {
-        // Only the main (first) staged image is sent, since the backend
-        // currently stores a single `photo` per asset.
         const payload: Record<string, FormDataConvertible> = { ...data };
-        if (mainImage) {
-            payload.photo = mainImage.file;
+        if (image) {
+            payload.photo = image.file;
         }
+
+        // Surfaces server-side validation/upload errors (wrong mime type,
+        // upload rejected by PHP's own limits, a uniqueness clash, etc.)
+        // back onto the matching field instead of failing with no visible
+        // feedback.
+        const onError = (errors: Record<string, string>) => {
+            Object.entries(errors).forEach(([field, message]) => {
+                if (field === 'photo') {
+                    setPhotoError(message);
+                    return;
+                }
+
+                form.setError(field as keyof FormValues, {
+                    type: 'server',
+                    message,
+                });
+            });
+
+            // eslint-disable-next-line no-console
+            console.error('Asset save failed:', errors);
+        };
 
         if (mode === 'create') {
             router.post('/custodian/assets', payload, {
@@ -312,6 +312,7 @@ export function AssetFormDialog({
                     onOpenChange(false);
                     form.reset();
                 },
+                onError,
             });
         } else {
             router.put(`/custodian/assets/${asset?.id}`, payload, {
@@ -319,6 +320,7 @@ export function AssetFormDialog({
                 onSuccess: () => {
                     onOpenChange(false);
                 },
+                onError,
             });
         }
     };
@@ -691,43 +693,37 @@ export function AssetFormDialog({
                             </div>
                         </div>
 
-                        {/* ── Right: image upload panel (1/3 width) ── */}
+                        {/* ── Right: single image upload panel (1/3 width) ── */}
                         <div className="lg:col-span-1">
                             <FormLabel className="mb-2 block">
-                                Asset Photos
+                                Asset Photo
                             </FormLabel>
 
                             <input
                                 ref={fileInputRef}
                                 type="file"
                                 accept="image/png,image/jpeg,image/jpg,image/webp"
-                                multiple
                                 className="hidden"
                                 onChange={(e) =>
-                                    handleFilesSelected(e.target.files)
+                                    handleFileSelected(e.target.files)
                                 }
                             />
 
-                            {/* Main image */}
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
                                 className="group relative flex aspect-square w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-primary/50 hover:bg-muted/50"
                             >
-                                {mainImage ? (
+                                {image ? (
                                     <>
                                         <img
-                                            src={mainImage.url}
-                                            alt="Main asset preview"
+                                            src={image.url}
+                                            alt="Asset preview"
                                             className="h-full w-full object-cover"
                                         />
-                                        <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-semibold text-white">
-                                            <Star className="size-3 fill-current" />
-                                            Main
-                                        </span>
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover:bg-black/40 group-hover:opacity-100">
                                             <span className="text-xs font-semibold text-white">
-                                                Click to add more
+                                                Click to replace
                                             </span>
                                         </div>
                                     </>
@@ -735,78 +731,35 @@ export function AssetFormDialog({
                                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                         <ImagePlus className="size-8" />
                                         <span className="text-sm font-medium">
-                                            Upload photos
+                                            Upload a photo
                                         </span>
                                         <span className="text-xs">
-                                            First photo becomes the main image
+                                            One photo per asset
                                         </span>
                                     </div>
                                 )}
                             </button>
 
-                            {/* Sub image thumbnails */}
-                            {subImages.length > 0 && (
-                                <div className="mt-3 grid grid-cols-4 gap-2">
-                                    {subImages.map((img) => (
-                                        <div
-                                            key={img.id}
-                                            className="group relative aspect-square overflow-hidden rounded-lg border border-border"
-                                        >
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleMakeMain(img.id)
-                                                }
-                                                className="h-full w-full"
-                                                title="Set as main photo"
-                                            >
-                                                <img
-                                                    src={img.url}
-                                                    alt="Asset sub preview"
-                                                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                                                />
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleRemove(img.id)
-                                                }
-                                                className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                                                aria-label="Remove photo"
-                                            >
-                                                <X className="size-3" />
-                                            </button>
-                                        </div>
-                                    ))}
-
-                                    {/* Add more tile */}
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            fileInputRef.current?.click()
-                                        }
-                                        className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
-                                    >
-                                        <ImagePlus className="size-4" />
-                                    </button>
-                                </div>
-                            )}
-
-                            {mainImage && (
+                            {image && (
                                 <button
                                     type="button"
-                                    onClick={() => handleRemove(mainImage.id)}
-                                    className="mt-2 text-xs font-medium text-red-500 hover:underline"
+                                    onClick={handleRemove}
+                                    className="mt-2 flex items-center gap-1 text-xs font-medium text-red-500 hover:underline"
                                 >
-                                    Remove main photo
+                                    <X className="size-3" />
+                                    Remove photo
                                 </button>
                             )}
 
-                            <p className="mt-3 text-xs text-muted-foreground">
-                                Click any thumbnail to make it the main photo.
-                                PNG, JPG, or WebP, up to 2MB.
-                            </p>
+                            {photoError ? (
+                                <p className="mt-3 text-xs font-medium text-red-500">
+                                    {photoError}
+                                </p>
+                            ) : (
+                                <p className="mt-3 text-xs text-muted-foreground">
+                                    PNG, JPG, or WebP, up to 2MB.
+                                </p>
+                            )}
                         </div>
 
                         {/* ── Footer spans full width ── */}
