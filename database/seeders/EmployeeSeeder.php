@@ -8,9 +8,6 @@ use Illuminate\Database\Seeder;
 
 class EmployeeSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $departments = [
@@ -21,7 +18,6 @@ class EmployeeSeeder extends Seeder
             'Marketing',
         ];
 
-        // Give the fixed demo user (employee@example.com) a stable, known profile.
         $demoUser = User::firstWhere('email', 'employee@example.com');
 
         if ($demoUser && !$demoUser->employee) {
@@ -34,8 +30,6 @@ class EmployeeSeeder extends Seeder
             ]);
         }
 
-        // Backfill a profile for every other employee-role user that doesn't have one yet
-        // (covers users created by other seeders/factories, e.g. AssetSeeder's borrow data).
         User::where('role', 'employee')
             ->whereDoesntHave('employee')
             ->orderBy('id')
