@@ -36,7 +36,7 @@ class ReportController extends Controller
         if ($view === 'overdue') {
             $query = BorrowRequest::with([
                 'asset.category:id,name',
-                'employee.user:id,name',
+                'borrower:id,name',
             ])
                 ->where('status', 'borrowed')
                 ->whereNotNull('expected_return_date')
@@ -48,12 +48,10 @@ class ReportController extends Controller
 
             match ($sort) {
                 'least_overdue' => $query->orderByDesc('expected_return_date'),
-                'borrower_az' => $query->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
-                    ->join('users', 'users.id', '=', 'employees.user_id')
+                'borrower_az' => $query->join('users', 'users.id', '=', 'borrow_requests.borrower_id')
                     ->orderBy('users.name', 'asc')
                     ->select('borrow_requests.*'),
-                'borrower_za' => $query->join('employees', 'employees.id', '=', 'borrow_requests.employee_id')
-                    ->join('users', 'users.id', '=', 'employees.user_id')
+                'borrower_za' => $query->join('users', 'users.id', '=', 'borrow_requests.borrower_id')
                     ->orderBy('users.name', 'desc')
                     ->select('borrow_requests.*'),
                 default => $query->orderBy('expected_return_date'), // most_overdue = earliest due date first
@@ -67,7 +65,7 @@ class ReportController extends Controller
 
                     return [
                         'id' => $borrow->id,
-                        'borrower' => $borrow->employee?->user?->name,
+                        'borrower' => $borrow->borrower?->name,
                         'asset_name' => $borrow->asset?->name,
                         'asset_tag' => $borrow->asset?->asset_tag,
                         'category' => $borrow->asset?->category?->name,
@@ -193,7 +191,7 @@ class ReportController extends Controller
         $sort = $request->get('sort', 'latest');
 
         if ($view === 'overdue') {
-            $query = BorrowRequest::with(['asset.category:id,name', 'employee.user:id,name'])
+            $query = BorrowRequest::with(['asset.category:id,name', 'borrower:id,name'])
                 ->where('status', 'borrowed')
                 ->whereNotNull('expected_return_date')
                 ->whereDate('expected_return_date', '<', now());
@@ -213,7 +211,7 @@ class ReportController extends Controller
                         ->diffInDays(\Carbon\Carbon::parse($borrow->expected_return_date)->startOfDay());
 
                     fputcsv($handle, [
-                        $borrow->employee?->user?->name,
+                        $borrow->borrower?->name,
                         $borrow->asset?->name,
                         $borrow->asset?->asset_tag,
                         $borrow->asset?->category?->name,

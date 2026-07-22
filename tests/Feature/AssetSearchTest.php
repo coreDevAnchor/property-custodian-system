@@ -30,3 +30,38 @@ test('assets can be searched case-insensitively', function () {
         ->has('assets.data', 1)
         ->where('assets.data.0.id', $asset->id));
 });
+
+test('available assets can be searched by asset type case-insensitively', function () {
+    $user = User::factory()->employee()->create();
+    $category = Category::create(['name' => 'Electronics', 'prefix' => 'ELEC']);
+    $location = Location::create(['name' => 'Main Office']);
+    $assetType = AssetType::create([
+        'category_id' => $category->id,
+        'name' => 'Computer Mouse',
+        'prefix' => 'MOUSE',
+    ]);
+    $availableAsset = Asset::factory()->create([
+        'name' => 'Logitech M310',
+        'asset_tag' => 'ELEC-0001',
+        'category_id' => $category->id,
+        'location_id' => $location->id,
+        'asset_type_id' => $assetType->id,
+        'status' => 'available',
+    ]);
+    Asset::factory()->create([
+        'name' => 'Logitech M325',
+        'asset_tag' => 'ELEC-0002',
+        'category_id' => $category->id,
+        'location_id' => $location->id,
+        'asset_type_id' => $assetType->id,
+        'status' => 'borrowed',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('employee.assets.index', ['search' => 'mOuSe']))
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page
+            ->component('employee/employee-assets')
+            ->has('assets.data', 1)
+            ->where('assets.data.0.id', $availableAsset->id));
+});

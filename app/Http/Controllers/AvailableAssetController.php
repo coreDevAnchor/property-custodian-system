@@ -16,13 +16,16 @@ class AvailableAssetController extends Controller
         $category = $request->input('category', 'All');
         $perPage = (int) $request->input('per_page', 10);
 
-        $assets = Asset::with(['category', 'location'])
+        $assets = Asset::with(['category', 'assetType', 'location'])
             ->where('status', 'available')
             ->when($search, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('asset_tag', 'like', "%{$search}%")
-                        ->orWhereHas('category', fn($c) => $c->where('name', 'like', "%{$search}%"));
+                $searchPattern = '%' . mb_strtolower($search) . '%';
+
+                $query->where(function ($q) use ($searchPattern) {
+                    $q->whereRaw('LOWER(name) LIKE ?', [$searchPattern])
+                        ->orWhereRaw('LOWER(asset_tag) LIKE ?', [$searchPattern])
+                        ->orWhereHas('category', fn ($category) => $category->whereRaw('LOWER(name) LIKE ?', [$searchPattern]))
+                        ->orWhereHas('assetType', fn ($assetType) => $assetType->whereRaw('LOWER(name) LIKE ?', [$searchPattern]));
                 });
             })
             ->when($category !== 'All', fn($q) => $q->where('category_id', $category))

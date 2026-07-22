@@ -215,7 +215,7 @@ export default function AvailableAssets({
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by name or tag…"
+                                placeholder="Search by name, type, or tag…"
                                 className="h-10 w-full rounded-lg border border-border bg-background pl-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                             />
                         </div>
