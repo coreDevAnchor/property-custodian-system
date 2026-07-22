@@ -31,6 +31,8 @@ interface EmployeeBorrow {
         name: string;
         asset_tag: string;
         acquisition_cost?: number | string | null;
+        acquisition_date?: string | null;
+        depreciation_rate?: number | string | null;
     };
 }
 
@@ -219,7 +221,7 @@ export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Pro
                             {currencyFormatter.format(totalBorrowedValue)}
                         </p>
                         <p className="text-[11px] font-medium text-muted-foreground">
-                            Total value of {currentlyBorrowedCount}{' '}
+                            Total acquisition cost of {currentlyBorrowedCount}{' '}
                             {currentlyBorrowedCount === 1 ? 'item' : 'items'} currently
                             borrowed
                         </p>
@@ -250,7 +252,17 @@ export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Pro
                                             ).toLocaleDateString()}
                                         </p>
                                     </div>
-                                    <BorrowStatusBadge status={borrow.status} />
+                                    <div className="flex shrink-0 flex-col items-end gap-1">
+                                        <BorrowStatusBadge status={borrow.status} />
+                                        {borrow.asset.acquisition_cost != null && (
+                                            <span className="text-[11px] font-semibold text-muted-foreground">
+                                                {currencyFormatter.format(
+                                                    Number(borrow.asset.acquisition_cost) || 0
+                                                )}{' '}
+                                                cost
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             ))
                         ) : (
@@ -269,7 +281,7 @@ export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Pro
                                 <Button
                                     variant="outline"
                                     size="icon"
-                                    className="size-7 cursor-pointer"
+                                    className="size-7"
                                     disabled={currentPage === 1}
                                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                                     aria-label="Previous page"
@@ -279,7 +291,7 @@ export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Pro
                                 <Button
                                     variant="outline"
                                     size="icon"
-                                    className="size-7 cursor-pointer"
+                                    className="size-7"
                                     disabled={currentPage === totalPages}
                                     onClick={() =>
                                         setPage((p) => Math.min(totalPages, p + 1))
@@ -294,13 +306,12 @@ export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Pro
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" className="cursor-pointer" onClick={() => onOpenChange(false)}>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Close
                     </Button>
 
                     {onEdit && (
                         <Button
-                            className="cursor-pointer"
                             onClick={() => {
                                 onOpenChange(false);
                                 onEdit(employee);
