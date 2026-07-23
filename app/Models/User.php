@@ -20,6 +20,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
     'password',
     'role',
     'profile_photo_path',
+    'must_change_password',
 ])]
 
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -41,6 +42,7 @@ class User extends Authenticatable implements PasskeyUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'must_change_password' => 'boolean',
         ];
     }
 
