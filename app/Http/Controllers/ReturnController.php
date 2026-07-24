@@ -34,13 +34,13 @@ class ReturnController extends Controller
                     $q->whereHas(
                         'borrower',
                         fn($u) =>
-                        $u->where('name', 'like', "%{$search}%")
+                        $u->where('name', 'ilike', "%{$search}%")
                     )
                         ->orWhereHas('asset', function ($a) use ($search) {
-                            $a->where('name', 'like', "%{$search}%")
-                                ->orWhere('asset_tag', 'like', "%{$search}%")
+                            $a->where('name', 'ilike', "%{$search}%")
+                                ->orWhere('asset_tag', 'ilike', "%{$search}%")
                                 ->orWhereHas('assetType', function ($type) use ($search) {
-                                    $type->where('name', 'like', "%{$search}%");
+                                    $type->where('name', 'ilike', "%{$search}%");
                                 });
                         });
                 });
@@ -123,11 +123,12 @@ class ReturnController extends Controller
                         'returned_at' => now(),
                     ]);
 
-                    // Fetch true Eloquent model instance for the asset
                     $asset = Asset::findOrFail($borrow->asset_id);
-                    $asset->update(['status' => 'lost']);
 
-                    // Passes true Asset model into record()
+                    $asset->update([
+                        'status' => 'lost',
+                    ]);
+
                     ActivityLogs::record(
                         $asset,
                         'asset_lost',
