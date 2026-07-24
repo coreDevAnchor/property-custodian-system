@@ -30,6 +30,7 @@ import { dashboard } from '@/routes/custodian';
 import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
 import { Asset } from "@/components/assets/types";
 import { PaginationBar } from '@/components/ui/pagination';
+import { Badge } from "@/components/ui/badge";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -419,31 +420,26 @@ export default function Assets({
                                 </SelectContent>
                             </Select>
                             {/* Status */}
-                            <Select
-                                value={statusFilter}
-                                onValueChange={(value) =>
-                                    handleStatusChange(value as "All" | AssetStatus)
-                                }
-                            >
-                                <SelectTrigger className="w-[180px] cursor-pointer">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
+                            <div className="flex flex-wrap gap-2">
+                                <Badge
+                                    variant={statusFilter === "All" ? "default" : "secondary"}
+                                    className="cursor-pointer"
+                                    onClick={() => handleStatusChange("All")}
+                                >
+                                    All
+                                </Badge>
 
-                                <SelectContent>
-                                    <SelectItem value="All">
-                                        All Statuses
-                                    </SelectItem>
-
-                                    {statusOptions.map((status) => (
-                                        <SelectItem
-                                            key={status}
-                                            value={status}
-                                        >
-                                            {statusLabels[status]}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                {statusOptions.map((status) => (
+                                    <Badge
+                                        key={status}
+                                        variant={statusFilter === status ? "default" : "secondary"}
+                                        className="cursor-pointer"
+                                        onClick={() => handleStatusChange(status)}
+                                    >
+                                        {statusLabels[status]}
+                                    </Badge>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
