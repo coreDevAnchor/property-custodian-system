@@ -40,7 +40,7 @@ interface PendingRequest {
         };
     };
 
-    borrower: { id: number; name: string };
+    borrower: { id: number; name: string } | null;
 }
 
 interface CategoryBreakdown {
@@ -152,28 +152,38 @@ function RequestRow({
     onReject: (id: number) => void;
     onSelect: (request: PendingRequest) => void;
 }) {
+    const borrower = request.borrower;
+    const asset = request.asset;
+
     return (
-        <tr className="
+        <tr
+            className="
                 group
                 border-b border-gray-50 dark:border-zinc-800
                 transition-colors
                 last:border-0
                 hover:bg-gray-50 dark:hover:bg-zinc-800/40
-                ">
+            "
+        >
             {/* Employee */}
             <td className="py-3.5 pr-4">
                 <div className="flex items-center gap-3">
                     <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${avatarColorFor(
-                            request.borrower.id
-                        )} text-xs font-bold text-white`}
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${request.borrower
+                                ? avatarColorFor(request.borrower.id)
+                                : 'bg-gray-400'
+                            } text-xs font-bold text-white`}
                     >
-                        {getInitials(request.borrower.name)}
+                        {request.borrower
+                            ? getInitials(request.borrower.name)
+                            : '?'}
                     </div>
+
                     <div className="min-w-0 max-w-[140px]">
                         <p className="truncate text-sm font-semibold text-gray-800 dark:text-white">
-                            {request.borrower.name}
+                            {request.borrower?.name ?? 'Unknown User'}
                         </p>
+
                         {request.remarks && (
                             <p className="truncate text-xs text-gray-500 dark:text-gray-400">
                                 {request.remarks}
@@ -182,45 +192,54 @@ function RequestRow({
                     </div>
                 </div>
             </td>
+
             {/* Asset */}
-            <td className="py-3.5 pr-4 w-[180px]">
+            <td className="w-[180px] py-3.5 pr-4">
                 <span
                     className="block truncate text-sm text-gray-700 dark:text-gray-300"
-                    title={request.asset.name}
+                    title={asset?.name ?? 'Unknown Asset'}
                 >
-                    {request.asset.name}
+                    {asset?.name ?? 'Unknown Asset'}
                 </span>
             </td>
+
             {/* Category */}
             <td className="py-3.5 pr-4">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {request.asset.category.name}
+                    {asset?.category?.name ?? 'Unknown Category'}
                 </span>
             </td>
+
             {/* Requested */}
             <td className="py-3.5 pr-4">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(request.requested_at).toLocaleDateString('en-US', {
+                    {new Date(
+                        request.requested_at
+                    ).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
                     })}
                 </span>
             </td>
+
             {/* Actions */}
             <td className="py-3.5">
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => onSelect(request)}
-                        className="rounded-lg bg-[#0d7a5f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#0a6550] active:scale-95 cursor-pointer"
-                        aria-label={`Approve request from ${request.borrower.name}`}
+                        className="cursor-pointer rounded-lg bg-[#0d7a5f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#0a6550] active:scale-95"
+                        aria-label={`Approve request from ${borrower?.name ?? 'Unknown Employee'
+                            }`}
                     >
                         Approve
                     </button>
+
                     <button
                         onClick={() => onReject(request.id)}
-                        className="rounded-lg px-3.5 py-1.5 text-xs font-bold text-red-500 transition-colors hover:bg-red-50 active:scale-95 cursor-pointer"
-                        aria-label={`Reject request from ${request.borrower.name}`}
+                        className="cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-bold text-red-500 transition-colors hover:bg-red-50 active:scale-95"
+                        aria-label={`Reject request from ${borrower?.name ?? 'Unknown Employee'
+                            }`}
                     >
                         Reject
                     </button>
@@ -229,7 +248,6 @@ function RequestRow({
         </tr>
     );
 }
-
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function Dashboard({

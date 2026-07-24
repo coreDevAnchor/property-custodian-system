@@ -29,7 +29,7 @@ interface BorrowRequest {
     borrower: {
         id: number;
         name: string;
-    };
+    } | null;
 }
 
 interface Props {
@@ -107,7 +107,7 @@ export function BorrowApprovalDialog({ request, onClose, onConfirm }: Props) {
                                     Requested By
                                 </p>
                                 <p className="text-sm font-semibold text-foreground truncate">
-                                    {request.borrower.name}
+                                    {request.borrower?.name ?? 'Unknown Employee'}
                                 </p>
                             </div>
                         </div>

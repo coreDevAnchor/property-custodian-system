@@ -212,7 +212,7 @@ function AssetRow({
                                             className="border-b border-border pb-2 last:border-0"
                                         >
                                             <div className="font-medium">
-                                                {borrow.borrower.name}
+                                                {borrow.borrower?.name ?? 'Unknown borrower'}
                                             </div>
 
                                             <div className="text-xs text-muted-foreground">

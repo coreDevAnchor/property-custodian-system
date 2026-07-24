@@ -7,6 +7,7 @@ use App\Models\BorrowRequest;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+
 /**
  * @extends Factory<BorrowRequest>
  */
@@ -21,6 +22,10 @@ class BorrowRequestFactory extends Factory
 
     public function definition(): array
     {
+        // 1. Fetch target user and corresponding employee record
+        $user = User::where('email', 'employee@example.com')->first();
+        $employee = $user ? Employee::where('user_id', $user->id)->first() : null;
+
         $status = fake()->randomElement([
             'pending',
             'borrowed',
@@ -50,7 +55,9 @@ class BorrowRequestFactory extends Factory
         return [
             'asset_id' => Asset::inRandomOrder()->value('id'),
 
-            'employee_id' => Employee::inRandomOrder()->value('id'),
+            // Consistently assign the targeted employee & user IDs
+            'employee_id' => $employee?->id ?? Employee::inRandomOrder()->value('id'),
+            'borrower_id' => $user?->id ?? User::inRandomOrder()->value('id'),
 
             'approved_by' => $approvedAt
                 ? User::where('role', 'custodian')

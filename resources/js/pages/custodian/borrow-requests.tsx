@@ -123,7 +123,7 @@ function BorrowRequestRow({
         <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
             <td className="py-3.5 pr-4">
                 <p className="truncate text-sm font-semibold text-foreground">
-                    {request.borrower.name}
+                    {request.borrower?.name ?? 'Unknown borrower'}
                 </p>
                 {request.remarks && (
                     <p className="truncate text-xs text-muted-foreground">
@@ -158,7 +158,7 @@ function BorrowRequestRow({
                             <button
                                 onClick={() => onUpdateStatus(request, 'borrowed')}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
-                                aria-label={`Approve request from ${request.borrower.name}`}
+                                aria-label={`Approve request from ${request.borrower?.name ?? 'Unknown borrower'}`}
                                 title="Approve"
                             >
                                 <Check className="size-4" />
@@ -166,7 +166,7 @@ function BorrowRequestRow({
                             <button
                                 onClick={() => onUpdateStatus(request, 'rejected')}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
-                                aria-label={`Reject request from ${request.borrower.name}`}
+                                aria-label={`Reject request from ${request.borrower?.name ?? 'Unknown borrower'}`}
                                 title="Reject"
                             >
                                 <X className="size-4" />

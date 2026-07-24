@@ -141,7 +141,7 @@ function ReturnRow({
         <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
             <td className="py-3.5 pr-4">
                 <p className="truncate text-sm font-semibold text-foreground">
-                    {item.borrower.name}
+                    {item.borrower?.name ?? "Unknown Employee"}
                 </p>
                 {item.remarks && (
                     <p className="truncate text-xs text-muted-foreground">
