@@ -420,7 +420,7 @@ export default function Assets({
                                 </SelectContent>
                             </Select>
                             {/* Status */}
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <Badge
                                     variant={statusFilter === "All" ? "default" : "secondary"}
                                     className="cursor-pointer"
