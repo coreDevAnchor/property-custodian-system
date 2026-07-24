@@ -17,6 +17,7 @@ use App\Http\Controllers\CustodianDashboardController;
 use App\Http\Controllers\CustodianController;
 use App\Http\Controllers\Custodian\ReportController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
+use App\Http\Controllers\BorrowRenewalController;
 
 Route::redirect('/', '/login');
 
@@ -81,6 +82,9 @@ Route::middleware(['auth', 'verified'])
 
         Route::post('/borrow-requests', [BorrowRequestController::class, 'store'])
             ->name('borrow-requests.store');
+        
+        Route::post('/borrow-renewals', [BorrowRenewalController::class, 'store'])
+            ->name('borrow-renewals.store');
 
         Route::post('/returns', [EmployeeReturnController::class, 'store'])
             ->name('returns.store');

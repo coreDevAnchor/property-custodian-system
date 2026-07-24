@@ -80,6 +80,11 @@ class BorrowRequest extends Model
         return $this->hasOne(ReturnRecord::class);
     }
 
+    public function renewals()
+    {
+        return $this->hasMany(BorrowRenewal::class, 'borrow_id');
+    }
+
     public function isPending(): bool
     {
         return $this->status === 'pending';
