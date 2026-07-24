@@ -38,7 +38,8 @@ type AssetStatus =
     | 'available'
     | 'borrowed'
     | 'under_repair'
-    | 'disposed';
+    | 'disposed'
+    | 'lost';
 
 interface Category {
     id: number;
@@ -83,6 +84,7 @@ const statusOptions: AssetStatus[] = [
     'borrowed',
     'under_repair',
     'disposed',
+    'lost',
 ];
 
 const statusLabels: Record<AssetStatus, string> = {
@@ -90,6 +92,7 @@ const statusLabels: Record<AssetStatus, string> = {
     borrowed: 'Borrowed',
     under_repair: 'Under Repair',
     disposed: 'Disposed',
+    lost: 'Lost',
 };
 
 const categoryIcon: Record<string, typeof Laptop> = {
@@ -110,6 +113,9 @@ const statusStyles: Record<string, string> = {
 
     disposed:
         'bg-muted text-muted-foreground',
+
+    lost:
+        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 // ─── Sub-components ────────────────────────────────────────────────────────────

@@ -161,7 +161,7 @@ class BorrowRequestController extends Controller
                 'in:pending,borrowed,awaiting_check,returned,rejected',
             ],
             'remarks' => ['nullable', 'string'],
-            'return_condition' => ['nullable', 'in:ok,defective'],
+            'return_condition' => ['nullable', 'in:ok,defective,lost'],
             'expected_return_date' => ['nullable', 'date', 'after_or_equal:today'],
         ]);
 
@@ -209,11 +209,12 @@ class BorrowRequestController extends Controller
         }
 
         if ($validated['status'] === 'returned') {
-            $asset->update([
-                'status' => $validated['return_condition'] === 'defective'
-                    ? 'under_repair'
-                    : 'available',
-            ]);
+            $newAssetStatus = match ($validated['return_condition'] ?? 'ok') {
+                'lost'      => 'lost',
+                'defective' => 'under_repair',
+                default     => 'available',
+            };
+            $asset->update(['status' => $newAssetStatus]);
         }
 
         $message = match (true) {
@@ -228,6 +229,7 @@ class BorrowRequestController extends Controller
             $validated['status'] === 'borrowed' && $wasPending => 'borrow_approved',
             $validated['status'] === 'rejected' => 'borrow_rejected',
             $validated['status'] === 'awaiting_check' => 'return_submitted',
+            $validated['status'] === 'returned' && ($validated['return_condition'] ?? null) === 'lost' => 'asset_lost',
             $validated['status'] === 'returned' => 'return_inspected',
             default => 'borrow_updated',
         };
@@ -236,6 +238,7 @@ class BorrowRequestController extends Controller
             $validated['status'] === 'borrowed' && $wasPending => "Borrow request from {$requesterName} was approved.",
             $validated['status'] === 'rejected' => "Borrow request from {$requesterName} was rejected.",
             $validated['status'] === 'awaiting_check' => "{$requesterName} submitted {$asset->name} for return inspection.",
+            $validated['status'] === 'returned' && ($validated['return_condition'] ?? null) === 'lost' => "{$asset->name} ({$asset->asset_tag}) was confirmed lost by custodian.",
             $validated['status'] === 'returned' => "{$asset->name} was inspected and confirmed returned"
             . ($updateData['return_condition'] ? " ({$updateData['return_condition']})." : '.'),
             default => "Borrow request status changed to {$validated['status']}.",

@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int $borrower_id
  * @property 'pending'|'borrowed'|'awaiting_check'|'returned'|'rejected' $status
  * @property string|null $remarks
- * @property 'ok'|'defective'|null $return_condition
+ * @property 'ok'|'defective'|'lost'|null $return_condition
  * @property-read Asset $asset
  * @property-read Employee $employee
  *

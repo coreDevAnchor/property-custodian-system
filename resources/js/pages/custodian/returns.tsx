@@ -4,6 +4,7 @@ import {
     AlertTriangle,
     CheckCircle2,
     ClipboardCheck,
+    PackageX,
     Search,
     ShieldCheck,
 } from 'lucide-react';
@@ -20,7 +21,7 @@ import { PaginationBar } from '@/components/ui/pagination';
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type ReturnStatus = 'awaiting_check' | 'returned';
-type ReturnCondition = 'ok' | 'defective';
+type ReturnCondition = 'ok' | 'defective' | 'lost';
 
 interface ReturnItem {
     id: number;
@@ -87,11 +88,19 @@ const statusStyles: Record<ReturnStatus, string> = {
 const conditionLabels: Record<ReturnCondition, string> = {
     ok: 'Good Condition',
     defective: 'Defective',
+    lost: 'Lost',
 };
 
 const conditionStyles: Record<ReturnCondition, string> = {
     ok: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
     defective: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    lost: 'bg-slate-200 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300',
+};
+
+const conditionIcons: Record<ReturnCondition, typeof CheckCircle2> = {
+    ok: CheckCircle2,
+    defective: AlertTriangle,
+    lost: PackageX,
 };
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
@@ -107,15 +116,13 @@ function StatusBadge({ status }: { status: ReturnStatus }) {
 }
 
 function ConditionBadge({ condition }: { condition: ReturnCondition }) {
+    const Icon = conditionIcons[condition];
+
     return (
         <span
             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${conditionStyles[condition]}`}
         >
-            {condition === 'ok' ? (
-                <CheckCircle2 className="size-3" />
-            ) : (
-                <AlertTriangle className="size-3" />
-            )}
+            <Icon className="size-3" />
             {conditionLabels[condition]}
         </span>
     );
@@ -128,6 +135,15 @@ function ReturnRow({
     item: ReturnItem;
     onConfirmReturn: (item: ReturnItem, condition: ReturnCondition) => void;
 }) {
+    function handleLostClick() {
+        // Marking an item lost writes off the asset — confirm before firing,
+        // since it's a heavier-consequence action than Good/Defective.
+        const confirmed = window.confirm(
+            `Mark "${item.asset.name}" (${item.asset.asset_tag}) as lost? This will update the asset's status to Lost.`
+        );
+        if (confirmed) onConfirmReturn(item, 'lost');
+    }
+
     return (
         <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
             <td className="py-3.5 pr-4">
@@ -181,7 +197,7 @@ function ReturnRow({
             </td>
             <td className="py-3.5">
                 {item.status === 'awaiting_check' ? (
-                    <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                             onClick={() => onConfirmReturn(item, 'ok')}
                             className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
@@ -197,6 +213,14 @@ function ReturnRow({
                         >
                             <AlertTriangle className="size-3.5" />
                             Defective
+                        </button>
+                        <button
+                            onClick={handleLostClick}
+                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-slate-500/10 hover:text-slate-600 cursor-pointer"
+                            title="Mark asset as lost"
+                        >
+                            <PackageX className="size-3.5" />
+                            Lost
                         </button>
                     </div>
                 ) : (

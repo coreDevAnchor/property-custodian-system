@@ -73,7 +73,7 @@ class AssetController extends Controller
             'acquisition_cost' => ['nullable', 'numeric', 'min:0'],
             'depreciation_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'condition' => ['nullable', 'integer', 'min:1', 'max:4'],
-            'status' => ['required', 'in:available,borrowed,under_repair,disposed'],
+            'status' => ['required', 'in:available,borrowed,under_repair,disposed,lost'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
@@ -147,7 +147,7 @@ class AssetController extends Controller
             'acquisition_cost' => ['nullable', 'numeric', 'min:0'],
             'depreciation_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'condition' => ['nullable', 'integer', 'min:1', 'max:4'],
-            'status' => ['required', 'in:available,borrowed,under_repair,disposed'],
+            'status' => ['required', 'in:available,borrowed,under_repair,disposed,lost'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
@@ -155,7 +155,7 @@ class AssetController extends Controller
         ]);
 
         $previousStatus = $asset->status;
-        
+
         if (
             $asset->status === 'borrowed' &&
             $validated['status'] === 'available'
@@ -195,12 +195,14 @@ class AssetController extends Controller
             $action = match ($asset->status) {
                 'disposed' => 'asset_disposed',
                 'under_repair' => 'asset_repair_flagged',
+                'lost' => 'asset_lost',
                 default => 'asset_updated',
             };
 
             $description = match ($asset->status) {
                 'disposed' => "{$asset->name} was marked as disposed.",
                 'under_repair' => "{$asset->name} was flagged for repair.",
+                'lost' => "{$asset->name} was marked as lost.",
                 default => "{$asset->name} status changed to {$asset->status}.",
             };
 
