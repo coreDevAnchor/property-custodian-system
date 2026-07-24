@@ -6,6 +6,7 @@ import {
     History,
     PackageMinus,
     PackagePlus,
+    PackageX,
     Wrench,
     XCircle,
 } from 'lucide-react';
@@ -34,6 +35,7 @@ const actionIcons: Record<string, typeof History> = {
     asset_deleted: PackageMinus,
     asset_disposed: PackageMinus,
     asset_repair_flagged: Wrench,
+    asset_lost: PackageX,
     borrow_requested: ClipboardCheck,
     borrow_approved: CheckCircle2,
     borrow_rejected: XCircle,
@@ -47,6 +49,7 @@ const actionColors: Record<string, string> = {
     asset_deleted: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
     asset_disposed: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
     asset_repair_flagged: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+    asset_lost: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
     borrow_requested: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
     borrow_approved: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
     borrow_rejected: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
