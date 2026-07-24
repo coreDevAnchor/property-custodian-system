@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
+import { BorrowRenewalDialog } from '@/components/borrow/borrow-renewal-dialog';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ interface BorrowItem {
     remarks?: string | null;
     requested_at: string;
     approved_at?: string | null;
-    expected_return_date?: string | null;
+    expected_return_date: string;
 
     asset: {
         id: number;
@@ -155,6 +156,7 @@ function BorrowCard({ item }: { item: BorrowItem }) {
     const { label, icon: Icon, color, dot } = statusConfig[item.status];
     const canReturn = item.status === 'borrowed';
     const [openReturnDialog, setOpenReturnDialog] = useState(false);
+    const [openRenewalDialog, setOpenRenewalDialog] = useState(false);
 
     return (
         <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
@@ -228,12 +230,22 @@ function BorrowCard({ item }: { item: BorrowItem }) {
 
                 {/* Return action */}
                 {canReturn && (
-                    <button
-                        onClick={() => setOpenReturnDialog(true)}
-                        className="mt-auto flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 text-sm font-bold text-white transition-colors hover:bg-emerald-700 active:scale-[0.98] dark:bg-emerald-500 dark:hover:bg-emerald-600"
-                    >
-                        Return Asset
-                    </button>
+                    <div className="mt-auto flex flex-col gap-2">
+                        <button
+                            onClick={() => setOpenRenewalDialog(true)}
+                            className="flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-blue-500 text-sm font-bold text-blue-600 transition-colors hover:bg-blue-50 active:scale-[0.98] dark:text-blue-400 dark:hover:bg-blue-950/30"
+                        >
+                            <CalendarClock className="size-4" />
+                            Request Extension
+                        </button>
+
+                        <button
+                            onClick={() => setOpenReturnDialog(true)}
+                            className="flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 text-sm font-bold text-white transition-colors hover:bg-emerald-700 active:scale-[0.98] dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                        >
+                            Return Asset
+                        </button>
+                    </div>
 
                 )}
 
@@ -251,6 +263,33 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                     </div>
                 )}
             </div>
+
+            <BorrowRenewalDialog
+                open={openRenewalDialog}
+                onOpenChange={setOpenRenewalDialog}
+                borrowId={item.id}
+                currentDueDate={item.expected_return_date}
+                assetName={item.asset.name}
+                assetTag={item.asset.asset_tag}
+                onSubmit={(borrowId, requestedDueDate, reason) => {
+                    router.post(
+                        '/employee/borrow-renewals',
+                        {
+                            borrow_id: borrowId,
+                            requested_due_date: requestedDueDate,
+                            reason,
+                        },
+                        {
+                            preserveScroll: true,
+                            preserveState: true,
+                            onSuccess: () => {
+                                setOpenRenewalDialog(false);
+                            },
+                        }
+                    );
+                }}
+            />
+
             <ReturnRequestDialog
                 open={openReturnDialog}
                 onOpenChange={setOpenReturnDialog}

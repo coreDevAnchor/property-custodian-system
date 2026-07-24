@@ -8,8 +8,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { CalendarDays, PackageOpen, PackageX, Undo2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LostConfirmDialog } from '@/components/dialog/lost-confirm-dialog';
 
 interface BorrowedItem {
     id: number;
@@ -42,6 +43,9 @@ export function ReturnRequestDialog({ open, items, onOpenChange }: Props) {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [lostIds, setLostIds] = useState<number[]>([]);
     const [submitting, setSubmitting] = useState(false);
+    const [showConfirmLost, setShowConfirmLost] = useState(false);
+    const [confirmNames, setConfirmNames] = useState('');
+    const [pendingData, setPendingData] = useState<{ returnIds: number[]; lostSubmitIds: number[] } | null>(null);
 
     useEffect(() => {
         if (open) {
@@ -90,12 +94,16 @@ export function ReturnRequestDialog({ open, items, onOpenChange }: Props) {
                 .map((item) => item.asset.name)
                 .join(', ');
 
-            const confirmed = window.confirm(
-                `Report as lost: ${names}. This notifies the custodian that these items cannot be physically returned. Continue?`
-            );
-            if (!confirmed) return;
+            setConfirmNames(names);
+            setPendingData({ returnIds, lostSubmitIds });
+            setShowConfirmLost(true);
+            return;
         }
 
+        executeSubmit(returnIds, lostSubmitIds);
+    }
+
+    function executeSubmit(returnIds: number[], lostSubmitIds: number[]) {
         setSubmitting(true);
 
         router.post(
@@ -116,7 +124,8 @@ export function ReturnRequestDialog({ open, items, onOpenChange }: Props) {
     const lostCount = lostIds.filter((id) => selectedIds.includes(id)).length;
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Process a Return</DialogTitle>
@@ -221,5 +230,20 @@ export function ReturnRequestDialog({ open, items, onOpenChange }: Props) {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <LostConfirmDialog
+            open={showConfirmLost}
+            onOpenChange={setShowConfirmLost}
+            assetNames={confirmNames}
+            title="Report Assets as Lost"
+            description={`Are you sure you want to report "${confirmNames}" as lost? This notifies the custodian that these items cannot be physically returned.`}
+            onConfirm={() => {
+                if (pendingData) {
+                    executeSubmit(pendingData.returnIds, pendingData.lostSubmitIds);
+                }
+                setShowConfirmLost(false);
+            }}
+        />
+    </>
     );
 }

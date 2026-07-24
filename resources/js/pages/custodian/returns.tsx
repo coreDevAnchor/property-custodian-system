@@ -18,6 +18,8 @@ import {
 import { dashboard } from '@/routes/custodian';
 import { PaginationBar } from '@/components/ui/pagination';
 
+import { LostConfirmDialog } from '@/components/dialog/lost-confirm-dialog';
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type ReturnStatus = 'awaiting_check' | 'returned';
@@ -135,15 +137,6 @@ function ReturnRow({
     item: ReturnItem;
     onConfirmReturn: (item: ReturnItem, condition: ReturnCondition) => void;
 }) {
-    function handleLostClick() {
-        // Marking an item lost writes off the asset — confirm before firing,
-        // since it's a heavier-consequence action than Good/Defective.
-        const confirmed = window.confirm(
-            `Mark "${item.asset.name}" (${item.asset.asset_tag}) as lost? This will update the asset's status to Lost.`
-        );
-        if (confirmed) onConfirmReturn(item, 'lost');
-    }
-
     return (
         <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
             <td className="py-3.5 pr-4">
@@ -215,7 +208,7 @@ function ReturnRow({
                             Defective
                         </button>
                         <button
-                            onClick={handleLostClick}
+                            onClick={() => onConfirmReturn(item, 'lost')}
                             className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-slate-500/10 hover:text-slate-600 cursor-pointer"
                             title="Mark asset as lost"
                         >
@@ -249,6 +242,7 @@ export default function Returns({
     const [search, setSearch] = useState(filters.search ?? '');
     const [statusFilter, setStatusFilter] = useState<'All' | ReturnStatus>(filters.status ?? 'awaiting_check');
     const [sortKey, setSortKey] = useState<SortKey>(filters.sort ?? 'newest');
+    const [lostConfirmItem, setLostConfirmItem] = useState<ReturnItem | null>(null);
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRun = useRef(true);
@@ -301,6 +295,14 @@ export default function Returns({
     }
 
     function handleConfirmReturn(item: ReturnItem, condition: ReturnCondition) {
+        if (condition === 'lost') {
+            setLostConfirmItem(item);
+            return;
+        }
+        submitConfirmReturn(item, condition);
+    }
+
+    function submitConfirmReturn(item: ReturnItem, condition: ReturnCondition) {
         router.put(
             `/custodian/borrow-requests/${item.id}`,
             {
@@ -454,6 +456,18 @@ export default function Returns({
                     />
                 </div>
             </div>
+
+            <LostConfirmDialog
+                open={!!lostConfirmItem}
+                onOpenChange={(open) => !open && setLostConfirmItem(null)}
+                assetNames={lostConfirmItem ? `"${lostConfirmItem.asset.name}" (${lostConfirmItem.asset.asset_tag})` : ''}
+                onConfirm={() => {
+                    if (lostConfirmItem) {
+                        submitConfirmReturn(lostConfirmItem, 'lost');
+                        setLostConfirmItem(null);
+                    }
+                }}
+            />
         </>
     );
 }

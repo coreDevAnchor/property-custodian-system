@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ImagePlus, X } from 'lucide-react';
+import { ImagePlus, X, CalendarDays } from 'lucide-react';
 import type { FormDataConvertible } from '@inertiajs/core';
 
 import {
@@ -22,6 +22,14 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
+
+import { Calendar } from '@/components/ui/calendar';
+
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -595,19 +603,75 @@ export function AssetFormDialog({
                                 <FormField
                                     control={form.control}
                                     name="acquisition_date"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                Acquisition Date
-                                            </FormLabel>
+                                    render={({ field }) => {
+                                        const selectedDate = field.value
+                                            ? new Date(`${field.value}T00:00:00`)
+                                            : undefined;
 
-                                            <FormControl className="cursor-pointer">
-                                                <Input type="date" {...field} />
-                                            </FormControl>
+                                        return (
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel>Acquisition Date</FormLabel>
 
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                className={`h-10 w-full cursor-pointer justify-start text-left font-normal ${!field.value
+                                                                    ? 'text-muted-foreground'
+                                                                    : ''
+                                                                    }`}
+                                                            >
+                                                                <CalendarDays className="mr-2 size-4" />
+
+                                                                {selectedDate
+                                                                    ? selectedDate.toLocaleDateString(
+                                                                        'en-US',
+                                                                        {
+                                                                            year: 'numeric',
+                                                                            month: 'long',
+                                                                            day: 'numeric',
+                                                                        },
+                                                                    )
+                                                                    : 'Select acquisition date'}
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+
+                                                    <PopoverContent
+                                                        className="w-auto p-0"
+                                                        align="start"
+                                                    >
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={selectedDate}
+                                                            onSelect={(date) => {
+                                                                if (!date) {
+                                                                    field.onChange('');
+                                                                    return;
+                                                                }
+
+                                                                const formattedDate = [
+                                                                    date.getFullYear(),
+                                                                    String(
+                                                                        date.getMonth() + 1,
+                                                                    ).padStart(2, '0'),
+                                                                    String(
+                                                                        date.getDate(),
+                                                                    ).padStart(2, '0'),
+                                                                ].join('-');
+
+                                                                field.onChange(formattedDate);
+                                                            }}
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+
+                                                <FormMessage />
+                                            </FormItem>
+                                        );
+                                    }}
                                 />
 
                                 <FormField
