@@ -5,9 +5,17 @@ import {
     CalendarClock,
     CheckCircle2,
     Clock,
+    MoreHorizontal,
     Package,
     PackageOpen,
+    PackageX,
 } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Select,
     SelectContent,
@@ -157,6 +165,12 @@ function BorrowCard({ item }: { item: BorrowItem }) {
     const canReturn = item.status === 'borrowed';
     const [openReturnDialog, setOpenReturnDialog] = useState(false);
     const [openRenewalDialog, setOpenRenewalDialog] = useState(false);
+    const [reportAsLost, setReportAsLost] = useState(false);
+
+    function openLostReturnDialog() {
+        setReportAsLost(true);
+        setOpenReturnDialog(true);
+    }
 
     return (
         <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
@@ -177,6 +191,30 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                     <span className={`size-2 rounded-full ${dot} animate-pulse`} />
                     <span className={`text-[11px] font-bold ${color}`}>{label}</span>
                 </div>
+
+                {canReturn && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                type="button"
+                                className="absolute top-3 right-3 flex size-9 cursor-pointer items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                aria-label={`Actions for ${item.asset.name}`}
+                            >
+                                <MoreHorizontal className="size-5" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onSelect={() => setOpenRenewalDialog(true)}>
+                                <CalendarClock />
+                                Request extension
+                            </DropdownMenuItem>
+                            <DropdownMenuItem variant="destructive" onSelect={openLostReturnDialog}>
+                                <PackageX />
+                                Report as lost
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
             </div>
 
             {/* Body */}
@@ -230,15 +268,7 @@ function BorrowCard({ item }: { item: BorrowItem }) {
 
                 {/* Return action */}
                 {canReturn && (
-                    <div className="mt-auto flex flex-col gap-2">
-                        <button
-                            onClick={() => setOpenRenewalDialog(true)}
-                            className="flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-blue-500 text-sm font-bold text-blue-600 transition-colors hover:bg-blue-50 active:scale-[0.98] dark:text-blue-400 dark:hover:bg-blue-950/30"
-                        >
-                            <CalendarClock className="size-4" />
-                            Request Extension
-                        </button>
-
+                    <div className="mt-auto">
                         <button
                             onClick={() => setOpenReturnDialog(true)}
                             className="flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 text-sm font-bold text-white transition-colors hover:bg-emerald-700 active:scale-[0.98] dark:bg-emerald-500 dark:hover:bg-emerald-600"
@@ -292,7 +322,11 @@ function BorrowCard({ item }: { item: BorrowItem }) {
 
             <ReturnRequestDialog
                 open={openReturnDialog}
-                onOpenChange={setOpenReturnDialog}
+                onOpenChange={(open) => {
+                    setOpenReturnDialog(open);
+                    if (!open) setReportAsLost(false);
+                }}
+                reportAsLost={reportAsLost}
                 items={[
                     {
                         id: item.id,

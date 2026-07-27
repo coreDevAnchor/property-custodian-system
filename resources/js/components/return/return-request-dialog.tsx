@@ -31,6 +31,7 @@ interface Props {
     open: boolean;
     items: BorrowedItem[];
     onOpenChange: (open: boolean) => void;
+    reportAsLost?: boolean;
 }
 
 const today = new Date().toLocaleDateString('en-US', {
@@ -39,7 +40,7 @@ const today = new Date().toLocaleDateString('en-US', {
     day: 'numeric',
 });
 
-export function ReturnRequestDialog({ open, items, onOpenChange }: Props) {
+export function ReturnRequestDialog({ open, items, onOpenChange, reportAsLost = false }: Props) {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [lostIds, setLostIds] = useState<number[]>([]);
     const [submitting, setSubmitting] = useState(false);
@@ -49,10 +50,11 @@ export function ReturnRequestDialog({ open, items, onOpenChange }: Props) {
 
     useEffect(() => {
         if (open) {
-            setSelectedIds([]);
-            setLostIds([]);
+            const itemIds = items.map((item) => item.id);
+            setSelectedIds(reportAsLost ? itemIds : []);
+            setLostIds(reportAsLost ? itemIds : []);
         }
-    }, [open]);
+    }, [open, items, reportAsLost]);
 
     function toggleItem(id: number) {
         setSelectedIds((prev) => {
