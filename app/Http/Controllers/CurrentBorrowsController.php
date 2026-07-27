@@ -25,17 +25,16 @@ class CurrentBorrowsController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        // Counts for the stats row need to reflect the full active set,
-        // not just the current filtered/paginated page.
         $counts = BorrowRequest::where('borrower_id', $user->id)
             ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
-            ->pluck('count', 'status');
+            ->pluck('count', 'status')
+            ->map(fn($count) => (int) $count);
 
         return Inertia::render('employee/current-borrows', [
             'borrows' => $borrows,
-            'counts' => [
+            'borrowCounts' => [
                 'borrowed' => $counts->get('borrowed', 0),
                 'pending' => $counts->get('pending', 0),
                 'awaiting_check' => $counts->get('awaiting_check', 0),

@@ -66,7 +66,7 @@ interface Paginated<T> {
     to: number | null;
 }
 
-interface Counts {
+interface BorrowCounts {
     borrowed: number;
     pending: number;
     awaiting_check: number;
@@ -79,7 +79,7 @@ interface Filters {
 
 interface Props {
     borrows: Paginated<BorrowItem>;
-    counts: Counts;
+    borrowCounts: BorrowCounts;
     filters: Filters;
 }
 
@@ -356,7 +356,7 @@ const statusFilterOptions: { value: 'All' | BorrowStatus; label: string }[] = [
 
 export default function CurrentBorrows({
     borrows,
-    counts,
+    borrowCounts,
     filters = { status: 'All', per_page: 12 },
 }: Props) {
     const [status, setStatus] = useState<'All' | BorrowStatus>(filters.status ?? 'All');
@@ -371,7 +371,12 @@ export default function CurrentBorrows({
                 per_page: overrides.per_page ?? borrows.per_page,
                 page,
             },
-            { preserveState: true, preserveScroll: true, replace: true, only: ['borrows', 'filters'] },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['borrows', 'filters', 'borrowCounts'],
+            },
         );
     }
 
@@ -423,21 +428,21 @@ export default function CurrentBorrows({
                     {[
                         {
                             label: 'Active',
-                            count: counts.borrowed,
+                            count: borrowCounts.borrowed,
                             color: 'text-emerald-600 dark:text-emerald-400',
                             bg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
                             icon: CheckCircle2,
                         },
                         {
                             label: 'Pending',
-                            count: counts.pending,
+                            count: borrowCounts.pending,
                             color: 'text-amber-600 dark:text-amber-400',
                             bg: 'bg-amber-500/10 dark:bg-amber-500/20',
                             icon: Clock,
                         },
                         {
                             label: 'Inspection',
-                            count: counts.awaiting_check,
+                            count: borrowCounts.awaiting_check,
                             color: 'text-purple-600 dark:text-purple-400',
                             bg: 'bg-purple-500/10 dark:bg-purple-500/20',
                             icon: AlertCircle,
