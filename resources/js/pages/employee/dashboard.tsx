@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     Box,
     Clock,
@@ -12,6 +12,7 @@ import * as assets from '@/routes/employee/assets';
 import * as borrows from '@/routes/employee/borrows';
 import { useState } from 'react';
 import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
+import { PaginationBar } from '@/components/ui/pagination';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,16 @@ interface BorrowItem {
     };
 }
 
+interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+}
+
 interface Stats {
     availableAssets: number;
     activeBorrows: number;
@@ -40,10 +51,17 @@ interface Stats {
     totalBorrowed: number;
 }
 
+interface Filters {
+    current_per_page: number;
+    activity_per_page: number;
+}
+
 interface Props {
     stats: Stats;
-    currentBorrows: BorrowItem[];
-    recentActivity: BorrowItem[];
+    currentBorrows: Paginated<BorrowItem>;
+    recentActivity: Paginated<BorrowItem>;
+    returnableBorrows: BorrowItem[];
+    filters: Filters;
 }
 
 // ─── Style maps ─────────────────────────────────────────────────────────────
@@ -154,9 +172,54 @@ export default function EmployeeDashboard({
     stats,
     currentBorrows,
     recentActivity,
+    returnableBorrows,
+    filters = { current_per_page: 10, activity_per_page: 5 },
 }: Props) {
     const [returnDialogOpen, setReturnDialogOpen] = useState(false);
-    const returnableItems = currentBorrows.filter((b) => b.status === 'borrowed');
+
+    // Each table paginates independently via its own query-string keys, so
+    // paging through one never resets the other. router.reload() targets
+    // whatever URL the page is already on, so no route needs to be
+    // hardcoded here.
+    function fetchCurrentBorrowsPage(page: number, perPage?: number) {
+        router.reload({
+            data: {
+                current_page: page,
+                current_per_page: perPage ?? currentBorrows.per_page,
+                activity_page: recentActivity.current_page,
+                activity_per_page: recentActivity.per_page,
+            },
+            only: ['currentBorrows', 'filters'],
+        });
+    }
+
+    function handleCurrentBorrowsPageChange(page: number) {
+        fetchCurrentBorrowsPage(page);
+    }
+
+    function handleCurrentBorrowsPerPageChange(perPage: number) {
+        fetchCurrentBorrowsPage(1, perPage);
+    }
+
+    function fetchActivityPage(page: number, perPage?: number) {
+        router.reload({
+            data: {
+                activity_page: page,
+                activity_per_page: perPage ?? recentActivity.per_page,
+                current_page: currentBorrows.current_page,
+                current_per_page: currentBorrows.per_page,
+            },
+            only: ['recentActivity', 'filters'],
+        });
+    }
+
+    function handleActivityPageChange(page: number) {
+        fetchActivityPage(page);
+    }
+
+    function handleActivityPerPageChange(perPage: number) {
+        fetchActivityPage(1, perPage);
+    }
 
     return (
         <>
@@ -233,7 +296,7 @@ export default function EmployeeDashboard({
                     </div>
 
                     <div className="overflow-x-auto px-6 pb-2">
-                        {currentBorrows.length > 0 ? (
+                        {currentBorrows.data.length > 0 ? (
                             <table className="w-full min-w-[500px]">
                                 <thead>
                                     <tr className="border-b border-border">
@@ -249,7 +312,7 @@ export default function EmployeeDashboard({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {currentBorrows.map((borrow) => (
+                                    {currentBorrows.data.map((borrow) => (
                                         <tr
                                             key={borrow.id}
                                             className="border-b border-border last:border-0"
@@ -290,6 +353,20 @@ export default function EmployeeDashboard({
                             </div>
                         )}
                     </div>
+
+                    {currentBorrows.data.length > 0 && (
+                        <PaginationBar
+                            currentPage={currentBorrows.current_page}
+                            lastPage={currentBorrows.last_page}
+                            total={currentBorrows.total}
+                            from={currentBorrows.from}
+                            to={currentBorrows.to}
+                            perPage={currentBorrows.per_page}
+                            itemLabel="borrows"
+                            onPageChange={handleCurrentBorrowsPageChange}
+                            onPerPageChange={handleCurrentBorrowsPerPageChange}
+                        />
+                    )}
                 </div>
 
                 {/* ── Recent activity ── */}
@@ -301,7 +378,7 @@ export default function EmployeeDashboard({
                     </div>
 
                     <div className="overflow-x-auto px-6 pb-2">
-                        {recentActivity.length > 0 ? (
+                        {recentActivity.data.length > 0 ? (
                             <table className="w-full min-w-[500px]">
                                 <thead>
                                     <tr className="border-b border-border">
@@ -317,7 +394,7 @@ export default function EmployeeDashboard({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {recentActivity.map((activity) => (
+                                    {recentActivity.data.map((activity) => (
                                         <tr
                                             key={activity.id}
                                             className="border-b border-border last:border-0"
@@ -354,10 +431,25 @@ export default function EmployeeDashboard({
                             </div>
                         )}
                     </div>
+
+                    {recentActivity.data.length > 0 && (
+                        <PaginationBar
+                            currentPage={recentActivity.current_page}
+                            lastPage={recentActivity.last_page}
+                            total={recentActivity.total}
+                            from={recentActivity.from}
+                            to={recentActivity.to}
+                            perPage={recentActivity.per_page}
+                            itemLabel="activity"
+                            onPageChange={handleActivityPageChange}
+                            onPerPageChange={handleActivityPerPageChange}
+                        />
+                    )}
                 </div>
+
                 <ReturnRequestDialog
                     open={returnDialogOpen}
-                    items={returnableItems}
+                    items={returnableBorrows}
                     onOpenChange={setReturnDialogOpen}
                 />
             </div>
