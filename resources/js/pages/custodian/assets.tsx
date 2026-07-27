@@ -28,45 +28,22 @@ import {
 import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import { dashboard } from '@/routes/custodian';
 import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
-import { Asset } from "@/components/assets/types";
+// import { Asset } from "@/components/assets/types";
 import { PaginationBar } from '@/components/ui/pagination';
 import { Badge } from "@/components/ui/badge";
+import {
+    AssetStatus,
+    AssetType,
+    AssetFormValues,
+    statusOptions,
+    Asset,
+    AssetFilters,
+} from '@/types/assets';
+import type { Location } from '@/types/location';
+import type { Paginated } from '@/types/pagination';
+import type { Category } from '@/types/categories';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-type AssetStatus =
-    | 'available'
-    | 'borrowed'
-    | 'under_repair'
-    | 'disposed'
-    | 'lost';
-
-interface Category {
-    id: number;
-    name: string;
-}
-
-interface AssetType {
-    id: number;
-    name: string;
-    prefix: string;
-
-    category: {
-        id: number;
-        name: string;
-    };
-}
-
-interface AssetFormValues {
-    name: string;
-    category_id: number;
-    asset_type_id: number;
-    location_id: number;
-    status: string;
-    acquisition_date: string;
-    description?: string;
-    serial_number?: string;
-}
 
 const emptyForm: AssetFormValues = {
     name: '',
@@ -78,14 +55,6 @@ const emptyForm: AssetFormValues = {
     description: '',
     serial_number: '',
 };
-
-const statusOptions: AssetStatus[] = [
-    'available',
-    'borrowed',
-    'under_repair',
-    'disposed',
-    'lost',
-];
 
 const statusLabels: Record<AssetStatus, string> = {
     available: 'Available',
@@ -252,34 +221,12 @@ function AssetRow({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-interface Location {
-    id: number;
-    name: string;
-}
-
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-interface Filters {
-    search: string;
-    category: string;
-    status: string;
-    per_page: number;
-}
-
 interface Props {
     assets: Paginated<Asset>;
     assetTypes: AssetType[];
     categories: Category[];
     locations: Location[];
-    filters: Filters;
+    filters: AssetFilters;
 }
 
 export default function Assets({
@@ -305,7 +252,7 @@ export default function Assets({
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRun = useRef(true);
 
-    function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+    function fetchPage(page: number, overrides: Partial<AssetFilters> = {}) {
         router.get(
             '/custodian/assets',
             {

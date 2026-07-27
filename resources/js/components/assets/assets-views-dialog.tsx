@@ -9,22 +9,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { ImageOff, Pencil } from "lucide-react";
 
-import type { Asset } from "@/components/assets/types";
+import type { Asset, AssetStatus } from "@/types/assets";
 import { useEffect, useState } from 'react';
 import { ActivityFeed } from '@/components/activity/activity-feed';
 
-// ── Extra fields that exist on the backend model but may not yet be
-// on the shared Asset type. Marked optional so this renders safely
-// either way. ──
 type ViewableAsset = Asset;
 
-type AssetStatus = "available" | "borrowed" | "under_repair" | "disposed";
-
 const statusLabels: Record<AssetStatus, string> = {
-    available: "Available",
-    borrowed: "Borrowed",
-    under_repair: "Under Repair",
-    disposed: "Disposed",
+    available: 'Available',
+    borrowed: 'Borrowed',
+    under_repair: 'Under Repair',
+    disposed: 'Disposed',
+    lost: 'Lost',
 };
 
 const statusStyles: Record<AssetStatus, string> = {
@@ -35,6 +31,8 @@ const statusStyles: Record<AssetStatus, string> = {
     under_repair:
         "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     disposed: "bg-muted text-muted-foreground",
+    lost:
+        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 function StatusBadge({ status }: { status: AssetStatus }) {
@@ -99,11 +97,6 @@ interface Props {
     asset?: ViewableAsset;
     onOpenChange: (open: boolean) => void;
     onEdit?: (asset: ViewableAsset) => void;
-    /**
-     * When false, hides the Edit button and skips fetching the
-     * custodian-only activity log endpoint. Use this for read-only
-     * contexts like the employee "Available Assets" page.
-     */
     readOnly?: boolean;
 }
 

@@ -46,14 +46,13 @@ import { Button } from '@/components/ui/button';
 
 import { assetSchema } from '@/components/assets/assets-schema';
 import type { z } from 'zod';
-import type { Asset, Category } from '@/components/assets/types';
+import type { Asset, AssetType } from '@/types/assets';
+import type { Category } from '@/types/categories';
+import type { Location } from '@/types/location';
+import type { StagedImage } from '@/types/images';
 
 type FormValues = z.infer<typeof assetSchema>;
 
-interface AssetLocation {
-    id: number;
-    name: string;
-}
 
 interface Props {
     open: boolean;
@@ -62,26 +61,10 @@ interface Props {
     asset?: Asset;
 
     categories: Category[];
-    locations: AssetLocation[];
+    locations: Location[];
     assetTypes: AssetType[];
 
     onOpenChange: (open: boolean) => void;
-}
-
-interface StagedImage {
-    id: string;
-    file: File;
-    url: string;
-}
-
-interface AssetType {
-    id: number;
-    name: string;
-    prefix: string;
-    category: {
-        id: number;
-        name: string;
-    };
 }
 
 const conditionOptions = [
