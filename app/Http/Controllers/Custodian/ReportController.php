@@ -31,6 +31,8 @@ class ReportController extends Controller
             ->whereDate('expected_return_date', '<', now())
             ->count();
 
+        $lostCount = Asset::where('status', 'lost')->count();
+
         $monthlyUsage = $this->monthlyAssetUsage($selectedCategory);
 
         if ($view === 'overdue') {
@@ -80,9 +82,51 @@ class ReportController extends Controller
                 'selectedSort' => $sort,
                 'selectedView' => $view,
                 'overdueCount' => $overdueCount,
+                'lostCount' => $lostCount,
                 'monthlyUsage' => $monthlyUsage,
                 'assets' => null,
                 'overdueItems' => $overdueItems,
+                'lostItems' => null,
+            ]);
+        }
+
+        if ($view === 'lost') {
+            $query = Asset::with(['category:id,name', 'assetType:id,name'])
+                ->where('status', 'lost');
+
+            if ($selectedCategory !== 'all') {
+                $query->where('category_id', $selectedCategory);
+            }
+
+            match ($sort) {
+                'oldest' => $query->oldest(),
+                'name_asc' => $query->orderBy('name'),
+                'name_desc' => $query->orderByDesc('name'),
+                default => $query->latest(),
+            };
+
+            $lostItems = $query
+                ->paginate($perPage)
+                ->through(fn ($asset) => [
+                    'id' => $asset->id,
+                    'name' => $asset->name,
+                    'asset_tag' => $asset->asset_tag,
+                    'category' => $asset->category?->name,
+                    'asset_type' => $asset->assetType?->name,
+                    'reported_at' => $asset->updated_at,
+                ]);
+
+            return Inertia::render('custodian/reports', [
+                'categories' => $categories,
+                'selectedCategory' => $selectedCategory,
+                'selectedSort' => $sort,
+                'selectedView' => $view,
+                'overdueCount' => $overdueCount,
+                'lostCount' => $lostCount,
+                'monthlyUsage' => $monthlyUsage,
+                'assets' => null,
+                'overdueItems' => null,
+                'lostItems' => $lostItems,
             ]);
         }
 
@@ -138,9 +182,11 @@ class ReportController extends Controller
             'selectedSort' => $sort,
             'selectedView' => $view,
             'overdueCount' => $overdueCount,
+            'lostCount' => $lostCount,
             'monthlyUsage' => $monthlyUsage,
             'assets' => $assets,
             'overdueItems' => null,
+            'lostItems' => null,
         ]);
     }
 
@@ -222,6 +268,41 @@ class ReportController extends Controller
 
                 fclose($handle);
             }, 'overdue_assets_' . now()->format('Y-m-d') . '.csv');
+        }
+
+        if ($view === 'lost') {
+            $query = Asset::with(['category:id,name', 'assetType:id,name'])
+                ->where('status', 'lost');
+
+            if ($selectedCategory !== 'all') {
+                $query->where('category_id', $selectedCategory);
+            }
+
+            match ($sort) {
+                'oldest' => $query->oldest(),
+                'name_asc' => $query->orderBy('name'),
+                'name_desc' => $query->orderByDesc('name'),
+                default => $query->latest(),
+            };
+
+            $items = $query->get();
+
+            return response()->streamDownload(function () use ($items) {
+                $handle = fopen('php://output', 'w');
+                fputcsv($handle, ['Asset', 'Asset Tag', 'Category', 'Asset Type', 'Reported Lost At']);
+
+                foreach ($items as $asset) {
+                    fputcsv($handle, [
+                        $asset->name,
+                        $asset->asset_tag,
+                        $asset->category?->name,
+                        $asset->assetType?->name,
+                        $asset->updated_at,
+                    ]);
+                }
+
+                fclose($handle);
+            }, 'lost_assets_' . now()->format('Y-m-d') . '.csv');
         }
 
         $query = Asset::with([

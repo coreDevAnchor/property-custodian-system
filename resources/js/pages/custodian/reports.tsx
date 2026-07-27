@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { AlertTriangle, Download } from 'lucide-react';
+import { AlertTriangle, Download, PackageX } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -9,7 +9,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { dashboard } from '@/routes/custodian';
+import { dashboard, reports as custodianReports } from '@/routes/custodian';
+import { exportMethod as exportReports } from '@/routes/custodian/reports';
 import { PaginationBar } from '@/components/ui/pagination';
 import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
 
@@ -45,6 +46,15 @@ interface OverdueItem {
     days_overdue: number;
 }
 
+interface LostItem {
+    id: number;
+    name: string;
+    asset_tag: string;
+    category: string | null;
+    asset_type: string | null;
+    reported_at: string;
+}
+
 interface Paginated<T> {
     data: T[];
     current_page: number;
@@ -55,7 +65,7 @@ interface Paginated<T> {
     to: number | null;
 }
 
-type ReportView = 'assets' | 'overdue';
+type ReportView = 'assets' | 'overdue' | 'lost';
 
 interface MonthlyUsagePoint {
     month: string;
@@ -69,9 +79,11 @@ interface Props {
     selectedSort: string;
     selectedView: ReportView;
     overdueCount: number;
+    lostCount: number;
     monthlyUsage: MonthlyUsagePoint[];
     assets: Paginated<Asset> | null;
     overdueItems: Paginated<OverdueItem> | null;
+    lostItems: Paginated<LostItem> | null;
 }
 
 const assetSortOptions = [
@@ -95,11 +107,13 @@ function OverdueBadge({ days }: { days: number }) {
         days >= 14
             ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
             : days >= 7
-                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+              ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
 
     return (
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}>
+        <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}
+        >
             <AlertTriangle className="size-3" />
             {days}d overdue
         </span>
@@ -112,35 +126,57 @@ export default function Reports({
     selectedSort,
     selectedView,
     overdueCount,
+    lostCount,
     monthlyUsage,
     assets,
     overdueItems,
+    lostItems,
 }: Props) {
     const [view, setView] = useState<ReportView>(selectedView ?? 'assets');
     const [category, setCategory] = useState(selectedCategory);
     const [sort, setSort] = useState(selectedSort);
 
-    const currentPage = view === 'overdue' ? overdueItems : assets;
+    const currentPage =
+        view === 'overdue'
+            ? overdueItems
+            : view === 'lost'
+              ? lostItems
+              : assets;
 
     function fetchPage(
         page: number,
-        overrides: { view?: ReportView; category?: string; sort?: string; per_page?: number } = {},
+        overrides: {
+            view?: ReportView;
+            category?: string;
+            sort?: string;
+            per_page?: number;
+        } = {},
     ) {
         const nextView = overrides.view ?? view;
         router.get(
-            '/custodian/reports',
+            custodianReports.url(),
             {
                 view: nextView,
                 category: overrides.category ?? category,
                 sort: overrides.sort ?? sort,
-                per_page: overrides.per_page ?? (currentPage?.per_page ?? 15),
+                per_page: overrides.per_page ?? currentPage?.per_page ?? 15,
                 page,
             },
             {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
-                only: ['assets', 'overdueItems', 'monthlyUsage', 'selectedCategory', 'selectedSort', 'selectedView', 'overdueCount'],
+                only: [
+                    'assets',
+                    'overdueItems',
+                    'lostItems',
+                    'monthlyUsage',
+                    'selectedCategory',
+                    'selectedSort',
+                    'selectedView',
+                    'overdueCount',
+                    'lostCount',
+                ],
             },
         );
     }
@@ -173,7 +209,8 @@ export default function Reports({
         fetchPage(page);
     }
 
-    const sortOptions = view === 'overdue' ? overdueSortOptions : assetSortOptions;
+    const sortOptions =
+        view === 'overdue' ? overdueSortOptions : assetSortOptions;
 
     return (
         <>
@@ -187,15 +224,18 @@ export default function Reports({
                             Reports
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Asset insights and overdue monitoring
+                            Asset insights, overdue monitoring, and lost-item
+                            tracking
                         </p>
                     </div>
 
                     <button
                         onClick={() =>
-                            (window.location.href = `/custodian/reports/export-csv?view=${view}&category=${category}&sort=${sort}`)
+                            (window.location.href = exportReports.url({
+                                query: { view, category, sort },
+                            }))
                         }
-                        className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
+                        className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
                     >
                         <Download className="size-4" />
                         Export CSV
@@ -210,12 +250,14 @@ export default function Reports({
                         </div>
                         <div>
                             <p className="text-sm font-bold text-red-700 dark:text-red-400">
-                                {overdueCount} {overdueCount === 1 ? 'asset is' : 'assets are'} currently overdue
+                                {overdueCount}{' '}
+                                {overdueCount === 1 ? 'asset is' : 'assets are'}{' '}
+                                currently overdue
                             </p>
                             {view !== 'overdue' && (
                                 <button
                                     onClick={() => handleViewChange('overdue')}
-                                    className="text-xs font-semibold text-red-600 underline hover:text-red-700 dark:text-red-400 cursor-pointer"
+                                    className="cursor-pointer text-xs font-semibold text-red-600 underline hover:text-red-700 dark:text-red-400"
                                 >
                                     View overdue items
                                 </button>
@@ -240,6 +282,14 @@ export default function Reports({
                                 </span>
                             )}
                         </TabsTrigger>
+                        <TabsTrigger value="lost" className="cursor-pointer">
+                            Lost Items
+                            {lostCount > 0 && (
+                                <span className="ml-1.5 rounded-full bg-slate-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                    {lostCount}
+                                </span>
+                            )}
+                        </TabsTrigger>
                     </TabsList>
                 </Tabs>
 
@@ -247,27 +297,41 @@ export default function Reports({
                 <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
                     <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex flex-wrap items-center gap-2">
-                            <Select value={category} onValueChange={handleCategoryChange}>
+                            <Select
+                                value={category}
+                                onValueChange={handleCategoryChange}
+                            >
                                 <SelectTrigger className="w-[180px] cursor-pointer">
                                     <SelectValue placeholder="Category" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
+                                    <SelectItem value="all">
+                                        All Categories
+                                    </SelectItem>
                                     {categories.map((cat) => (
-                                        <SelectItem key={cat.id} value={String(cat.id)}>
+                                        <SelectItem
+                                            key={cat.id}
+                                            value={String(cat.id)}
+                                        >
                                             {cat.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
 
-                            <Select value={sort} onValueChange={handleSortChange}>
+                            <Select
+                                value={sort}
+                                onValueChange={handleSortChange}
+                            >
                                 <SelectTrigger className="w-[180px] cursor-pointer">
                                     <SelectValue placeholder="Sort by" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {sortOptions.map((option) => (
-                                        <SelectItem key={option.value} value={option.value}>
+                                        <SelectItem
+                                            key={option.value}
+                                            value={option.value}
+                                        >
                                             {option.label}
                                         </SelectItem>
                                     ))}
@@ -282,22 +346,22 @@ export default function Reports({
                                 <table className="w-full min-w-[760px]">
                                     <thead>
                                         <tr className="border-b border-border">
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Asset
                                             </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Category
                                             </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Asset Type
                                             </th>
-                                            <th className="py-3 pr-4 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 pr-4 text-right text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Cost
                                             </th>
-                                            <th className="py-3 pr-4 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 pr-4 text-right text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Rate
                                             </th>
-                                            <th className="py-3 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 text-right text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Total Depreciation
                                             </th>
                                         </tr>
@@ -320,27 +384,37 @@ export default function Reports({
                                                 </td>
                                                 <td className="py-3.5 pr-4">
                                                     <span className="text-sm text-foreground">
-                                                        {asset.category?.name ?? '—'}
+                                                        {asset.category?.name ??
+                                                            '—'}
                                                     </span>
                                                 </td>
                                                 <td className="py-3.5 pr-4">
                                                     <span className="text-sm text-muted-foreground">
-                                                        {asset.asset_type?.name ?? '—'}
+                                                        {asset.asset_type
+                                                            ?.name ?? '—'}
                                                     </span>
                                                 </td>
-                                                <td className="py-3.5 pr-4 text-right whitespace-nowrap font-mono text-sm text-foreground">
-                                                    ₱{Number(asset.acquisition_cost).toLocaleString()}
+                                                <td className="py-3.5 pr-4 text-right font-mono text-sm whitespace-nowrap text-foreground">
+                                                    ₱
+                                                    {Number(
+                                                        asset.acquisition_cost,
+                                                    ).toLocaleString()}
                                                 </td>
                                                 <td className="py-3.5 pr-4 text-right whitespace-nowrap">
                                                     {asset.depreciation_rate ? (
                                                         <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                                                            {asset.depreciation_rate}%
+                                                            {
+                                                                asset.depreciation_rate
+                                                            }
+                                                            %
                                                         </span>
                                                     ) : (
-                                                        <span className="text-sm text-muted-foreground">—</span>
+                                                        <span className="text-sm text-muted-foreground">
+                                                            —
+                                                        </span>
                                                     )}
                                                 </td>
-                                                <td className="py-3.5 text-right whitespace-nowrap font-mono text-sm text-foreground">
+                                                <td className="py-3.5 text-right font-mono text-sm whitespace-nowrap text-foreground">
                                                     {asset.total_depreciation
                                                         ? `₱${asset.total_depreciation.toLocaleString()}`
                                                         : '—'}
@@ -376,69 +450,83 @@ export default function Reports({
                                 />
                             )}
                         </>
-                    ) : (
+                    ) : view === 'overdue' ? (
                         <>
                             <div className="overflow-x-auto px-6 pb-2">
                                 <table className="w-full min-w-[680px]">
                                     <thead>
                                         <tr className="border-b border-border">
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Borrower
                                             </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Asset
                                             </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Category
                                             </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Expected Return
                                             </th>
-                                            <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                                 Status
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(overdueItems?.data ?? []).map((item) => (
-                                            <tr
-                                                key={item.id}
-                                                className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
-                                            >
-                                                <td className="py-3.5 pr-4">
-                                                    <span className="text-sm font-semibold text-foreground">
-                                                        {item.borrower ?? '—'}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3.5 pr-4">
-                                                    <div className="min-w-0">
-                                                        <p className="truncate text-sm text-foreground">
-                                                            {item.asset_name ?? '—'}
-                                                        </p>
-                                                        <p className="truncate text-xs text-muted-foreground">
-                                                            {item.asset_tag}
-                                                        </p>
-                                                    </div>
-                                                </td>
-                                                <td className="py-3.5 pr-4">
-                                                    <span className="text-sm text-muted-foreground">
-                                                        {item.category ?? '—'}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3.5 pr-4">
-                                                    <span className="text-sm text-muted-foreground">
-                                                        {new Date(item.expected_return_date).toLocaleDateString('en-US', {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                        })}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3.5">
-                                                    <OverdueBadge days={item.days_overdue} />
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {(overdueItems?.data ?? []).map(
+                                            (item) => (
+                                                <tr
+                                                    key={item.id}
+                                                    className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                                                >
+                                                    <td className="py-3.5 pr-4">
+                                                        <span className="text-sm font-semibold text-foreground">
+                                                            {item.borrower ??
+                                                                '—'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3.5 pr-4">
+                                                        <div className="min-w-0">
+                                                            <p className="truncate text-sm text-foreground">
+                                                                {item.asset_name ??
+                                                                    '—'}
+                                                            </p>
+                                                            <p className="truncate text-xs text-muted-foreground">
+                                                                {item.asset_tag}
+                                                            </p>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3.5 pr-4">
+                                                        <span className="text-sm text-muted-foreground">
+                                                            {item.category ??
+                                                                '—'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3.5 pr-4">
+                                                        <span className="text-sm text-muted-foreground">
+                                                            {new Date(
+                                                                item.expected_return_date,
+                                                            ).toLocaleDateString(
+                                                                'en-US',
+                                                                {
+                                                                    year: 'numeric',
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                },
+                                                            )}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3.5">
+                                                        <OverdueBadge
+                                                            days={
+                                                                item.days_overdue
+                                                            }
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            ),
+                                        )}
                                     </tbody>
                                 </table>
 
@@ -448,7 +536,8 @@ export default function Reports({
                                             No overdue items
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                            Everything currently borrowed is within its return window.
+                                            Everything currently borrowed is
+                                            within its return window.
                                         </p>
                                     </div>
                                 )}
@@ -463,6 +552,101 @@ export default function Reports({
                                     to={overdueItems.to}
                                     perPage={overdueItems.per_page}
                                     itemLabel="overdue items"
+                                    onPageChange={handlePageChange}
+                                    onPerPageChange={handlePerPageChange}
+                                />
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto px-6 pb-2">
+                                <table className="w-full min-w-[620px]">
+                                    <thead>
+                                        <tr className="border-b border-border">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Asset
+                                            </th>
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Category
+                                            </th>
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Asset Type
+                                            </th>
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Reported Lost
+                                            </th>
+                                            <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Status
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(lostItems?.data ?? []).map((item) => (
+                                            <tr
+                                                key={item.id}
+                                                className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                                            >
+                                                <td className="py-3.5 pr-4">
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-semibold text-foreground">
+                                                            {item.name}
+                                                        </p>
+                                                        <p className="truncate text-xs text-muted-foreground">
+                                                            {item.asset_tag}
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3.5 pr-4 text-sm text-muted-foreground">
+                                                    {item.category ?? '—'}
+                                                </td>
+                                                <td className="py-3.5 pr-4 text-sm text-muted-foreground">
+                                                    {item.asset_type ?? '—'}
+                                                </td>
+                                                <td className="py-3.5 pr-4 text-sm text-muted-foreground">
+                                                    {new Date(
+                                                        item.reported_at,
+                                                    ).toLocaleDateString(
+                                                        'en-US',
+                                                        {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                        },
+                                                    )}
+                                                </td>
+                                                <td className="py-3.5">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                                                        <PackageX className="size-3" />
+                                                        Lost
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+
+                                {(lostItems?.data ?? []).length === 0 && (
+                                    <div className="flex flex-col items-center gap-1 py-12 text-center">
+                                        <p className="text-sm font-semibold text-foreground">
+                                            No lost items
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            No assets have been reported as
+                                            lost.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {lostItems && (
+                                <PaginationBar
+                                    currentPage={lostItems.current_page}
+                                    lastPage={lostItems.last_page}
+                                    total={lostItems.total}
+                                    from={lostItems.from}
+                                    to={lostItems.to}
+                                    perPage={lostItems.per_page}
+                                    itemLabel="lost items"
                                     onPageChange={handlePageChange}
                                     onPerPageChange={handlePerPageChange}
                                 />
