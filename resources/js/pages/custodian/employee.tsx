@@ -21,53 +21,8 @@ import { EmployeeFormDialog } from '@/components/employees/employee-form-dialog'
 import { EmployeeDeleteDialog } from '@/components/employees/employee-delete-dialog';
 import { EmployeeViewDialog } from '@/components/employees/employee-views-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-interface EmployeeBorrow {
-    id: number;
-    status: string;
-    requested_at: string;
-    returned_at?: string | null;
-
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-    };
-}
-
-interface Employee {
-    id: number;
-    department: string;
-    employee_id?: string | null;
-    contact?: string | null;
-    is_active: boolean;
-
-    user: {
-        id: number;
-        name: string;
-        email: string;
-    };
-
-    borrows?: EmployeeBorrow[];
-}
-
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-interface Filters {
-    search: string;
-    status: string;
-    per_page: number;
-}
+import type { Employee, Filters } from '@/types/employee';
+import type { Paginated } from '@/types/pagination';
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 

@@ -33,6 +33,7 @@ export interface Asset {
     condition: number | null;
     acquisition_cost: number | string | null;
     depreciation_rate: number | string | null;
+    total_depreciation?: number | string | null;
 
     asset_type?: AssetType | null;
 

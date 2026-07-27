@@ -17,63 +17,15 @@ import {
 } from '@/components/ui/select';
 import { dashboard } from '@/routes/custodian';
 import { PaginationBar } from '@/components/ui/pagination';
-
 import { LostConfirmDialog } from '@/components/dialog/lost-confirm-dialog';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-type ReturnStatus = 'awaiting_check' | 'returned';
-type ReturnCondition = 'ok' | 'defective' | 'lost';
-
-interface ReturnItem {
-    id: number;
-    status: ReturnStatus;
-    remarks?: string | null;
-    requested_at: string;
-    approved_at?: string | null;
-    returned_at?: string | null;
-    return_condition?: ReturnCondition | null;
-    is_acknowledged: boolean;
-
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-        category: {
-            id: number;
-            name: string;
-        };
-    };
-
-    borrower: {
-        id: number;
-        name: string;
-    };
-
-    checked_by?: {
-        id: number;
-        name: string;
-    } | null;
-}
-
-type SortKey = 'newest' | 'oldest' | 'borrower_az' | 'borrower_za';
-
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-interface Filters {
-    search: string;
-    status: 'All' | ReturnStatus;
-    sort: SortKey;
-    per_page: number;
-}
+import { Paginated } from '@/types/pagination';
+import type {
+    ReturnStatus,
+    ReturnCondition,
+    ReturnItem,
+    SortKey,
+    Filters
+} from '@/types/returns';
 
 const statusLabels: Record<ReturnStatus, string> = {
     awaiting_check: 'Awaiting Check',
@@ -177,16 +129,18 @@ function ReturnRow({
                 )}
             </td>
             <td className="py-3.5 pr-4">
-                {item.checked_by ? (
-                    <div className="flex items-center gap-1.5">
-                        <ShieldCheck className="size-3.5 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">
-                            {item.checked_by.name}
-                        </span>
-                    </div>
-                ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                )}
+                <td className="py-3.5 pr-4">
+                    {item.approved_by ? (
+                        <div className="flex items-center gap-1.5">
+                            <ShieldCheck className="size-3.5 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                                {item.approved_by.name}
+                            </span>
+                        </div>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                </td>
             </td>
             <td className="py-3.5">
                 {item.status === 'awaiting_check' ? (

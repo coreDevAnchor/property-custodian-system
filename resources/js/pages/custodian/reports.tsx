@@ -13,65 +13,10 @@ import { dashboard, reports as custodianReports } from '@/routes/custodian';
 import { exportMethod as exportReports } from '@/routes/custodian/reports';
 import { PaginationBar } from '@/components/ui/pagination';
 import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
-
-interface Category {
-    id: number;
-    name: string;
-}
-
-interface Asset {
-    id: number;
-    asset_tag: string;
-    name: string;
-    acquisition_cost: number;
-    depreciation_rate?: number | null;
-    total_depreciation?: number | null;
-
-    category?: {
-        name: string;
-    };
-
-    asset_type?: {
-        name: string;
-    };
-}
-
-interface OverdueItem {
-    id: number;
-    borrower: string | null;
-    asset_name: string | null;
-    asset_tag: string | null;
-    category: string | null;
-    expected_return_date: string;
-    days_overdue: number;
-}
-
-interface LostItem {
-    id: number;
-    name: string;
-    asset_tag: string;
-    category: string | null;
-    asset_type: string | null;
-    reported_at: string;
-}
-
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-type ReportView = 'assets' | 'overdue' | 'lost';
-
-interface MonthlyUsagePoint {
-    month: string;
-    label: string;
-    count: number;
-}
+import { Paginated } from '@/types/pagination';
+import { Category } from '@/types/categories';
+import { Asset } from '@/types/assets';
+import { OverdueItem, LostItem, ReportView, MonthlyUsagePoint } from '@/types/reports';
 
 interface Props {
     categories: Category[];
@@ -107,8 +52,8 @@ function OverdueBadge({ days }: { days: number }) {
         days >= 14
             ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
             : days >= 7
-              ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
 
     return (
         <span
@@ -140,8 +85,8 @@ export default function Reports({
         view === 'overdue'
             ? overdueItems
             : view === 'lost'
-              ? lostItems
-              : assets;
+                ? lostItems
+                : assets;
 
     function fetchPage(
         page: number,
@@ -231,9 +176,9 @@ export default function Reports({
 
                     <button
                         onClick={() =>
-                            (window.location.href = exportReports.url({
-                                query: { view, category, sort },
-                            }))
+                        (window.location.href = exportReports.url({
+                            query: { view, category, sort },
+                        }))
                         }
                         className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
                     >

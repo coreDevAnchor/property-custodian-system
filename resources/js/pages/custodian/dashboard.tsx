@@ -14,48 +14,54 @@ import { dashboard } from '@/routes/custodian';
 import { index as auditTrail } from '@/routes/custodian/activity';
 import { useState } from 'react';
 import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
+import type {
+    Stats,
+    PendingRequest,
+    CategoryBreakdown,
+    ActivityItem
+} from '@/types/custodiandashboard';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-interface Stats {
-    totalAssets: number;
-    availableAssets: number;
-    borrowedOut: number;
-    pendingRequests: number;
-    awaitingReturns: number;
-}
+// interface Stats {
+//     totalAssets: number;
+//     availableAssets: number;
+//     borrowedOut: number;
+//     pendingRequests: number;
+//     awaitingReturns: number;
+// }
 
-interface PendingRequest {
-    id: number;
-    requested_at: string;
-    remarks?: string | null;
+// interface PendingRequest {
+//     id: number;
+//     requested_at: string;
+//     remarks?: string | null;
 
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-        category: {
-            id: number;
-            name: string;
-        };
-    };
+//     asset: {
+//         id: number;
+//         name: string;
+//         asset_tag: string;
+//         category: {
+//             id: number;
+//             name: string;
+//         };
+//     };
 
-    borrower: { id: number; name: string } | null;
-}
+//     borrower: { id: number; name: string } | null;
+// }
 
-interface CategoryBreakdown {
-    label: string;
-    count: number;
-}
+// interface CategoryBreakdown {
+//     label: string;
+//     count: number;
+// }
 
-interface ActivityItem {
-    id: number;
-    action: string;
-    description: string;
-    created_at: string;
-    asset?: { id: number; name: string; asset_tag: string } | null;
-    actor?: { id: number; name: string } | null;
-}
+// interface ActivityItem {
+//     id: number;
+//     action: string;
+//     description: string;
+//     created_at: string;
+//     asset?: { id: number; name: string; asset_tag: string } | null;
+//     actor?: { id: number; name: string } | null;
+// }
 
 interface Props {
     stats: Stats;
@@ -170,8 +176,8 @@ function RequestRow({
                 <div className="flex items-center gap-3">
                     <div
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${request.borrower
-                                ? avatarColorFor(request.borrower.id)
-                                : 'bg-gray-400'
+                            ? avatarColorFor(request.borrower.id)
+                            : 'bg-gray-400'
                             } text-xs font-bold text-white`}
                     >
                         {request.borrower

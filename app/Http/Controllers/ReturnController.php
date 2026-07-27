@@ -25,6 +25,7 @@ class ReturnController extends Controller
         $returns = BorrowRequest::with([
             'asset.category',
             'borrower',
+            'approvedBy',
             'checkedBy',
         ])
             ->whereIn('status', ['awaiting_check', 'returned'])
@@ -46,8 +47,8 @@ class ReturnController extends Controller
                 });
             })
             ->when($status !== 'All', fn($q) => $q->where('status', $status))
-            ->when($sort === 'newest', fn($q) => $q->latest('requested_at'))
-            ->when($sort === 'oldest', fn($q) => $q->oldest('requested_at'))
+            ->when($sort === 'newest', fn($q) => $q->latest('returned_at'))
+            ->when($sort === 'oldest', fn($q) => $q->oldest('returned_at'))
             ->when($sort === 'borrower_az', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'asc')
                 ->select('borrows.*'))
@@ -87,7 +88,7 @@ class ReturnController extends Controller
      * employee is reporting as lost — since there's nothing to physically
      * inspect, these finalize immediately: the borrow record is marked
      * `returned` with `return_condition = 'lost'`, and the asset itself is
-     * flipped to `status = 'lost'`.
+     * flipped to `status = 'lost'`.  
      */
     public function store(Request $request)
     {

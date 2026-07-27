@@ -26,66 +26,6 @@ import {
     Filters
 } from '@/types/borrows';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-// type BorrowStatus =
-//     | 'pending'
-//     | 'borrowed'
-//     | 'awaiting_check'
-//     | 'returned'
-//     | 'rejected';
-
-// interface BorrowRequest {
-//     id: number;
-//     status: BorrowStatus;
-//     remarks?: string | null;
-//     requested_at: string;
-//     approved_at?: string | null;
-//     returned_at?: string | null;
-//     expected_return_date?: string | null;
-
-//     asset: {
-//         id: number;
-//         name: string;
-//         asset_tag: string;
-//         category: {
-//             id: number;
-//             name: string;
-//         };
-//     };
-
-//     borrower: { id: number; name: string };
-
-//     approved_by?: {
-//         id: number;
-//         name: string;
-//     } | null;
-
-//     checked_by?: {
-//         id: number;
-//         name: string;
-//     } | null;
-// }
-
-// type SortKey = 'newest' | 'oldest' | 'requester_az' | 'requester_za';
-
-// interface Paginated<T> {
-//     data: T[];
-//     current_page: number;
-//     last_page: number;
-//     per_page: number;
-//     total: number;
-//     from: number | null;
-//     to: number | null;
-// }
-
-// interface Filters {
-//     search: string;
-//     status: 'All' | BorrowStatus;
-//     sort: SortKey;
-//     per_page: number;
-// }
-
 const statusLabels: Record<BorrowStatus, string> = {
     pending: 'Pending',
     borrowed: 'Borrowed',

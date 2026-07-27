@@ -50,12 +50,12 @@ class ReportController extends Controller
 
             match ($sort) {
                 'least_overdue' => $query->orderByDesc('expected_return_date'),
-                'borrower_az' => $query->join('users', 'users.id', '=', 'borrow_requests.borrower_id')
+                'borrower_az' => $query->join('users', 'users.id', '=', 'borrows.borrower_id')
                     ->orderBy('users.name', 'asc')
-                    ->select('borrow_requests.*'),
-                'borrower_za' => $query->join('users', 'users.id', '=', 'borrow_requests.borrower_id')
+                    ->select('borrows.*'),
+                'borrower_za' => $query->join('users', 'users.id', '=', 'borrows.borrower_id')
                     ->orderBy('users.name', 'desc')
-                    ->select('borrow_requests.*'),
+                    ->select('borrows.*'),
                 default => $query->orderBy('expected_return_date'), // most_overdue = earliest due date first
             };
 
@@ -107,7 +107,7 @@ class ReportController extends Controller
 
             $lostItems = $query
                 ->paginate($perPage)
-                ->through(fn ($asset) => [
+                ->through(fn($asset) => [
                     'id' => $asset->id,
                     'name' => $asset->name,
                     'asset_tag' => $asset->asset_tag,
@@ -208,7 +208,7 @@ class ReportController extends Controller
             ->where('approved_at', '>=', $start);
 
         if ($selectedCategory !== 'all') {
-            $query->whereHas('asset', fn ($q) => $q->where('category_id', $selectedCategory));
+            $query->whereHas('asset', fn($q) => $q->where('category_id', $selectedCategory));
         }
 
         $counts = $query

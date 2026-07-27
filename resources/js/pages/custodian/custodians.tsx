@@ -24,28 +24,8 @@ import { destroy, store, update } from '@/routes/custodian/custodians';
 import { router } from '@inertiajs/react';
 import { PaginationBar } from '@/components/ui/pagination';
 import type { SharedData } from '@/types';
-
-interface Custodian {
-    id: number;
-    name: string;
-    email: string;
-    created_at: string;
-}
-
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-interface Filters {
-    search: string;
-    per_page: number;
-}
+import type { Paginated } from '@/types/pagination';
+import type { Custodian, Filters } from '@/types/custodian';
 
 interface Props {
     custodians: Paginated<Custodian>;
