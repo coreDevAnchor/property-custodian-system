@@ -18,66 +18,73 @@ import { dashboard } from '@/routes/custodian';
 import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
 import { useEffect, useRef, useState } from 'react';
+import { Paginated } from '@/types/pagination';
+import {
+    BorrowStatus,
+    SortKey,
+    BorrowRequest,
+    Filters
+} from '@/types/borrows';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type BorrowStatus =
-    | 'pending'
-    | 'borrowed'
-    | 'awaiting_check'
-    | 'returned'
-    | 'rejected';
+// type BorrowStatus =
+//     | 'pending'
+//     | 'borrowed'
+//     | 'awaiting_check'
+//     | 'returned'
+//     | 'rejected';
 
-interface BorrowRequest {
-    id: number;
-    status: BorrowStatus;
-    remarks?: string | null;
-    requested_at: string;
-    approved_at?: string | null;
-    returned_at?: string | null;
-    expected_return_date?: string | null;
+// interface BorrowRequest {
+//     id: number;
+//     status: BorrowStatus;
+//     remarks?: string | null;
+//     requested_at: string;
+//     approved_at?: string | null;
+//     returned_at?: string | null;
+//     expected_return_date?: string | null;
 
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-        category: {
-            id: number;
-            name: string;
-        };
-    };
+//     asset: {
+//         id: number;
+//         name: string;
+//         asset_tag: string;
+//         category: {
+//             id: number;
+//             name: string;
+//         };
+//     };
 
-    borrower: { id: number; name: string };
+//     borrower: { id: number; name: string };
 
-    approved_by?: {
-        id: number;
-        name: string;
-    } | null;
+//     approved_by?: {
+//         id: number;
+//         name: string;
+//     } | null;
 
-    checked_by?: {
-        id: number;
-        name: string;
-    } | null;
-}
+//     checked_by?: {
+//         id: number;
+//         name: string;
+//     } | null;
+// }
 
-type SortKey = 'newest' | 'oldest' | 'requester_az' | 'requester_za';
+// type SortKey = 'newest' | 'oldest' | 'requester_az' | 'requester_za';
 
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
+// interface Paginated<T> {
+//     data: T[];
+//     current_page: number;
+//     last_page: number;
+//     per_page: number;
+//     total: number;
+//     from: number | null;
+//     to: number | null;
+// }
 
-interface Filters {
-    search: string;
-    status: 'All' | BorrowStatus;
-    sort: SortKey;
-    per_page: number;
-}
+// interface Filters {
+//     search: string;
+//     status: 'All' | BorrowStatus;
+//     sort: SortKey;
+//     per_page: number;
+// }
 
 const statusLabels: Record<BorrowStatus, string> = {
     pending: 'Pending',

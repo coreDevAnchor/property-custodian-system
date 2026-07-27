@@ -11,34 +11,15 @@ import {
 import { ActivityFeed } from '@/components/activity/activity-feed';
 import { dashboard } from '@/routes/custodian';
 import { PaginationBar } from '@/components/ui/pagination';
+import type { Paginated } from '@/types/pagination';
+import type {
+    ActivityItem,
+    Category,
+    DateRange,
+    Filters
+} from '@/types/activities';
 
-interface ActivityItem {
-    id: number;
-    action: string;
-    description: string;
-    created_at: string;
-    asset?: { id: number; name: string; asset_tag: string } | null;
-    actor?: { id: number; name: string } | null;
-}
 
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-type Category = 'All' | 'assets' | 'borrow_requests' | 'returns';
-type DateRange = 'all' | '24h' | '7d' | '30d';
-
-interface Filters {
-    category: Category;
-    range: DateRange;
-    per_page: number;
-}
 
 interface Props {
     activity: Paginated<ActivityItem>;

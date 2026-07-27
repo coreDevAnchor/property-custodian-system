@@ -29,10 +29,12 @@ class BorrowRequestController extends Controller
             'checkedBy',
         ])
             ->when($search, function ($query) use ($search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->whereHas('borrower', fn($u) =>
-                            $u->where('name', 'ilike', "%{$search}%")
-                        )
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas(
+                        'borrower',
+                        fn($u) =>
+                        $u->where('name', 'ilike', "%{$search}%")
+                    )
                         ->orWhereHas('asset', function ($a) use ($search) {
                             $a->where('name', 'ilike', "%{$search}%")
                                 ->orWhere('asset_tag', 'ilike', "%{$search}%")
@@ -40,17 +42,17 @@ class BorrowRequestController extends Controller
                                     $type->where('name', 'ilike', "%{$search}%");
                                 });
                         });
-                    });
-                })
+                });
+            })
             ->when($status !== 'All', fn($q) => $q->where('status', $status))
             ->when($sort === 'newest', fn($q) => $q->latest('requested_at'))
             ->when($sort === 'oldest', fn($q) => $q->oldest('requested_at'))
-            ->when($sort === 'requester_az', fn($q) => $q->join('users', 'users.id', '=', 'borrow_requests.borrower_id')
+            ->when($sort === 'requester_az', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'asc')
-                ->select('borrow_requests.*'))
-            ->when($sort === 'requester_za', fn($q) => $q->join('users', 'users.id', '=', 'borrow_requests.borrower_id')
+                ->select('borrows.*'))
+            ->when($sort === 'requester_za', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'desc')
-                ->select('borrow_requests.*'))
+                ->select('borrows.*'))
             ->paginate($perPage)
             ->withQueryString();
 
@@ -210,9 +212,9 @@ class BorrowRequestController extends Controller
 
         if ($validated['status'] === 'returned') {
             $newAssetStatus = match ($validated['return_condition'] ?? 'ok') {
-                'lost'      => 'lost',
+                'lost' => 'lost',
                 'defective' => 'under_repair',
-                default     => 'available',
+                default => 'available',
             };
             $asset->update(['status' => $newAssetStatus]);
         }
