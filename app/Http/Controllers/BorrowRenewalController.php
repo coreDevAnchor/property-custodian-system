@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\BorrowRenewal;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 
 class BorrowRenewalController extends Controller
 {
-    //
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'borrow_id' => [
@@ -53,6 +52,42 @@ class BorrowRenewalController extends Controller
         return back()->with(
             'success',
             'Renewal request submitted successfully. Please wait for custodian approval.'
+        );
+    }
+
+    public function update(Request $request, BorrowRenewal $borrowRenewal): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:approved,rejected'],
+        ]);
+
+        if ($borrowRenewal->status !== 'pending') {
+            return back()->with('error', 'This renewal request has already been reviewed.');
+        }
+
+        $borrowRenewal->load('borrow');
+
+        if ($borrowRenewal->borrow->status !== 'borrowed') {
+            return back()->with('error', 'Only active borrows can be renewed.');
+        }
+
+        $borrowRenewal->update([
+            'status' => $validated['status'],
+            'approved_by' => Auth::id(),
+            'approved_at' => now(),
+        ]);
+
+        if ($validated['status'] === 'approved') {
+            $borrowRenewal->borrow->update([
+                'expected_return_date' => $borrowRenewal->requested_due_date,
+            ]);
+        }
+
+        return back()->with(
+            'success',
+            $validated['status'] === 'approved'
+                ? 'Renewal request approved and return date updated.'
+                : 'Renewal request rejected.'
         );
     }
 }

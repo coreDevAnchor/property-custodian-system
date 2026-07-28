@@ -50,6 +50,14 @@ export interface BorrowRequest {
     } | null;
 }
 
+export interface BorrowRenewalRequest {
+    id: number;
+    requested_due_date: string;
+    reason: string;
+    status: 'pending' | 'approved' | 'rejected';
+    borrow: BorrowRequest;
+}
+
 export type SortKey = 'newest' | 'oldest' | 'requester_az' | 'requester_za';
 
 export interface Filters {

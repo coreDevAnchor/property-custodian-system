@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLogs;
 use App\Models\Asset;
 use App\Models\BorrowRequest;
+use App\Models\BorrowRenewal;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -57,10 +58,19 @@ class BorrowRequestController extends Controller
             ->withQueryString();
 
         $pendingCount = BorrowRequest::where('status', 'pending')->count();
+        $renewalRequests = BorrowRenewal::with([
+            'borrow.asset.category',
+            'borrow.borrower',
+        ])
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
 
         return Inertia::render('custodian/borrow-requests', [
             'borrowRequests' => $borrowRequests,
             'pendingCount' => $pendingCount,
+            'renewalRequests' => $renewalRequests,
+            'pendingRenewalCount' => $renewalRequests->count(),
             'filters' => [
                 'search' => $search,
                 'status' => $status,

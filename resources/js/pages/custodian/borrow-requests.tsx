@@ -3,6 +3,7 @@ import {
     Check,
     ClipboardCheck,
     Clock,
+    CalendarClock,
     PackageCheck,
     Search,
     X,
@@ -17,14 +18,17 @@ import {
 import { dashboard } from '@/routes/custodian';
 import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEffect, useRef, useState } from 'react';
 import { Paginated } from '@/types/pagination';
 import {
     BorrowStatus,
     SortKey,
     BorrowRequest,
+    BorrowRenewalRequest,
     Filters
 } from '@/types/borrows';
+import { update as updateRenewal } from '@/actions/App/Http/Controllers/BorrowRenewalController';
 
 const statusLabels: Record<BorrowStatus, string> = {
     pending: 'Pending',
@@ -158,18 +162,23 @@ function BorrowRequestRow({
 interface Props {
     borrowRequests: Paginated<BorrowRequest>;
     pendingCount: number;
+    renewalRequests: BorrowRenewalRequest[];
+    pendingRenewalCount: number;
     filters: Filters;
 }
 
 export default function BorrowRequests({
     borrowRequests,
     pendingCount,
+    renewalRequests,
+    pendingRenewalCount,
     filters = { search: '', status: 'pending', sort: 'newest', per_page: 10 },
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [statusFilter, setStatusFilter] = useState<'All' | BorrowStatus>(filters.status ?? 'pending');
     const [sortKey, setSortKey] = useState<SortKey>(filters.sort ?? 'newest');
     const [approvalRequest, setApprovalRequest] = useState<BorrowRequest | null>(null);
+    const [view, setView] = useState<'borrows' | 'renewals'>('borrows');
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRun = useRef(true);
@@ -241,6 +250,13 @@ export default function BorrowRequests({
         );
     }
 
+    function handleRenewalDecision(
+        renewal: BorrowRenewalRequest,
+        status: 'approved' | 'rejected',
+    ) {
+        router.patch(updateRenewal.url(renewal.id), { status }, { preserveScroll: true });
+    }
+
     return (
         <>
             <Head title="Borrow Requests" />
@@ -266,7 +282,19 @@ export default function BorrowRequests({
                 </div>
 
                 {/* ── Filters + table ── */}
-                <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                <Tabs value={view} onValueChange={(value) => setView(value as 'borrows' | 'renewals')}>
+                    <TabsList>
+                        <TabsTrigger value="borrows" className="cursor-pointer">Borrow Requests</TabsTrigger>
+                        <TabsTrigger value="renewals" className="cursor-pointer">
+                            Renewal Requests
+                            {pendingRenewalCount > 0 && (
+                                <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{pendingRenewalCount}</span>
+                            )}
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
+
+                <div className={`rounded-xl border border-border bg-card text-card-foreground shadow-sm ${view === 'borrows' ? '' : 'hidden'}`}>
                     <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="relative w-full max-w-xs">
                             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -357,6 +385,43 @@ export default function BorrowRequests({
                         onPageChange={handlePageChange}
                         onPerPageChange={handlePerPageChange}
                     />
+                </div>
+
+                <div className={`rounded-xl border border-border bg-card text-card-foreground shadow-sm ${view === 'renewals' ? '' : 'hidden'}`}>
+                    <div className="overflow-x-auto px-6 pb-2">
+                        <table className="w-full min-w-[760px]">
+                            <thead>
+                                <tr className="border-b border-border">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Requester</th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Asset</th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Current / Requested Due</th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Reason</th>
+                                    <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {renewalRequests.map((renewal) => (
+                                    <tr key={renewal.id} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+                                        <td className="py-3.5 pr-4 text-sm font-semibold text-foreground">{renewal.borrow.borrower?.name ?? 'Unknown borrower'}</td>
+                                        <td className="py-3.5 pr-4"><p className="text-sm text-foreground">{renewal.borrow.asset.name}</p><p className="text-xs text-muted-foreground">{renewal.borrow.asset.asset_tag}</p></td>
+                                        <td className="py-3.5 pr-4 text-sm text-muted-foreground">{renewal.borrow.expected_return_date ? new Date(renewal.borrow.expected_return_date).toLocaleDateString() : '—'} → {new Date(renewal.requested_due_date).toLocaleDateString()}</td>
+                                        <td className="max-w-xs py-3.5 pr-4 text-sm text-muted-foreground">{renewal.reason}</td>
+                                        <td className="py-3.5"><div className="flex items-center gap-2">
+                                            <button onClick={() => handleRenewalDecision(renewal, 'approved')} className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-500/10"><Check className="size-3.5" /> Approve</button>
+                                            <button onClick={() => handleRenewalDecision(renewal, 'rejected')} className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-500/10"><X className="size-3.5" /> Reject</button>
+                                        </div></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {renewalRequests.length === 0 && (
+                            <div className="flex flex-col items-center gap-2 py-12 text-center">
+                                <CalendarClock className="size-6 text-muted-foreground" />
+                                <p className="text-sm font-semibold text-foreground">No pending renewal requests</p>
+                                <p className="text-xs text-muted-foreground">New extension requests will appear here.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

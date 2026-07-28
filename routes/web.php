@@ -41,6 +41,9 @@ Route::middleware(['auth', 'verified'])
 
         Route::resource('borrow-requests', BorrowRequestController::class);
 
+        Route::patch('borrow-renewals/{borrowRenewal}', [BorrowRenewalController::class, 'update'])
+            ->name('borrow-renewals.update');
+
         Route::resource('returns', ReturnController::class);
 
         Route::resource('employees', EmployeeController::class)
