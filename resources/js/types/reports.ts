@@ -22,7 +22,19 @@ export type ReportView = 'assets' | 'overdue' | 'lost';
 export interface MonthlyUsagePoint {
     month: string;
     label: string;
+
+    // Overall monthly total
     count: number;
+
+    // Borrow metrics
+    pending?: number;
+    returned?: number;
+    rejected?: number;
+
+    // Asset metrics
+    good?: number;
+    defective?: number;
+    lost?: number;
 }
 
 export interface MonthlyAnalyticsPoint {
@@ -46,4 +58,27 @@ export interface DepreciationSummary {
     totalDepreciation: number;
     currentEstimatedValue: number;
     assetCount: number;
+}
+
+export type UsageMetric = 'borrows' | 'assets_added';
+
+export interface ReturnConditionCounts {
+    ok: number;
+    defective: number;
+    lost: number;
+}
+
+export interface AssetConditionCounts {
+    excellent: number;
+    good: number;
+    fair: number;
+    poor: number;
+}
+
+export interface ReportSummary {
+    totalBorrowRequests: number;
+    approvedBorrows: number;
+    returnedBorrows: number;
+    returnConditions: ReturnConditionCounts;
+    assetConditions: AssetConditionCounts;
 }

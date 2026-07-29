@@ -13,6 +13,7 @@ import { dashboard, reports as custodianReports } from '@/routes/custodian';
 import { exportMethod as exportReports } from '@/routes/custodian/reports';
 import { PaginationBar } from '@/components/ui/pagination';
 import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
+import { ReportSummaryCards } from '@/components/reports/reports-summary-card';
 import { Paginated } from '@/types/pagination';
 import { Category } from '@/types/categories';
 import { Asset } from '@/types/assets';
@@ -23,6 +24,8 @@ import {
     MonthlyUsagePoint,
     BorrowerAnalytics,
     DepreciationSummary,
+    UsageMetric,
+    ReportSummary,
 } from '@/types/reports';
 
 import { BorrowerAnalyticsChart } from '@/components/reports/borrower-analytics-chart';
@@ -34,11 +37,13 @@ interface Props {
     selectedCategory: string;
     selectedSort: string;
     selectedView: ReportView;
+    usageMetric: UsageMetric;
     overdueCount: number;
     lostCount: number;
     monthlyUsage: MonthlyUsagePoint[];
     borrowerAnalytics: BorrowerAnalytics;
     depreciationSummary: DepreciationSummary;
+    reportSummary: ReportSummary;
     assets: Paginated<Asset> | null;
     overdueItems: Paginated<OverdueItem> | null;
     lostItems: Paginated<LostItem> | null;
@@ -83,11 +88,13 @@ export default function Reports({
     selectedCategory,
     selectedSort,
     selectedView,
+    usageMetric,
     overdueCount,
     lostCount,
     monthlyUsage,
     borrowerAnalytics,
     depreciationSummary,
+    reportSummary,
     assets,
     overdueItems,
     lostItems,
@@ -95,6 +102,7 @@ export default function Reports({
     const [view, setView] = useState<ReportView>(selectedView ?? 'assets');
     const [category, setCategory] = useState(selectedCategory);
     const [sort, setSort] = useState(selectedSort);
+    const [metric, setMetric] = useState<UsageMetric>(usageMetric ?? 'borrows');
 
     const currentPage =
         view === 'overdue'
@@ -110,6 +118,7 @@ export default function Reports({
             category?: string;
             sort?: string;
             per_page?: number;
+            usageMetric?: UsageMetric;
         } = {},
     ) {
         const nextView = overrides.view ?? view;
@@ -120,6 +129,7 @@ export default function Reports({
                 category: overrides.category ?? category,
                 sort: overrides.sort ?? sort,
                 per_page: overrides.per_page ?? currentPage?.per_page ?? 15,
+                usage_metric: overrides.usageMetric ?? metric,
                 page,
             },
             {
@@ -134,8 +144,10 @@ export default function Reports({
                     'selectedCategory',
                     'selectedSort',
                     'selectedView',
+                    'usageMetric',
                     'overdueCount',
                     'lostCount',
+                    'reportSummary',
                 ],
             },
         );
@@ -167,6 +179,11 @@ export default function Reports({
 
     function handlePageChange(page: number) {
         fetchPage(page);
+    }
+
+    function handleMetricChange(value: UsageMetric) {
+        setMetric(value);
+        fetchPage(1, { usageMetric: value });
     }
 
     const sortOptions =
@@ -226,7 +243,13 @@ export default function Reports({
                     </div>
                 )}
 
-                <MonthlyUsageChart data={monthlyUsage} />
+                <MonthlyUsageChart
+                    data={monthlyUsage}
+                    metric={metric}
+                    onMetricChange={handleMetricChange}
+                />
+
+                <ReportSummaryCards data={reportSummary} />
 
                 <DepreciationSummaryCard
                     data={depreciationSummary}

@@ -19,6 +19,7 @@ class ReportController extends Controller
         $selectedCategory = $request->get('category', 'all');
         $sort = $request->get('sort', $view === 'overdue' ? 'most_overdue' : 'latest');
         $perPage = (int) $request->get('per_page', 15);
+        $usageMetric = $request->get('usage_metric', 'borrows'); // 'borrows' | 'assets_added'
 
         $categories = Category::all(['id', 'name'])
             ->sortBy('name')
@@ -33,15 +34,17 @@ class ReportController extends Controller
 
         $lostCount = Asset::where('status', 'lost')->count();
 
-        $monthlyUsage = $this->monthlyAssetUsage($selectedCategory);
+        $monthlyUsage = $this->monthlyUsageSeries($usageMetric, $selectedCategory);
         $borrowerAnalytics = $this->borrowerAnalytics();
         $depreciationSummary = $this->depreciationSummary();
+        $reportSummary = $this->reportSummary();
 
         $sharedReportData = [
             'categories' => $categories,
             'selectedCategory' => $selectedCategory,
             'selectedSort' => $sort,
             'selectedView' => $view,
+            'usageMetric' => $usageMetric,
 
             'overdueCount' => $overdueCount,
             'lostCount' => $lostCount,
@@ -49,6 +52,7 @@ class ReportController extends Controller
             'monthlyUsage' => $monthlyUsage,
             'borrowerAnalytics' => $borrowerAnalytics,
             'depreciationSummary' => $depreciationSummary,
+            'reportSummary' => $reportSummary,
         ];
 
         if ($view === 'overdue') {
@@ -192,43 +196,246 @@ class ReportController extends Controller
     }
 
     /**
-     * @return array<int, array{month: string, label: string, count: int}>
+     * Monthly usage data for the report chart.
+     *
+     * Borrows:
+     * - pending  = current status is pending
+     * - returned = current status is returned
+     * - rejected = current status is rejected
+     *
+     * Assets:
+     * - good      = condition 3
+     * - defective = currently under repair
+     * - lost      = status lost
      */
-    private function monthlyAssetUsage(string $selectedCategory): array
-    {
-        $start = now()->subMonths(11)->startOfMonth();
+    private function monthlyUsageSeries(
+        string $metric,
+        string $selectedCategory
+    ): array {
+        $start = now()
+            ->subMonths(11)
+            ->startOfMonth();
+
+        if ($metric === 'assets_added') {
+            $monthExpression = match (DB::connection()->getDriverName()) {
+                'pgsql' => "TO_CHAR(created_at, 'YYYY-MM')",
+                'sqlite' => "strftime('%Y-%m', created_at)",
+                default => "DATE_FORMAT(created_at, '%Y-%m')",
+            };
+
+            $query = Asset::query()
+                ->where('created_at', '>=', $start);
+
+            if ($selectedCategory !== 'all') {
+                $query->where(
+                    'category_id',
+                    $selectedCategory
+                );
+            }
+
+            /*
+             * We group assets by the month they were added,
+             * then count their current condition/status.
+             */
+            $rows = $query
+                ->selectRaw("
+                {$monthExpression} as month,
+                condition,
+                status,
+                COUNT(*) as count
+            ")
+                ->groupBy(
+                    'month',
+                    'condition',
+                    'status'
+                )
+                ->get();
+
+            $grouped = [];
+
+            foreach ($rows as $row) {
+                $month = $row->month;
+
+                if (!isset($grouped[$month])) {
+                    $grouped[$month] = [
+                        'good' => 0,
+                        'defective' => 0,
+                        'lost' => 0,
+                    ];
+                }
+
+                /*
+                 * Good assets:
+                 * condition 3
+                 *
+                 * Defective assets:
+                 * currently under repair
+                 *
+                 * Lost assets:
+                 * status lost
+                 */
+                if ($row->status === 'lost') {
+                    $grouped[$month]['lost'] += (int) $row->count;
+                } elseif ($row->status === 'under_repair') {
+                    $grouped[$month]['defective'] += (int) $row->count;
+                } elseif ((int) $row->condition === 3) {
+                    $grouped[$month]['good'] += (int) $row->count;
+                }
+            }
+
+            return collect(range(0, 11))
+                ->map(function (int $offset) use ($start, $grouped) {
+                    $month = $start
+                        ->copy()
+                        ->addMonths($offset);
+
+                    $key = $month->format('Y-m');
+
+                    $good = $grouped[$key]['good'] ?? 0;
+                    $defective = $grouped[$key]['defective'] ?? 0;
+                    $lost = $grouped[$key]['lost'] ?? 0;
+
+                    return [
+                        'month' => $key,
+                        'label' => $month->format('M'),
+
+                        'count' =>
+                            $good +
+                            $defective +
+                            $lost,
+
+                        'good' => $good,
+                        'defective' => $defective,
+                        'lost' => $lost,
+                    ];
+                })
+                ->all();
+        }
+
+        /*
+         * BORROW REQUESTS
+         */
 
         $monthExpression = match (DB::connection()->getDriverName()) {
-            'pgsql' => "TO_CHAR(approved_at, 'YYYY-MM')",
-            'sqlite' => "strftime('%Y-%m', approved_at)",
-            default => "DATE_FORMAT(approved_at, '%Y-%m')",
+            'pgsql' => "TO_CHAR(requested_at, 'YYYY-MM')",
+            'sqlite' => "strftime('%Y-%m', requested_at)",
+            default => "DATE_FORMAT(requested_at, '%Y-%m')",
         };
 
         $query = BorrowRequest::query()
-            ->whereNotNull('approved_at')
-            ->where('approved_at', '>=', $start);
+            ->whereNotNull('requested_at')
+            ->where('requested_at', '>=', $start);
 
         if ($selectedCategory !== 'all') {
-            $query->whereHas('asset', fn($q) => $q->where('category_id', $selectedCategory));
+            $query->whereHas(
+                'asset',
+                fn($q) => $q->where(
+                    'category_id',
+                    $selectedCategory
+                )
+            );
         }
 
-        $counts = $query
-            ->selectRaw("{$monthExpression} as month, COUNT(*) as count")
-            ->groupBy('month')
-            ->pluck('count', 'month');
+        $rows = $query
+            ->selectRaw("
+            {$monthExpression} as month,
+            status,
+            COUNT(*) as count
+        ")
+            ->groupBy(
+                'month',
+                'status'
+            )
+            ->get();
+
+        $grouped = [];
+
+        foreach ($rows as $row) {
+            $grouped[$row->month][$row->status] =
+                (int) $row->count;
+        }
 
         return collect(range(0, 11))
-            ->map(function (int $offset) use ($start, $counts) {
-                $month = $start->copy()->addMonths($offset);
+            ->map(function (int $offset) use ($start, $grouped) {
+                $month = $start
+                    ->copy()
+                    ->addMonths($offset);
+
                 $key = $month->format('Y-m');
+
+                $pending =
+                    $grouped[$key]['pending'] ?? 0;
+
+                $returned =
+                    $grouped[$key]['returned'] ?? 0;
+
+                $rejected =
+                    $grouped[$key]['rejected'] ?? 0;
 
                 return [
                     'month' => $key,
                     'label' => $month->format('M'),
-                    'count' => (int) ($counts[$key] ?? 0),
+
+                    'count' =>
+                        $pending +
+                        $returned +
+                        $rejected,
+
+                    'pending' => $pending,
+                    'returned' => $returned,
+                    'rejected' => $rejected,
                 ];
             })
             ->all();
+    }
+    /**
+     * Headline totals for the summary panel: overall borrow-request volume,
+     * how much of it was approved/returned, the return-condition mix
+     * (good/defective/lost), and the current inventory's condition mix
+     * (excellent/good/fair/poor).
+     *
+     * NOTE: assets.condition is assumed 1=Poor, 2=Fair, 3=Good, 4=Excellent.
+     * Flip the mapping below if your actual scale runs the other way.
+     *
+     * @return array{
+     *     totalBorrowRequests: int,
+     *     approvedBorrows: int,
+     *     returnedBorrows: int,
+     *     returnConditions: array{ok: int, defective: int, lost: int},
+     *     assetConditions: array{excellent: int, good: int, fair: int, poor: int}
+     * }
+     */
+    private function reportSummary(): array
+    {
+        $totalBorrowRequests = BorrowRequest::count();
+        $approvedBorrows = BorrowRequest::whereNotNull('approved_at')->count();
+        $returnedBorrows = BorrowRequest::where('status', 'returned')->count();
+
+        $returnConditions = [
+            'ok' => BorrowRequest::where('return_condition', 'ok')->count(),
+            'defective' => BorrowRequest::where('return_condition', 'defective')->count(),
+            'lost' => BorrowRequest::where('return_condition', 'lost')->count(),
+        ];
+
+        $conditionCounts = Asset::query()
+            ->selectRaw('condition, COUNT(*) as count')
+            ->groupBy('condition')
+            ->pluck('count', 'condition');
+
+        $assetConditions = [
+            'excellent' => (int) ($conditionCounts[4] ?? 0),
+            'good' => (int) ($conditionCounts[3] ?? 0),
+            'fair' => (int) ($conditionCounts[2] ?? 0),
+            'poor' => (int) ($conditionCounts[1] ?? 0),
+        ];
+
+        return [
+            'totalBorrowRequests' => $totalBorrowRequests,
+            'approvedBorrows' => $approvedBorrows,
+            'returnedBorrows' => $returnedBorrows,
+            'returnConditions' => $returnConditions,
+            'assetConditions' => $assetConditions,
+        ];
     }
 
     public function exportCsv(Request $request): StreamedResponse

@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig } from 'vite';
+import path from 'node:path';
 
 export default defineConfig({
     plugins: [
@@ -28,8 +29,24 @@ export default defineConfig({
 
         tailwindcss(),
 
+
+
         wayfinder({
             formVariants: true,
         }),
     ],
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './resources/js'),
+            react: path.resolve(__dirname, './node_modules/react'),
+            'react-dom': path.resolve(
+                __dirname,
+                './node_modules/react-dom',
+            ),
+        },
+        dedupe: [
+            'react',
+            'react-dom',
+        ],
+    },
 });
