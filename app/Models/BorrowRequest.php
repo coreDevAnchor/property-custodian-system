@@ -30,8 +30,13 @@ class BorrowRequest extends Model
         'requested_at' => 'datetime',
         'approved_at' => 'datetime',
         'returned_at' => 'datetime',
-        'is_acknowledged' => 'boolean',
         'expected_return_date' => 'date',
+
+        'three_day_reminder_sent' => 'boolean',
+        'three_day_reminder_sent_at' => 'datetime',
+
+        'deadline_reminder_sent' => 'boolean',
+        'deadline_reminder_sent_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -48,6 +53,11 @@ class BorrowRequest extends Model
         'is_acknowledged',
         'remarks',
         'expected_return_date',
+
+        'three_day_reminder_sent',
+        'three_day_reminder_sent_at',
+        'deadline_reminder_sent',
+        'deadline_reminder_sent_at',
     ];
 
     public function asset(): BelongsTo
