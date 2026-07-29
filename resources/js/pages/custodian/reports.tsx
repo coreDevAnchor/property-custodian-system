@@ -16,7 +16,18 @@ import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
 import { Paginated } from '@/types/pagination';
 import { Category } from '@/types/categories';
 import { Asset } from '@/types/assets';
-import { OverdueItem, LostItem, ReportView, MonthlyUsagePoint } from '@/types/reports';
+import {
+    OverdueItem,
+    LostItem,
+    ReportView,
+    MonthlyUsagePoint,
+    BorrowerAnalytics,
+    DepreciationSummary,
+} from '@/types/reports';
+
+import { BorrowerAnalyticsChart } from '@/components/reports/borrower-analytics-chart';
+import { DepreciationSummaryCard } from '@/components/reports/depreciation-summary';
+
 
 interface Props {
     categories: Category[];
@@ -26,6 +37,8 @@ interface Props {
     overdueCount: number;
     lostCount: number;
     monthlyUsage: MonthlyUsagePoint[];
+    borrowerAnalytics: BorrowerAnalytics;
+    depreciationSummary: DepreciationSummary;
     assets: Paginated<Asset> | null;
     overdueItems: Paginated<OverdueItem> | null;
     lostItems: Paginated<LostItem> | null;
@@ -73,6 +86,8 @@ export default function Reports({
     overdueCount,
     lostCount,
     monthlyUsage,
+    borrowerAnalytics,
+    depreciationSummary,
     assets,
     overdueItems,
     lostItems,
@@ -212,6 +227,14 @@ export default function Reports({
                 )}
 
                 <MonthlyUsageChart data={monthlyUsage} />
+
+                <DepreciationSummaryCard
+                    data={depreciationSummary}
+                />
+
+                <BorrowerAnalyticsChart
+                    data={borrowerAnalytics}
+                />
 
                 {/* ── Tabs ── */}
                 <Tabs value={view} onValueChange={handleViewChange}>

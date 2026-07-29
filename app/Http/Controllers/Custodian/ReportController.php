@@ -34,6 +34,22 @@ class ReportController extends Controller
         $lostCount = Asset::where('status', 'lost')->count();
 
         $monthlyUsage = $this->monthlyAssetUsage($selectedCategory);
+        $borrowerAnalytics = $this->borrowerAnalytics();
+        $depreciationSummary = $this->depreciationSummary();
+
+        $sharedReportData = [
+            'categories' => $categories,
+            'selectedCategory' => $selectedCategory,
+            'selectedSort' => $sort,
+            'selectedView' => $view,
+
+            'overdueCount' => $overdueCount,
+            'lostCount' => $lostCount,
+
+            'monthlyUsage' => $monthlyUsage,
+            'borrowerAnalytics' => $borrowerAnalytics,
+            'depreciationSummary' => $depreciationSummary,
+        ];
 
         if ($view === 'overdue') {
             $query = BorrowRequest::with([
@@ -77,13 +93,8 @@ class ReportController extends Controller
                 });
 
             return Inertia::render('custodian/reports', [
-                'categories' => $categories,
-                'selectedCategory' => $selectedCategory,
-                'selectedSort' => $sort,
-                'selectedView' => $view,
-                'overdueCount' => $overdueCount,
-                'lostCount' => $lostCount,
-                'monthlyUsage' => $monthlyUsage,
+                ...$sharedReportData,
+
                 'assets' => null,
                 'overdueItems' => $overdueItems,
                 'lostItems' => null,
@@ -117,13 +128,8 @@ class ReportController extends Controller
                 ]);
 
             return Inertia::render('custodian/reports', [
-                'categories' => $categories,
-                'selectedCategory' => $selectedCategory,
-                'selectedSort' => $sort,
-                'selectedView' => $view,
-                'overdueCount' => $overdueCount,
-                'lostCount' => $lostCount,
-                'monthlyUsage' => $monthlyUsage,
+                ...$sharedReportData,
+
                 'assets' => null,
                 'overdueItems' => null,
                 'lostItems' => $lostItems,
@@ -177,13 +183,8 @@ class ReportController extends Controller
             });
 
         return Inertia::render('custodian/reports', [
-            'categories' => $categories,
-            'selectedCategory' => $selectedCategory,
-            'selectedSort' => $sort,
-            'selectedView' => $view,
-            'overdueCount' => $overdueCount,
-            'lostCount' => $lostCount,
-            'monthlyUsage' => $monthlyUsage,
+            ...$sharedReportData,
+
             'assets' => $assets,
             'overdueItems' => null,
             'lostItems' => null,
@@ -347,5 +348,204 @@ class ReportController extends Controller
 
             fclose($handle);
         }, 'assets_report_' . now()->format('Y-m-d') . '.csv');
+
+
+    }
+
+    /**
+     * @return array{
+     *     borrowers: array<int, array{
+     *         month: string,
+     *         label: string,
+     *         borrower_id: int,
+     *         borrower: string,
+     *         count: int
+     *     }>,
+     *     returners: array<int, array{
+     *         month: string,
+     *         label: string,
+     *         borrower_id: int,
+     *         borrower: string,
+     *         count: int
+     *     }>,
+     *     onTimeReturners: array<int, array{
+     *         month: string,
+     *         label: string,
+     *         borrower_id: int,
+     *         borrower: string,
+     *         count: int
+     *     }>,
+     *     defectiveReturns: array<int, array{
+     *         month: string,
+     *         label: string,
+     *         borrower_id: int,
+     *         borrower: string,
+     *         count: int
+     *     }>,
+     *     lostItems: array<int, array{
+     *         month: string,
+     *         label: string,
+     *         borrower_id: int,
+     *         borrower: string,
+     *         count: int
+     *     }>
+     * }
+     */
+    private function borrowerAnalytics(): array
+    {
+        $start = now()
+            ->subMonths(11)
+            ->startOfMonth();
+
+        $monthExpression = match (
+        DB::connection()->getDriverName()
+        ) {
+            'pgsql' => "TO_CHAR(%s, 'YYYY-MM')",
+            'sqlite' => "strftime('%%Y-%%m', %s)",
+            default => "DATE_FORMAT(%s, '%%Y-%%m')",
+        };
+
+        $borrowers = $this->groupBorrowerActivity(
+            sprintf($monthExpression, 'approved_at'),
+            $start,
+            'approved_at'
+        );
+
+        $returners = $this->groupBorrowerActivity(
+            sprintf($monthExpression, 'returned_at'),
+            $start,
+            'returned_at'
+        );
+
+        $onTimeReturners = $this->groupBorrowerActivity(
+            sprintf($monthExpression, 'returned_at'),
+            $start,
+            'returned_at',
+            fn($query) => $query
+                ->whereNotNull('expected_return_date')
+                ->whereColumn(
+                    'returned_at',
+                    '<=',
+                    'expected_return_date'
+                )
+        );
+
+        $defectiveReturns = $this->groupBorrowerActivity(
+            sprintf($monthExpression, 'returned_at'),
+            $start,
+            'returned_at',
+            fn($query) => $query
+                ->where('return_condition', 'defective')
+        );
+
+        $lostItems = $this->groupBorrowerActivity(
+            sprintf($monthExpression, 'returned_at'),
+            $start,
+            'returned_at',
+            fn($query) => $query
+                ->where('return_condition', 'lost')
+        );
+
+        return [
+            'borrowers' => $borrowers,
+            'returners' => $returners,
+            'onTimeReturners' => $onTimeReturners,
+            'defectiveReturns' => $defectiveReturns,
+            'lostItems' => $lostItems,
+        ];
+    }
+
+    private function groupBorrowerActivity(
+        string $monthExpression,
+        $start,
+        string $dateColumn,
+        ?callable $additionalFilter = null
+    ): array {
+        $query = BorrowRequest::query()
+            ->join(
+                'users',
+                'users.id',
+                '=',
+                'borrows.borrower_id'
+            )
+            ->whereNotNull($dateColumn)
+            ->where($dateColumn, '>=', $start);
+
+        if ($additionalFilter) {
+            $additionalFilter($query);
+        }
+
+        $results = $query
+            ->selectRaw("
+            {$monthExpression} as month,
+            borrows.borrower_id,
+            users.name as borrower,
+            COUNT(*) as count
+        ")
+            ->groupBy(
+                'month',
+                'borrows.borrower_id',
+                'users.name'
+            )
+            ->orderBy('month')
+            ->orderByDesc('count')
+            ->get();
+
+        return $results
+            ->map(fn($item) => [
+                'month' => $item->month,
+                'label' => \Carbon\Carbon::createFromFormat(
+                    'Y-m',
+                    $item->month
+                )->format('M'),
+                'borrower_id' => (int) $item->borrower_id,
+                'borrower' => $item->borrower,
+                'count' => (int) $item->count,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array{
+     *     totalAssetValue: float,
+     *     totalDepreciation: float,
+     *     currentEstimatedValue: float,
+     *     assetCount: int
+     * }
+     */
+    private function depreciationSummary(): array
+    {
+        $assets = Asset::query()
+            ->select([
+                'acquisition_cost',
+                'depreciation_rate',
+            ])
+            ->get();
+
+        $totalAssetValue = $assets->sum(
+            fn($asset) => (float) $asset->acquisition_cost
+        );
+
+        $totalDepreciation = $assets->sum(
+            fn($asset) => $asset->depreciation_rate
+            ? (float) $asset->acquisition_cost *
+            ((float) $asset->depreciation_rate / 100)
+            : 0
+        );
+
+        $currentEstimatedValue = max(
+            $totalAssetValue - $totalDepreciation,
+            0
+        );
+
+        return [
+            'totalAssetValue' => round($totalAssetValue, 2),
+            'totalDepreciation' => round($totalDepreciation, 2),
+            'currentEstimatedValue' => round(
+                $currentEstimatedValue,
+                2
+            ),
+            'assetCount' => $assets->count(),
+        ];
     }
 }

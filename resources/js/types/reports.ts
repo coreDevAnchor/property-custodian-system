@@ -24,3 +24,26 @@ export interface MonthlyUsagePoint {
     label: string;
     count: number;
 }
+
+export interface MonthlyAnalyticsPoint {
+    month: string;
+    label: string;
+    borrower_id: number;
+    borrower: string;
+    count: number;
+}
+
+export interface BorrowerAnalytics {
+    borrowers: MonthlyAnalyticsPoint[];
+    returners: MonthlyAnalyticsPoint[];
+    onTimeReturners: MonthlyAnalyticsPoint[];
+    defectiveReturns: MonthlyAnalyticsPoint[];
+    lostItems: MonthlyAnalyticsPoint[];
+}
+
+export interface DepreciationSummary {
+    totalAssetValue: number;
+    totalDepreciation: number;
+    currentEstimatedValue: number;
+    assetCount: number;
+}
