@@ -17,7 +17,21 @@ class DeadlineReminderNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
+    }
+
+    /** @return array<string, mixed> */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'type' => 'deadline_reminder',
+            'title' => 'Asset return due today',
+            'message' => "{$this->borrow->asset->name} is due for return today.",
+            'asset_name' => $this->borrow->asset->name,
+            'asset_tag' => $this->borrow->asset->asset_tag,
+            'due_date' => $this->borrow->expected_return_date->toDateString(),
+            'borrow_id' => $this->borrow->id,
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

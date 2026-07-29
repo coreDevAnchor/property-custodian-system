@@ -28,6 +28,7 @@ export interface SharedData {
         pendingBorrowRequests: number;
         awaitingReturns: number;
     } | null;
+    unreadNotificationCount: number;
     [key: string]: unknown;
 }
 
