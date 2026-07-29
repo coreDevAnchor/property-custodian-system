@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\BorrowRequest;
+use App\Models\User;
 use App\Notifications\ReturnReminderNotification;
 use Illuminate\Console\Command;
 use App\Notifications\DeadlineReminderNotification;
@@ -30,7 +31,7 @@ class SendReturnReminders extends Command
                 continue;
             }
 
-            $user->notify(new ReturnReminderNotification($borrow));
+            $this->notifyRecipients($user, fn () => new ReturnReminderNotification($borrow));
 
             $borrow->update([
                 'three_day_reminder_sent' => true,
@@ -53,7 +54,7 @@ class SendReturnReminders extends Command
                 continue;
             }
 
-            $user->notify(new DeadlineReminderNotification($borrow));
+            $this->notifyRecipients($user, fn () => new DeadlineReminderNotification($borrow));
 
             $borrow->update([
                 'deadline_reminder_sent' => true,
@@ -67,5 +68,15 @@ class SendReturnReminders extends Command
         );
 
         return self::SUCCESS;
+    }
+
+    private function notifyRecipients(User $borrower, \Closure $notification): void
+    {
+        User::query()
+            ->where('role', 'custodian')
+            ->get()
+            ->push($borrower)
+            ->unique('id')
+            ->each(fn (User $user) => $user->notify($notification()));
     }
 }

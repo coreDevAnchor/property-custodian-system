@@ -18,6 +18,7 @@ use App\Http\Controllers\CustodianController;
 use App\Http\Controllers\Custodian\ReportController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\BorrowRenewalController;
+use App\Http\Controllers\NotificationController;
 
 Route::redirect('/', '/login');
 
@@ -28,6 +29,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/force-change-password', [ForcePasswordChangeController::class, 'update'])
         ->name('password.force.update');
 });
+
+Route::middleware(['auth', 'verified'])
+    ->group(function () {
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    });
 
 Route::middleware(['auth', 'verified'])
     ->prefix('custodian')
