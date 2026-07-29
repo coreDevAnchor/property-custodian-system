@@ -47,8 +47,18 @@ class ReturnController extends Controller
                 });
             })
             ->when($status !== 'All', fn($q) => $q->where('status', $status))
-            ->when($sort === 'newest', fn($q) => $q->latest('returned_at'))
-            ->when($sort === 'oldest', fn($q) => $q->oldest('returned_at'))
+            ->when(
+                $sort === 'newest',
+                fn($q) => $q
+                    ->orderByRaw('returned_at IS NULL ASC')
+                    ->orderBy('returned_at', 'desc')
+            )
+            ->when(
+                $sort === 'oldest',
+                fn($q) => $q
+                    ->orderByRaw('returned_at IS NULL ASC')
+                    ->orderBy('returned_at', 'asc')
+            )
             ->when($sort === 'borrower_az', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'asc')
                 ->select('borrows.*'))
