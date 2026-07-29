@@ -52,6 +52,7 @@ class BorrowRequest extends Model
         'return_condition',
         'is_acknowledged',
         'remarks',
+        'lost_reason',
         'expected_return_date',
 
         'three_day_reminder_sent',

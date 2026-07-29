@@ -12,6 +12,7 @@ export interface ReturnItem {
     returned_at?: string | null;
     return_condition?: ReturnCondition | null;
     is_acknowledged: boolean;
+    lost_reason?: string | null;
 
     asset: {
         id: number;

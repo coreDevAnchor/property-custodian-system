@@ -23,9 +23,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
 import { BorrowRenewalDialog } from '@/components/borrow/borrow-renewal-dialog';
+import { LostAssetDialog } from '@/components/lost/lost-asset-dialog';
+import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -160,17 +161,41 @@ function DueDateBadge({ date }: { date?: string | null }) {
     );
 }
 
+
+
 function BorrowCard({ item }: { item: BorrowItem }) {
     const { label, icon: Icon, color, dot } = statusConfig[item.status];
     const canReturn = item.status === 'borrowed';
     const [openReturnDialog, setOpenReturnDialog] = useState(false);
     const [openRenewalDialog, setOpenRenewalDialog] = useState(false);
-    const [reportAsLost, setReportAsLost] = useState(false);
+    const [lostAsset, setLostAsset] = useState<BorrowItem | null>(null);
+    const [submittingLost, setSubmittingLost] = useState(false);
+    const [openLostDialog, setOpenLostDialog] = useState(false);
 
-    function openLostReturnDialog() {
-        setReportAsLost(true);
-        setOpenReturnDialog(true);
+    function handleLostSubmit(borrowId: number, reason: string) {
+        setSubmittingLost(true);
+
+        router.post(
+            '/employee/returns',
+            {
+                lost_id: borrowId,
+                lost_reason: reason,
+            },
+            {
+                preserveScroll: true,
+
+                onSuccess: () => {
+                    setOpenLostDialog(false);
+                },
+
+                onFinish: () => {
+                    setSubmittingLost(false);
+                },
+            },
+        );
     }
+
+
 
     return (
         <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
@@ -208,7 +233,10 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                                 <CalendarClock />
                                 Request extension
                             </DropdownMenuItem>
-                            <DropdownMenuItem variant="destructive" onSelect={openLostReturnDialog}>
+                            <DropdownMenuItem
+                                variant="destructive"
+                                onSelect={() => setOpenLostDialog(true)}
+                            >
                                 <PackageX />
                                 Report as lost
                             </DropdownMenuItem>
@@ -311,7 +339,6 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                         },
                         {
                             preserveScroll: true,
-                            preserveState: true,
                             onSuccess: () => {
                                 setOpenRenewalDialog(false);
                             },
@@ -322,11 +349,7 @@ function BorrowCard({ item }: { item: BorrowItem }) {
 
             <ReturnRequestDialog
                 open={openReturnDialog}
-                onOpenChange={(open) => {
-                    setOpenReturnDialog(open);
-                    if (!open) setReportAsLost(false);
-                }}
-                reportAsLost={reportAsLost}
+                onOpenChange={setOpenReturnDialog}
                 items={[
                     {
                         id: item.id,
@@ -339,6 +362,16 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                         },
                     },
                 ]}
+            />
+
+            <LostAssetDialog
+                open={openLostDialog}
+                onOpenChange={setOpenLostDialog}
+                borrowId={item.id}
+                assetName={item.asset.name}
+                assetTag={item.asset.asset_tag}
+                submitting={submittingLost}
+                onSubmit={handleLostSubmit}
             />
         </article>
 

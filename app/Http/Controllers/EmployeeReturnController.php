@@ -6,34 +6,95 @@ use Illuminate\Http\Request;
 use App\Models\BorrowRequest;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ActivityLogs;
-use App\Models\Asset;
 use Illuminate\Support\Facades\DB;
 
 class EmployeeReturnController extends Controller
 {
     /**
-     * Employee submits one or more currently-borrowed items for return.
+     * Employee submits one or more items for return.
      *
-     * `borrow_ids` — items being physically returned; go to `awaiting_check`
-     * so a custodian can inspect and confirm condition.
+     * Normal returns:
+     * - status => awaiting_check
+     * - return_condition remains null
      *
-     * `lost_ids` — items the employee cannot return because they are lost;
-     * these go to `awaiting_check` with `return_condition = lost` so the
-     * custodian can confirm and officially close them out.
+     * Lost reports:
+     * - status => awaiting_check
+     * - return_condition => lost
+     * - lost_reason => employee's explanation
+     *
+     * The asset itself is NOT marked as lost yet.
+     * The custodian must confirm the lost report first.
      */
     public function store(Request $request)
     {
+        /*
+        | Lost Asset Report
+        */
+        if ($request->filled('lost_id')) {
+            $validated = $request->validate([
+                'lost_id' => [
+                    'required',
+                    'integer',
+                    'exists:borrows,id',
+                ],
+                'lost_reason' => [
+                    'required',
+                    'string',
+                    'min:10',
+                    'max:1000',
+                ],
+            ]);
+
+            $user = Auth::user();
+
+            $borrow = BorrowRequest::with('asset')
+                ->where('id', $validated['lost_id'])
+                ->where('borrower_id', $user->id)
+                ->where('status', 'borrowed')
+                ->firstOrFail();
+
+            DB::transaction(function () use ($borrow, $validated, $user) {
+                $borrow->update([
+                    'status' => 'awaiting_check',
+                    'return_condition' => 'lost',
+                    'returned_at' => now(),
+                    'lost_reason' => $validated['lost_reason'],
+                ]);
+
+                ActivityLogs::record(
+                    $borrow->asset,
+                    'asset_lost_reported',
+                    "{$user->name} reported {$borrow->asset->name} ({$borrow->asset->asset_tag}) as lost.",
+                    [
+                        'borrow_request_id' => $borrow->id,
+                        'lost_reason' => $validated['lost_reason'],
+                    ]
+                );
+            });
+
+            return back()->with(
+                'success',
+                'Lost asset report submitted successfully. The custodian will review your report.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normal Return Submission
+        |--------------------------------------------------------------------------
+        */
         $validated = $request->validate([
-            'borrow_ids'   => ['array'],
-            'borrow_ids.*' => ['integer', 'distinct', 'exists:borrows,id'],
-            'lost_ids'     => ['array'],
-            'lost_ids.*'   => ['integer', 'distinct', 'exists:borrows,id'],
+            'borrow_ids' => ['array'],
+            'borrow_ids.*' => [
+                'integer',
+                'distinct',
+                'exists:borrows,id',
+            ],
         ]);
 
         $returnIds = $validated['borrow_ids'] ?? [];
-        $lostIds   = $validated['lost_ids'] ?? [];
 
-        if (empty($returnIds) && empty($lostIds)) {
+        if (empty($returnIds)) {
             return back()->withErrors([
                 'borrow_ids' => 'Select at least one item to return.',
             ]);
@@ -44,7 +105,7 @@ class EmployeeReturnController extends Controller
         $borrows = BorrowRequest::with('asset')
             ->where('borrower_id', $user->id)
             ->where('status', 'borrowed')
-            ->whereIn('id', array_merge($returnIds, $lostIds))
+            ->whereIn('id', $returnIds)
             ->get();
 
         if ($borrows->isEmpty()) {
@@ -53,42 +114,32 @@ class EmployeeReturnController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($borrows, $lostIds, $user) {
+        DB::transaction(function () use ($borrows, $user) {
             foreach ($borrows as $borrow) {
-                if (in_array($borrow->id, $lostIds, true)) {
-                    // Reported lost — custodian must still confirm before
-                    // the asset status is officially set to lost.
-                    $borrow->update([
-                        'status'           => 'awaiting_check',
-                        'return_condition' => 'lost',
-                        'returned_at'      => now(),
-                    ]);
+                $borrow->update([
+                    'status' => 'awaiting_check',
+                    'returned_at' => now(),
+                ]);
 
-                    ActivityLogs::record(
-                        $borrow->asset,
-                        'return_submitted',
-                        "{$user->name} reported {$borrow->asset->name} ({$borrow->asset->asset_tag}) as lost."
-                    );
-                } else {
-                    // Normal return — awaiting custodian inspection.
-                    $borrow->update([
-                        'status'      => 'awaiting_check',
-                        'returned_at' => now(),
-                    ]);
-
-                    ActivityLogs::record(
-                        $borrow->asset,
-                        'return_submitted',
-                        "{$user->name} submitted {$borrow->asset->name} for return inspection."
-                    );
-                }
+                ActivityLogs::record(
+                    $borrow->asset,
+                    'return_submitted',
+                    "{$user->name} submitted {$borrow->asset->name} ({$borrow->asset->asset_tag}) for return inspection.",
+                    [
+                        'borrow_request_id' => $borrow->id,
+                    ]
+                );
             }
         });
 
         $count = $borrows->count();
 
-        return back()->with('success', $count > 1
+        return back()->with(
+            'success',
+            $count > 1
             ? "{$count} items submitted for return."
-            : 'Item submitted for return.');
+            : 'Item submitted for return.'
+        );
     }
+
 }

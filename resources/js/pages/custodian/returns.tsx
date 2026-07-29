@@ -128,48 +128,55 @@ function ReturnRow({
                     <span className="text-xs text-muted-foreground">—</span>
                 )}
             </td>
+
             <td className="py-3.5 pr-4">
-                <td className="py-3.5 pr-4">
-                    {item.approved_by ? (
-                        <div className="flex items-center gap-1.5">
-                            <ShieldCheck className="size-3.5 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
-                                {item.approved_by.name}
-                            </span>
-                        </div>
-                    ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                </td>
+                {item.checked_by ? (
+                    <div className="flex items-center gap-1.5">
+                        <ShieldCheck className="size-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                            {item.checked_by.name}
+                        </span>
+                    </div>
+                ) : (
+                    <span className="text-xs text-muted-foreground">
+                        —
+                    </span>
+                )}
             </td>
             <td className="py-3.5">
                 {item.status === 'awaiting_check' ? (
-                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button
-                            onClick={() => onConfirmReturn(item, 'ok')}
-                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
-                            title="Confirm return in good condition"
-                        >
-                            <CheckCircle2 className="size-3.5" />
-                            Good
-                        </button>
-                        <button
-                            onClick={() => onConfirmReturn(item, 'defective')}
-                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
-                            title="Confirm return as defective"
-                        >
-                            <AlertTriangle className="size-3.5" />
-                            Defective
-                        </button>
-                        <button
-                            onClick={() => onConfirmReturn(item, 'lost')}
-                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-slate-500/10 hover:text-slate-600 cursor-pointer"
-                            title="Mark asset as lost"
-                        >
-                            <PackageX className="size-3.5" />
-                            Lost
-                        </button>
-                    </div>
+                    item.return_condition === 'lost' ? (
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => onConfirmReturn(item, 'lost')}
+                                className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-500/10 hover:text-red-700 cursor-pointer dark:text-red-400 dark:hover:text-red-300"
+                                title="Review and confirm this asset as lost"
+                            >
+                                <PackageX className="size-3.5" />
+                                Confirm Lost
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button
+                                onClick={() => onConfirmReturn(item, 'ok')}
+                                className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
+                                title="Confirm return in good condition"
+                            >
+                                <CheckCircle2 className="size-3.5" />
+                                Good
+                            </button>
+
+                            <button
+                                onClick={() => onConfirmReturn(item, 'defective')}
+                                className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
+                                title="Confirm return as defective"
+                            >
+                                <AlertTriangle className="size-3.5" />
+                                Defective
+                            </button>
+                        </div>
+                    )
                 ) : (
                     <span className="text-xs text-muted-foreground">
                         {item.is_acknowledged ? 'Acknowledged' : 'Unacknowledged'}
@@ -256,14 +263,21 @@ export default function Returns({
         submitConfirmReturn(item, condition);
     }
 
-    function submitConfirmReturn(item: ReturnItem, condition: ReturnCondition) {
+    function submitConfirmReturn(
+        item: ReturnItem,
+        condition: ReturnCondition
+    ) {
         router.put(
-            `/custodian/borrow-requests/${item.id}`,
+            `/custodian/returns/${item.id}`,
             {
-                status: 'returned',
                 return_condition: condition,
             },
-            { preserveScroll: true }
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setLostConfirmItem(null);
+                },
+            }
         );
     }
 
@@ -413,8 +427,17 @@ export default function Returns({
 
             <LostConfirmDialog
                 open={!!lostConfirmItem}
-                onOpenChange={(open) => !open && setLostConfirmItem(null)}
-                assetNames={lostConfirmItem ? `"${lostConfirmItem.asset.name}" (${lostConfirmItem.asset.asset_tag})` : ''}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setLostConfirmItem(null);
+                    }
+                }}
+                assetNames={
+                    lostConfirmItem
+                        ? `"${lostConfirmItem.asset.name}" (${lostConfirmItem.asset.asset_tag})`
+                        : ''
+                }
+                lostReason={lostConfirmItem?.lost_reason}
                 onConfirm={() => {
                     if (lostConfirmItem) {
                         submitConfirmReturn(lostConfirmItem, 'lost');

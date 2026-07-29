@@ -81,28 +81,77 @@ class ReturnController extends Controller
     }
 
     /**
-     * Handle an employee's return submission from ReturnRequestDialog.
+     * Handle an employee's return submission.
      *
-     * `borrow_ids` are items being physically returned (go to
-     * `awaiting_check` for custodian inspection). `lost_ids` are items the
-     * employee is reporting as lost — since there's nothing to physically
-     * inspect, these finalize immediately: the borrow record is marked
-     * `returned` with `return_condition = 'lost'`, and the asset itself is
-     * flipped to `status = 'lost'`.  
+     * Normal returns:
+     * - The borrowed assets are moved to `awaiting_check`.
+     * - The custodian must inspect and confirm the returned condition.
+     *
+     * Lost reports:
+     * - The employee submits a reason for the lost asset.
+     * - The borrow record is moved to `awaiting_check`.
+     * - `return_condition` is set to `lost`.
+     * - The employee's reason is stored in `lost_reason`.
+     * - The asset itself is NOT marked as lost yet.
+     * - The custodian must review and confirm the lost report.
      */
     public function store(Request $request)
     {
+        if ($request->filled('borrow_id')) {
+            $validated = $request->validate([
+                'borrow_id' => [
+                    'required',
+                    'integer',
+                    'exists:borrows,id',
+                ],
+                'reason' => [
+                    'required',
+                    'string',
+                    'min:10',
+                    'max:1000',
+                ],
+            ]);
+            $user = Auth::user();
+            $borrow = BorrowRequest::with('asset')
+                ->where('id', $validated['borrow_id'])
+                ->where('borrower_id', $user->id)
+                ->where('status', 'borrowed')
+                ->firstOrFail();
+
+            $borrow->update([
+                'status' => 'awaiting_check',
+                'return_condition' => 'lost',
+                'returned_at' => now(),
+                'lost_reason' => $validated['reason'],
+            ]);
+
+            ActivityLogs::record(
+                $borrow->asset,
+                'asset_lost_reported',
+                "{$borrow->asset->name} ({$borrow->asset->asset_tag}) was reported lost by {$user->name}.",
+                [
+                    'borrow_request_id' => $borrow->id,
+                    'reason' => $validated['reason'],
+                ]
+            );
+
+            return back()->with(
+                'success',
+                'Lost asset report submitted successfully. The custodian will review your report.'
+            );
+        } /* |-------------------------------------------------------------------------- | Normal Return Submission |-------------------------------------------------------------------------- */
         $validated = $request->validate([
             'borrow_ids' => ['array'],
-            'borrow_ids.*' => ['integer', 'distinct', 'exists:borrows,id'],
-            'lost_ids' => ['array'],
-            'lost_ids.*' => ['integer', 'distinct', 'exists:borrows,id'],
+            'borrow_ids.*' => [
+                'integer',
+                'distinct',
+                'exists:borrows,id',
+            ],
         ]);
 
         $returnIds = $validated['borrow_ids'] ?? [];
-        $lostIds = $validated['lost_ids'] ?? [];
 
-        if (empty($returnIds) && empty($lostIds)) {
+        if (empty($returnIds)) {
             return back()->withErrors([
                 'borrow_ids' => 'Select at least one item to return.',
             ]);
@@ -112,39 +161,22 @@ class ReturnController extends Controller
 
         $borrows = BorrowRequest::where('borrower_id', $user->id)
             ->where('status', 'borrowed')
-            ->whereIn('id', array_merge($returnIds, $lostIds))
+            ->whereIn('id', $returnIds)
             ->get();
 
-        DB::transaction(function () use ($borrows, $lostIds, $user) {
+        DB::transaction(function () use ($borrows) {
             foreach ($borrows as $borrow) {
-                if (in_array($borrow->id, $lostIds, true)) {
-                    $borrow->update([
-                        'status' => 'returned',
-                        'return_condition' => 'lost',
-                        'returned_at' => now(),
-                    ]);
-
-                    $asset = Asset::findOrFail($borrow->asset_id);
-
-                    $asset->update([
-                        'status' => 'lost',
-                    ]);
-
-                    ActivityLogs::record(
-                        $asset,
-                        'asset_lost',
-                        "{$asset->name} ({$asset->asset_tag}) was reported lost by {$user->name}."
-                    );
-                } else {
-                    $borrow->update([
-                        'status' => 'awaiting_check',
-                        'returned_at' => now(),
-                    ]);
-                }
+                $borrow->update([
+                    'status' => 'awaiting_check',
+                    'returned_at' => now(),
+                ]);
             }
         });
 
-        return back()->with('success', 'Return request submitted.');
+        return back()->with(
+            'success',
+            'Return request submitted successfully.'
+        );
     }
 
     /**
@@ -168,7 +200,88 @@ class ReturnController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $validated = $request->validate([
+            'return_condition' => [
+                'required',
+                'in:ok,defective,lost',
+            ],
+        ]);
+
+        $custodian = Auth::user();
+
+        $borrow = BorrowRequest::with('asset')
+            ->where('id', $id)
+            ->where('status', 'awaiting_check')
+            ->firstOrFail();
+
+        DB::transaction(function () use ($borrow, $validated, $custodian) {
+            $condition = $validated['return_condition'];
+
+            $borrow->update([
+                'status' => 'returned',
+                'return_condition' => $condition,
+                'checked_by' => $custodian->id,
+                'approved_at' => now(),
+            ]);
+
+            if ($condition === 'lost') {
+                $borrow->asset->update([
+                    'status' => 'lost',
+                ]);
+
+                ActivityLogs::record(
+                    $borrow->asset,
+                    'asset_marked_lost',
+                    "{$borrow->asset->name} ({$borrow->asset->asset_tag}) was confirmed as lost by {$custodian->name}.",
+                    [
+                        'borrow_request_id' => $borrow->id,
+                        'lost_reason' => $borrow->lost_reason,
+                        'checked_by' => $custodian->id,
+                    ]
+                );
+            }
+
+            if ($condition === 'defective') {
+                $borrow->asset->update([
+                    'status' => 'defective',
+                ]);
+
+                ActivityLogs::record(
+                    $borrow->asset,
+                    'asset_returned_defective',
+                    "{$borrow->asset->name} ({$borrow->asset->asset_tag}) was returned in defective condition and confirmed by {$custodian->name}.",
+                    [
+                        'borrow_request_id' => $borrow->id,
+                        'checked_by' => $custodian->id,
+                    ]
+                );
+            }
+
+            if ($condition === 'ok') {
+                $borrow->asset->update([
+                    'status' => 'available',
+                ]);
+
+                ActivityLogs::record(
+                    $borrow->asset,
+                    'asset_returned',
+                    "{$borrow->asset->name} ({$borrow->asset->asset_tag}) was returned in good condition and confirmed by {$custodian->name}.",
+                    [
+                        'borrow_request_id' => $borrow->id,
+                        'checked_by' => $custodian->id,
+                    ]
+                );
+            }
+        });
+
+        return back()->with(
+            'success',
+            match ($validated['return_condition']) {
+                'ok' => 'Return confirmed. Asset is now available.',
+                'defective' => 'Return confirmed. Asset has been marked as defective.',
+                'lost' => 'Lost asset report confirmed. Asset has been marked as lost.',
+            }
+        );
     }
 
     /**
