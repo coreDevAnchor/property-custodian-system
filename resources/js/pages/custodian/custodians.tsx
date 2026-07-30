@@ -118,12 +118,15 @@ function CustodianFormDialog({
                     <DialogFooter>
                         <Button
                             type="button"
+                            className="cursor-pointer"
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={form.processing}>
+                        <Button type="submit"
+                            className="cursor-pointer"
+                            disabled={form.processing}>
                             {isEditing ? 'Save Changes' : 'Add Custodian'}
                         </Button>
                     </DialogFooter>
@@ -241,7 +244,7 @@ export default function Custodians({ custodians, filters }: Props) {
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Added
                                     </th>
-                                    <th className="py-3 text-right text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                    <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Actions
                                     </th>
                                 </tr>
