@@ -149,7 +149,7 @@ class ReturnController extends Controller
                 'success',
                 'Lost asset report submitted successfully. The custodian will review your report.'
             );
-        } /* |-------------------------------------------------------------------------- | Normal Return Submission |-------------------------------------------------------------------------- */
+        }
         $validated = $request->validate([
             'borrow_ids' => ['array'],
             'borrow_ids.*' => [

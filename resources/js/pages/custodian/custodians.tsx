@@ -1,5 +1,6 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import {
+    Eye,
     Mail,
     Pencil,
     Plus,
@@ -18,11 +19,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { Input } from '@/components/ui/input';
 import { dashboard } from '@/routes/custodian';
 import { destroy, store, update } from '@/routes/custodian/custodians';
 import { router } from '@inertiajs/react';
 import { PaginationBar } from '@/components/ui/pagination';
+import { CustodianDeleteDialog } from '@/components/custodian/custodian-delete-dialog';
 import type { SharedData } from '@/types';
 import type { Paginated } from '@/types/pagination';
 import type { Custodian, Filters } from '@/types/custodian';
@@ -111,12 +118,15 @@ function CustodianFormDialog({
                     <DialogFooter>
                         <Button
                             type="button"
+                            className="cursor-pointer"
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={form.processing}>
+                        <Button type="submit"
+                            className="cursor-pointer"
+                            disabled={form.processing}>
                             {isEditing ? 'Save Changes' : 'Add Custodian'}
                         </Button>
                     </DialogFooter>
@@ -234,7 +244,7 @@ export default function Custodians({ custodians, filters }: Props) {
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Added
                                     </th>
-                                    <th className="py-3 text-right text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                    <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Actions
                                     </th>
                                 </tr>
@@ -244,10 +254,14 @@ export default function Custodians({ custodians, filters }: Props) {
                                     const isCurrentUser =
                                         custodian.id === props.auth.user?.id;
 
+                                    const activeBorrows = custodian.borrows?.filter(
+                                        (b) => b.status === 'borrowed' || b.status === 'awaiting_check'
+                                    );
+
                                     return (
                                         <tr
                                             key={custodian.id}
-                                            className="border-b border-border last:border-0 hover:bg-muted/50"
+                                            className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50"
                                         >
                                             <td className="py-3.5 pr-4">
                                                 <div className="flex items-center gap-3">
@@ -278,32 +292,74 @@ export default function Custodians({ custodians, filters }: Props) {
                                                 ).toLocaleDateString()}
                                             </td>
                                             <td className="py-3.5 text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon-sm"
+                                                <div className="flex justify-end gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                                    <button
                                                         onClick={() =>
                                                             setFormTarget(
                                                                 custodian,
                                                             )
                                                         }
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-500 cursor-pointer"
                                                         aria-label={`Edit ${custodian.name}`}
                                                     >
-                                                        <Pencil />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon-sm"
-                                                        disabled={isCurrentUser}
+                                                        <Pencil className="size-4" />
+                                                    </button>
+                                                    <button
                                                         onClick={() =>
+                                                            !isCurrentUser &&
                                                             setDeleteTarget(
                                                                 custodian,
                                                             )
                                                         }
+                                                        disabled={isCurrentUser}
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
                                                         aria-label={`Remove ${custodian.name}`}
                                                     >
-                                                        <Trash2 className="text-destructive" />
-                                                    </Button>
+                                                        <Trash2 className="size-4" />
+                                                    </button>
+
+                                                    <HoverCard>
+                                                        <HoverCardTrigger asChild>
+                                                            <button
+                                                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
+                                                                aria-label={`View borrowed items for ${custodian.name}`}
+                                                            >
+                                                                <Eye className="size-4" />
+                                                            </button>
+                                                        </HoverCardTrigger>
+
+                                                        <HoverCardContent className="w-80">
+                                                            <div className="space-y-3">
+                                                                <h4 className="font-semibold">Borrowed Items</h4>
+
+                                                                {activeBorrows?.length ? (
+                                                                    activeBorrows.map((borrow) => (
+                                                                        <div
+                                                                            key={borrow.id}
+                                                                            className="border-b border-border pb-2 last:border-0"
+                                                                        >
+                                                                            <div className="font-medium">
+                                                                                {borrow.asset.name}
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground">
+                                                                                {borrow.asset.asset_tag}
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground">
+                                                                                Since{' '}
+                                                                                {new Date(
+                                                                                    borrow.requested_at
+                                                                                ).toLocaleDateString()}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))
+                                                                ) : (
+                                                                    <p className="text-sm text-muted-foreground">
+                                                                        No items currently borrowed.
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </HoverCardContent>
+                                                    </HoverCard>
                                                 </div>
                                             </td>
                                         </tr>
@@ -347,35 +403,12 @@ export default function Custodians({ custodians, filters }: Props) {
                 />
             )}
 
-            <Dialog
-                open={Boolean(deleteTarget)}
-                onOpenChange={(open) => !open && setDeleteTarget(null)}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Remove custodian account?</DialogTitle>
-                        <DialogDescription>
-                            {deleteTarget &&
-                                `${deleteTarget.name} will no longer be able to access the custodian dashboard.`}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setDeleteTarget(null)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={removeCustodian}
-                            disabled={deleteForm.processing}
-                        >
-                            Remove Custodian
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <CustodianDeleteDialog
+                custodian={deleteTarget}
+                onCancel={() => setDeleteTarget(null)}
+                onConfirm={removeCustodian}
+                processing={deleteForm.processing}
+            />
         </>
     );
 }

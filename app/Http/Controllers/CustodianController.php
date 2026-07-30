@@ -20,6 +20,11 @@ class CustodianController extends Controller
 
         $custodians = User::query()
             ->where('role', 'custodian')
+            // Mirrors the borrow-history hover card on the Employees page.
+            // Assumes `User` has a `borrows()` hasMany relation to
+            // BorrowRequest via `borrower_id` — add it if it doesn't exist
+            // yet.
+            ->with(['borrows.asset'])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
