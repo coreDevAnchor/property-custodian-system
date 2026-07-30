@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\BorrowRequest;
+use App\Models\BorrowRenewal;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -58,8 +59,11 @@ class HandleInertiaRequests extends Middleware
             ],
             'counts' => $request->user()?->role === 'custodian'
                 ? [
-                    'pendingBorrowRequests' => BorrowRequest::where('status', 'pending')->count(),
+                    'pendingBorrowRequests' =>
+                        BorrowRequest::where('status', '=', 'pending')->count();
+                        BorrowRequest::where('status', '=', 'awaiting_check')->count();
                     'awaitingReturns' => BorrowRequest::where('status', 'awaiting_check')->count(),
+                    'pendingRenewalRequests' => BorrowRenewal::where('status', 'pending')->count(),
                 ]
                 : null,
             'unreadNotificationCount' => fn () => $request->user()?->unreadNotifications()->count() ?? 0,
