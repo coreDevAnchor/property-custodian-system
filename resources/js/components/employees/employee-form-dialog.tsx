@@ -136,7 +136,12 @@ export function EmployeeFormDialog({
                     onOpenChange(false);
                 },
                 onError: (errors) => {
-                    console.log(errors);
+                    if (errors.email) {
+                        form.setError('email', {
+                            type: 'server',
+                            message: errors.email,
+                        });
+                    }
                 },
             });
         } else {
@@ -146,7 +151,12 @@ export function EmployeeFormDialog({
                     onOpenChange(false);
                 },
                 onError: (errors) => {
-                    console.log(errors);
+                    if (errors.email) {
+                        form.setError('email', {
+                            type: 'server',
+                            message: errors.email,
+                        });
+                    }
                 },
             });
         }

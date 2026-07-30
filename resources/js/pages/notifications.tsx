@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Bell, BellRing, CalendarClock, CheckCheck, Clock3 } from 'lucide-react';
+import { Bell, BellRing, CalendarClock, CheckCheck, Clock3, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PaginationBar } from '@/components/ui/pagination';
 import * as notificationRoutes from '@/routes/notifications';
@@ -40,10 +40,35 @@ export default function Notifications({ notifications, unreadCount }: Props) {
         });
     }
 
+    function markAsUnread(id: string) {
+        router.patch(notificationRoutes.unread.url(id), {}, {
+            preserveScroll: true,
+            only: ['notifications', 'unreadCount', 'unreadNotificationCount'],
+        });
+    }
+
     function markAllAsRead() {
         router.patch(notificationRoutes.readAll.url(), {}, {
             preserveScroll: true,
             only: ['notifications', 'unreadCount', 'unreadNotificationCount'],
+        });
+    }
+
+    function deleteNotification(id: string) {
+        router.delete(notificationRoutes.destroy.url(id), {
+            preserveScroll: true,
+            only: ['notifications', 'unreadCount', 'unreadNotificationCount'],
+        });
+    }
+
+    function deleteReadNotifications() {
+        router.delete(notificationRoutes.destroyRead.url(), {
+            preserveScroll: true,
+            only: [
+                'notifications',
+                'unreadCount',
+                'unreadNotificationCount',
+            ],
         });
     }
 
@@ -54,6 +79,10 @@ export default function Notifications({ notifications, unreadCount }: Props) {
             only: ['notifications', 'unreadCount', 'unreadNotificationCount'],
         });
     }
+
+     const hasReadNotifications = notifications.data.some(
+        (notification) => notification.read_at !== null
+    );
 
     return (
         <>
@@ -73,12 +102,34 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                         </div>
                     </div>
 
-                    {unreadCount > 0 && (
-                        <Button variant="outline" onClick={markAllAsRead}>
-                            <CheckCheck />
-                            Mark all as read
+                    <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                            <Button
+                                variant="outline"
+                                onClick={markAllAsRead}
+                            >
+                                <CheckCheck className="size-4" />
+                                Mark all as read
+                            </Button>
+                        )}
+
+                        <Button
+                            variant="outline"
+                            disabled={!hasReadNotifications}
+                            onClick={() => {
+                                if (
+                                    confirm(
+                                        "Delete all read notifications? This action cannot be undone."
+                                    )
+                                ) {
+                                    deleteReadNotifications();
+                                }
+                            }}
+                        >
+                            <Trash2 className="size-4" />
+                            Delete read
                         </Button>
-                    )}
+                    </div>
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -120,11 +171,33 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                                 </p>
                                             )}
                                         </div>
-                                        {!notification.read_at && (
-                                            <Button variant="ghost" size="sm" onClick={() => markAsRead(notification.id)}>
-                                                Mark read
+                                        <div className="flex items-center gap-2">
+                                            {!notification.read_at ? (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => markAsRead(notification.id)}
+                                                >
+                                                    Mark read
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => markAsUnread(notification.id)}
+                                                >
+                                                    Mark unread
+                                                </Button>
+                                            )}
+
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => deleteNotification(notification.id)}
+                                            >
+                                                <Trash2 className="size-4" />
                                             </Button>
-                                        )}
+                                        </div>
                                     </article>
                                 );
                             })}
