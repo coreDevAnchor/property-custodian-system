@@ -127,7 +127,6 @@ export function EmployeeFormDialog({
             is_active: data.is_active,
         };
 
-        console.log('Submitting:', payload);
 
         if (mode === 'create') {
             router.post('/custodian/employees', payload, {
