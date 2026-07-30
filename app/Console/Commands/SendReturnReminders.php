@@ -5,8 +5,9 @@ namespace App\Console\Commands;
 use App\Models\BorrowRequest;
 use App\Models\User;
 use App\Notifications\ReturnReminderNotification;
-use Illuminate\Console\Command;
 use App\Notifications\DeadlineReminderNotification;
+use App\Notifications\OverdueReminderNotification;
+use Illuminate\Console\Command;
 
 class SendReturnReminders extends Command
 {
@@ -31,7 +32,7 @@ class SendReturnReminders extends Command
                 continue;
             }
 
-            $this->notifyRecipients($user, fn () => new ReturnReminderNotification($borrow));
+            $this->notifyBorrower($user, fn () => new ReturnReminderNotification($borrow));
 
             $borrow->update([
                 'three_day_reminder_sent' => true,
@@ -54,7 +55,7 @@ class SendReturnReminders extends Command
                 continue;
             }
 
-            $this->notifyRecipients($user, fn () => new DeadlineReminderNotification($borrow));
+            $this->notifyBorrower($user, fn () => new DeadlineReminderNotification($borrow));
 
             $borrow->update([
                 'deadline_reminder_sent' => true,
@@ -62,21 +63,43 @@ class SendReturnReminders extends Command
             ]);
         }
 
+        // Overdue reminders (once per day)
+        $overdueBorrows = BorrowRequest::with(['asset', 'borrower'])
+            ->where('status', 'borrowed')
+            ->whereDate('expected_return_date', '<', now())
+            ->get();
+
+        foreach ($overdueBorrows as $borrow) {
+            $user = $borrow->borrower;
+
+            if (! $user) {
+                $this->warn("Skipping overdue borrow #{$borrow->id}: missing borrower.");
+                continue;
+            }
+
+            if (
+                $borrow->overdue_last_notified_at === null ||
+                $borrow->overdue_last_notified_at->isBefore(now()->startOfDay())
+            ) {
+                $this->notifyBorrower($user, fn () => new OverdueReminderNotification($borrow));
+
+                $borrow->update([
+                    'overdue_last_notified_at' => now(),
+                ]);
+            }
+        }
+
         $this->info(
             "{$threeDayBorrows->count()} three-day reminder(s) sent, " .
-            "{$deadlineBorrows->count()} deadline reminder(s) sent."
+            "{$deadlineBorrows->count()} deadline reminder(s) sent, " .
+            "{$overdueBorrows->count()} overdue reminder(s) sent."
         );
 
         return self::SUCCESS;
     }
 
-    private function notifyRecipients(User $borrower, \Closure $notification): void
+    private function notifyBorrower(User $borrower, \Closure $notification): void
     {
-        User::query()
-            ->where('role', 'custodian')
-            ->get()
-            ->push($borrower)
-            ->unique('id')
-            ->each(fn (User $user) => $user->notify($notification()));
+        $borrower->notify($notification());
     }
 }

@@ -37,6 +37,8 @@ class BorrowRequest extends Model
 
         'deadline_reminder_sent' => 'boolean',
         'deadline_reminder_sent_at' => 'datetime',
+
+        'overdue_last_notified_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -59,6 +61,8 @@ class BorrowRequest extends Model
         'three_day_reminder_sent_at',
         'deadline_reminder_sent',
         'deadline_reminder_sent_at',
+
+        'overdue_last_notified_at',
     ];
 
     public function asset(): BelongsTo
