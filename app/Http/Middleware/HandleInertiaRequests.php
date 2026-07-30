@@ -60,8 +60,8 @@ class HandleInertiaRequests extends Middleware
             'counts' => $request->user()?->role === 'custodian'
                 ? [
                     'pendingBorrowRequests' =>
-                        BorrowRequest::where('status', '=', 'pending')->count();
-                        BorrowRequest::where('status', '=', 'awaiting_check')->count();
+                        BorrowRequest::where('status', 'pending')->count(),
+                        + BorrowRenewal::where('status', 'pending')->count(),
                     'awaitingReturns' => BorrowRequest::where('status', 'awaiting_check')->count(),
                     'pendingRenewalRequests' => BorrowRenewal::where('status', 'pending')->count(),
                 ]
