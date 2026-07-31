@@ -1,15 +1,25 @@
 import * as Recharts from 'recharts';
-
+import { useState } from 'react';
 import {
     MonthlyUsagePoint,
     UsageMetric,
 } from '@/types/reports';
 
-interface Props {
-    data: MonthlyUsagePoint[];
-    metric: UsageMetric;
-    onMetricChange: (metric: UsageMetric) => void;
-}
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+
+import { ReportPeriod } from '@/types/reports';
 
 const metricCopy: Record<
     UsageMetric,
@@ -84,9 +94,12 @@ function CustomTooltip({
     payload?: Array<{
         name: string;
         value: number;
+        color: string;
+        fill: string;
     }>;
     label?: string;
 }) {
+
     if (!active || !payload?.length) {
         return null;
     }
@@ -108,9 +121,20 @@ function CustomTooltip({
                         key={item.name}
                         className="flex items-center justify-between gap-6"
                     >
-                        <span className="text-xs text-muted-foreground">
-                            {item.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+
+                            <div
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{
+                                    backgroundColor: item.color,
+                                }}
+                            />
+
+                            <span className="text-xs text-muted-foreground">
+                                {item.name}
+                            </span>
+
+                        </div>
 
                         <span className="text-xs font-bold text-foreground">
                             {item.value}
@@ -134,10 +158,21 @@ function CustomTooltip({
     );
 }
 
+
+interface Props {
+    data: MonthlyUsagePoint[];
+    metric: UsageMetric;
+    period: ReportPeriod;
+    onMetricChange: (metric: UsageMetric) => void;
+    onPeriodChange: (period: ReportPeriod) => void;
+}
+
 export function MonthlyUsageChart({
     data,
     metric,
+    period,
     onMetricChange,
+    onPeriodChange,
 }: Props) {
     const copy = metricCopy[metric];
 
@@ -152,13 +187,13 @@ export function MonthlyUsageChart({
     );
 
     return (
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <Card className="rounded-2xl shadow-sm">
             {/* Header */}
-            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <CardHeader className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                    <h2 className="text-lg font-bold tracking-tight text-foreground">
+                    <CardTitle className="text-xl font-semibold">
                         {copy.title}
-                    </h2>
+                    </CardTitle>
 
                     <p className="mt-1 text-sm text-muted-foreground">
                         {copy.subtitle}
@@ -167,133 +202,183 @@ export function MonthlyUsageChart({
 
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                     {/* Metric Switch */}
-                    <div className="flex items-center rounded-lg border border-border bg-muted/30 p-1">
-                        <button
-                            type="button"
-                            onClick={() =>
-                                onMetricChange('borrows')
+                    <div className="flex items-center p-1 gap-2">
+                        <Select
+                            value={metric}
+                            onValueChange={(value) =>
+                                onMetricChange(value as UsageMetric)
                             }
-                            className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${metric === 'borrows'
-                                ? 'bg-card text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
                         >
-                            Borrows
-                        </button>
 
-                        <button
-                            type="button"
-                            onClick={() =>
-                                onMetricChange(
-                                    'assets_added',
-                                )
+                            <SelectTrigger className="w-48">
+
+                                <SelectValue />
+
+                            </SelectTrigger>
+
+                            <SelectContent>
+
+                                <SelectItem value="borrows">
+
+                                    Borrow Requests
+
+                                </SelectItem>
+
+                                <SelectItem value="assets_added">
+
+                                    Assets Added
+
+                                </SelectItem>
+
+                            </SelectContent>
+
+                        </Select>
+
+                        <Select
+                            value={period}
+                            onValueChange={(value) =>
+                                onPeriodChange(value as ReportPeriod)
                             }
-                            className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${metric ===
-                                'assets_added'
-                                ? 'bg-card text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
                         >
-                            Assets Added
-                        </button>
+
+                            <SelectTrigger className="w-36">
+
+                                <SelectValue />
+
+                            </SelectTrigger>
+
+                            <SelectContent>
+                                <SelectItem value="today">
+                                    Today
+                                </SelectItem>
+
+                                <SelectItem value="week">
+                                    This Week
+                                </SelectItem>
+
+                                <SelectItem value="month">
+                                    This Month
+                                </SelectItem>
+
+                                <SelectItem value="year">
+                                    This Year
+                                </SelectItem>
+                            </SelectContent>
+
+                        </Select>
                     </div>
 
-                    {/* Total */}
-                    <div className="whitespace-nowrap text-sm text-muted-foreground">
-                        <span className="font-bold text-foreground">
-                            {total.toLocaleString()}
-                        </span>{' '}
-                        {copy.totalLabel}
-                    </div>
+
                 </div>
-            </div>
+            </CardHeader>
 
-            {/* Legend */}
-            <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2">
-                {bars.map((bar) => (
-                    <div
-                        key={bar.key}
-                        className="flex items-center gap-2"
-                    >
-                        <span
-                            className="size-2.5 rounded-full"
-                            style={{
-                                backgroundColor:
-                                    bar.color,
-                            }}
-                        />
 
-                        <span className="text-xs font-medium text-muted-foreground">
-                            {bar.name}
-                        </span>
-                    </div>
-                ))}
-            </div>
-
-            {/* Empty State */}
-            {total === 0 ? (
-                <div className="flex h-[360px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20">
-                    <p className="text-sm text-muted-foreground">
-                        {copy.emptyText}
-                    </p>
-                </div>
-            ) : (
-                <div className="h-[360px] w-full">
-                    <Recharts.ResponsiveContainer width="100%" height="100%">
-                        <Recharts.BarChart
-                            data={data}
-                            margin={{
-                                top: 10,
-                                right: 10,
-                                left: -15,
-                                bottom: 5,
-                            }}
-                            barCategoryGap="25%"
+            <CardContent className="border-t pt-5">
+                {/* Legend */}
+                <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+                    {bars.map((bar) => (
+                        <div
+                            key={bar.key}
+                            className="flex items-center gap-2"
                         >
-                            <Recharts.CartesianGrid
-                                vertical={false}
-                                strokeDasharray="3 3"
-                                className="stroke-border"
-                            />
-
-                            <Recharts.XAxis
-                                dataKey="label"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fontSize: 12 }}
-                                dy={10}
-                            />
-
-                            <Recharts.YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                allowDecimals={false}
-                                tick={{ fontSize: 11 }}
-                            />
-
-                            <Recharts.Tooltip
-                                cursor={{
-                                    fill: 'hsl(var(--muted))',
-                                    opacity: 0.25,
+                            <span
+                                className="size-2.5 rounded-full"
+                                style={{
+                                    backgroundColor:
+                                        bar.color,
                                 }}
-                                content={<CustomTooltip />}
                             />
 
-                            {bars.map((bar) => (
-                                <Recharts.Bar
-                                    key={bar.key}
-                                    dataKey={bar.key}
-                                    name={bar.name}
-                                    fill={bar.color}
-                                    radius={[5, 5, 0, 0]}
-                                    maxBarSize={28}
-                                    animationDuration={500}
-                                />
-                            ))}
-                        </Recharts.BarChart>
-                    </Recharts.ResponsiveContainer>
+                            <span className="text-xs font-medium text-muted-foreground">
+                                {bar.name}
+                            </span>
+                        </div>
+                    ))}
                 </div>
-            )}
-        </div>
+                {/* Empty State */}
+                {total === 0 ? (
+                    <div className="flex h-[450px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20">
+                        <p className="text-sm text-muted-foreground">
+                            {copy.emptyText}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="h-[450px] w-full rounded-xl bg-muted/20 p-4">
+                        <Recharts.ResponsiveContainer width="100%" height="100%">
+                            <Recharts.BarChart
+                                data={data}
+                                margin={{
+                                    top: 10,
+                                    right: 10,
+                                    left: -5,
+                                    bottom: 5,
+                                }}
+                                barCategoryGap="25%"
+                            >
+                                <Recharts.CartesianGrid
+                                    vertical={false}
+                                    strokeDasharray="4 4"
+                                    opacity={0.35}
+                                />
+
+                                <Recharts.XAxis
+                                    dataKey="label"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{
+                                        fontSize: 12,
+                                        fill: "#71717a"
+                                    }}
+                                    dy={10}
+                                />
+
+                                <Recharts.YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    allowDecimals={false}
+                                    tick={{
+                                        fontSize: 12,
+                                        fill: "#71717a"
+                                    }}
+                                />
+
+                                <Recharts.Tooltip
+                                    cursor={{
+                                        fill: 'hsl(var(--muted))',
+                                        opacity: 0.25,
+                                    }}
+                                    content={<CustomTooltip />}
+                                />
+
+                                {bars.map((bar) => (
+                                    <Recharts.Bar
+                                        key={bar.key}
+                                        dataKey={bar.key}
+                                        name={bar.name}
+                                        fill={bar.color}
+                                        radius={[10, 10, 0, 0]}
+                                        maxBarSize={42}
+                                        animationDuration={500}
+                                    />
+                                ))}
+                            </Recharts.BarChart>
+                        </Recharts.ResponsiveContainer>
+
+                    </div>
+                )}
+            </CardContent>
+
+            <CardContent className="border-t mt-[5px]">
+
+                {/* Total */}
+                <div className="whitespace-nowrap text-sm text-muted-foreground">
+                    <span className="font-bold text-foreground">
+                        {total.toLocaleString()}
+                    </span>{' '}
+                    {copy.totalLabel}
+                </div>
+
+            </CardContent>
+        </Card>
     );
 }

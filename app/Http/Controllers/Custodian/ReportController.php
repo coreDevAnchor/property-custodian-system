@@ -15,11 +15,17 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
+
+
         $view = $request->get('view', 'assets');
         $selectedCategory = $request->get('category', 'all');
         $sort = $request->get('sort', $view === 'overdue' ? 'most_overdue' : 'latest');
         $perPage = (int) $request->get('per_page', 15);
         $usageMetric = $request->get('usage_metric', 'borrows'); // 'borrows' | 'assets_added'
+        $chartPeriod = $request->get('chart_period', 'month');
+        $employeePeriod = $request->get('employee_period', 'month');
+        $headerPeriod = $request->get('header_period', 'month');
+        $valuationPeriod = $request->get('valuation_period', 'month');
 
         $categories = Category::all(['id', 'name'])
             ->sortBy('name')
@@ -34,16 +40,20 @@ class ReportController extends Controller
 
         $lostCount = Asset::where('status', 'lost')->count();
 
-        $monthlyUsage = $this->monthlyUsageSeries($usageMetric, $selectedCategory);
-        $borrowerAnalytics = $this->borrowerAnalytics();
-        $depreciationSummary = $this->depreciationSummary();
-        $reportSummary = $this->reportSummary();
+        $monthlyUsage = $this->monthlyUsageSeries($usageMetric, $selectedCategory, $chartPeriod);
+        $borrowerAnalytics = $this->borrowerAnalytics($employeePeriod);
+        $depreciationSummary = $this->depreciationSummary($valuationPeriod);
+        $reportSummary = $this->reportSummary($headerPeriod);
 
         $sharedReportData = [
             'categories' => $categories,
             'selectedCategory' => $selectedCategory,
             'selectedSort' => $sort,
             'selectedView' => $view,
+            'selectedHeaderPeriod' => $headerPeriod,
+            'selectedChartPeriod' => $chartPeriod,
+            'selectedEmployeePeriod' => $employeePeriod,
+            'selectedValuationPeriod' => $valuationPeriod,
             'usageMetric' => $usageMetric,
 
             'overdueCount' => $overdueCount,
@@ -53,6 +63,7 @@ class ReportController extends Controller
             'borrowerAnalytics' => $borrowerAnalytics,
             'depreciationSummary' => $depreciationSummary,
             'reportSummary' => $reportSummary,
+
         ];
 
         if ($view === 'overdue') {
@@ -210,117 +221,144 @@ class ReportController extends Controller
      */
     private function monthlyUsageSeries(
         string $metric,
-        string $selectedCategory
+        string $selectedCategory,
+        string $period,
     ): array {
-        $start = now()
-            ->subMonths(11)
-            ->startOfMonth();
+
+        $driver = DB::connection()->getDriverName();
+
+        switch ($period) {
+
+            case 'today':
+                $start = now()->startOfDay();
+                $slots = collect(range(0, 23));
+
+                $dateExpression = match ($driver) {
+                    'pgsql' => "EXTRACT(HOUR FROM %s)",
+                    'sqlite' => "strftime('%H', %s)",
+                    default => "HOUR(%s)",
+                };
+
+                $label = fn($i) => sprintf('%02d:00', $i);
+                $key = fn($i) => (string) $i;
+                break;
+
+            case 'week':
+                $start = now()->startOfWeek();
+
+                $slots = collect(range(0, 6));
+
+                $dateExpression = match ($driver) {
+                    'pgsql' => "EXTRACT(DOW FROM %s)",
+                    'sqlite' => "strftime('%w', %s)",
+                    default => "DAYOFWEEK(%s)",
+                };
+
+                $label = fn($i) =>
+                    now()->startOfWeek()->copy()->addDays($i)->format('D');
+
+                $key = fn($i) => (string) $i;
+                break;
+
+            case 'month':
+                $start = now()->startOfMonth();
+
+                $slots = collect(range(1, now()->daysInMonth));
+
+                $dateExpression = match ($driver) {
+                    'pgsql' => "EXTRACT(DAY FROM %s)",
+                    'sqlite' => "strftime('%d', %s)",
+                    default => "DAY(%s)",
+                };
+
+                $label = fn($i) => (string) $i;
+                $key = fn($i) => (string) $i;
+                break;
+
+            default: // year
+
+                $start = now()->startOfYear();
+
+                $slots = collect(range(1, 12));
+
+                $dateExpression = match ($driver) {
+                    'pgsql' => "EXTRACT(MONTH FROM %s)",
+                    'sqlite' => "strftime('%m', %s)",
+                    default => "MONTH(%s)",
+                };
+
+                $label = fn($i) =>
+                    now()->startOfYear()->copy()->addMonths($i - 1)->format('M');
+
+                $key = fn($i) => (string) $i;
+                break;
+        }
 
         if ($metric === 'assets_added') {
-            $monthExpression = match (DB::connection()->getDriverName()) {
-                'pgsql' => "TO_CHAR(created_at, 'YYYY-MM')",
-                'sqlite' => "strftime('%Y-%m', created_at)",
-                default => "DATE_FORMAT(created_at, '%Y-%m')",
-            };
 
             $query = Asset::query()
                 ->where('created_at', '>=', $start);
 
             if ($selectedCategory !== 'all') {
-                $query->where(
-                    'category_id',
-                    $selectedCategory
-                );
+                $query->where('category_id', $selectedCategory);
             }
 
-            /*
-             * We group assets by the month they were added,
-             * then count their current condition/status.
-             */
             $rows = $query
-                ->selectRaw("
-                {$monthExpression} as month,
+                ->selectRaw(sprintf($dateExpression, 'created_at') . " as bucket,
                 condition,
                 status,
-                COUNT(*) as count
-            ")
-                ->groupBy(
-                    'month',
-                    'condition',
-                    'status'
-                )
+                COUNT(*) as count")
+                ->groupBy('bucket', 'condition', 'status')
                 ->get();
 
             $grouped = [];
 
             foreach ($rows as $row) {
-                $month = $row->month;
 
-                if (!isset($grouped[$month])) {
-                    $grouped[$month] = [
+                $bucket = (string) (int) $row->bucket;
+
+                if (!isset($grouped[$bucket])) {
+                    $grouped[$bucket] = [
                         'good' => 0,
                         'defective' => 0,
                         'lost' => 0,
                     ];
                 }
 
-                /*
-                 * Good assets:
-                 * condition 3
-                 *
-                 * Defective assets:
-                 * currently under repair
-                 *
-                 * Lost assets:
-                 * status lost
-                 */
                 if ($row->status === 'lost') {
-                    $grouped[$month]['lost'] += (int) $row->count;
+                    $grouped[$bucket]['lost'] += $row->count;
                 } elseif ($row->status === 'under_repair') {
-                    $grouped[$month]['defective'] += (int) $row->count;
+                    $grouped[$bucket]['defective'] += $row->count;
                 } elseif ((int) $row->condition === 3) {
-                    $grouped[$month]['good'] += (int) $row->count;
+                    $grouped[$bucket]['good'] += $row->count;
                 }
             }
 
-            return collect(range(0, 11))
-                ->map(function (int $offset) use ($start, $grouped) {
-                    $month = $start
-                        ->copy()
-                        ->addMonths($offset);
+            return $slots->map(function ($slot) use ($grouped, $label, $key) {
 
-                    $key = $month->format('Y-m');
+                $bucket = $key($slot);
 
-                    $good = $grouped[$key]['good'] ?? 0;
-                    $defective = $grouped[$key]['defective'] ?? 0;
-                    $lost = $grouped[$key]['lost'] ?? 0;
+                $good = $grouped[$bucket]['good'] ?? 0;
+                $defective = $grouped[$bucket]['defective'] ?? 0;
+                $lost = $grouped[$bucket]['lost'] ?? 0;
 
-                    return [
-                        'month' => $key,
-                        'label' => $month->format('M'),
+                return [
 
-                        'count' =>
-                            $good +
-                            $defective +
-                            $lost,
+                    'month' => $bucket,
 
-                        'good' => $good,
-                        'defective' => $defective,
-                        'lost' => $lost,
-                    ];
-                })
-                ->all();
+                    'label' => $label($slot),
+
+                    'count' => $good + $defective + $lost,
+
+                    'good' => $good,
+
+                    'defective' => $defective,
+
+                    'lost' => $lost,
+                ];
+
+            })->values()->all();
         }
-
-        /*
-         * BORROW REQUESTS
-         */
-
-        $monthExpression = match (DB::connection()->getDriverName()) {
-            'pgsql' => "TO_CHAR(requested_at, 'YYYY-MM')",
-            'sqlite' => "strftime('%Y-%m', requested_at)",
-            default => "DATE_FORMAT(requested_at, '%Y-%m')",
-        };
 
         $query = BorrowRequest::query()
             ->whereNotNull('requested_at')
@@ -329,64 +367,50 @@ class ReportController extends Controller
         if ($selectedCategory !== 'all') {
             $query->whereHas(
                 'asset',
-                fn($q) => $q->where(
-                    'category_id',
-                    $selectedCategory
-                )
+                fn($q) => $q->where('category_id', $selectedCategory)
             );
         }
 
         $rows = $query
-            ->selectRaw("
-            {$monthExpression} as month,
+            ->selectRaw(sprintf($dateExpression, 'requested_at') . " as bucket,
             status,
-            COUNT(*) as count
-        ")
-            ->groupBy(
-                'month',
-                'status'
-            )
+            COUNT(*) as count")
+            ->groupBy('bucket', 'status')
             ->get();
 
         $grouped = [];
 
         foreach ($rows as $row) {
-            $grouped[$row->month][$row->status] =
-                (int) $row->count;
+
+            $bucket = (string) (int) $row->bucket;
+
+            $grouped[$bucket][$row->status] = (int) $row->count;
         }
 
-        return collect(range(0, 11))
-            ->map(function (int $offset) use ($start, $grouped) {
-                $month = $start
-                    ->copy()
-                    ->addMonths($offset);
+        return $slots->map(function ($slot) use ($grouped, $label, $key) {
 
-                $key = $month->format('Y-m');
+            $bucket = $key($slot);
 
-                $pending =
-                    $grouped[$key]['pending'] ?? 0;
+            $pending = $grouped[$bucket]['pending'] ?? 0;
+            $returned = $grouped[$bucket]['returned'] ?? 0;
+            $rejected = $grouped[$bucket]['rejected'] ?? 0;
 
-                $returned =
-                    $grouped[$key]['returned'] ?? 0;
+            return [
 
-                $rejected =
-                    $grouped[$key]['rejected'] ?? 0;
+                'month' => $bucket,
 
-                return [
-                    'month' => $key,
-                    'label' => $month->format('M'),
+                'label' => $label($slot),
 
-                    'count' =>
-                        $pending +
-                        $returned +
-                        $rejected,
+                'count' => $pending + $returned + $rejected,
 
-                    'pending' => $pending,
-                    'returned' => $returned,
-                    'rejected' => $rejected,
-                ];
-            })
-            ->all();
+                'pending' => $pending,
+
+                'returned' => $returned,
+
+                'rejected' => $rejected,
+            ];
+
+        })->values()->all();
     }
     /**
      * Headline totals for the summary panel: overall borrow-request volume,
@@ -405,19 +429,54 @@ class ReportController extends Controller
      *     assetConditions: array{excellent: int, good: int, fair: int, poor: int}
      * }
      */
-    private function reportSummary(): array
+    private function reportSummary(string $period): array
     {
-        $totalBorrowRequests = BorrowRequest::count();
-        $approvedBorrows = BorrowRequest::whereNotNull('approved_at')->count();
-        $returnedBorrows = BorrowRequest::where('status', 'returned')->count();
+
+        $start = match ($period) {
+            'today' => now()->startOfDay(),
+            'week' => now()->startOfWeek(),
+            'month' => now()->startOfMonth(),
+            'year' => now()->startOfYear(),
+            default => now()->startOfMonth(),
+        };
+
+        $totalBorrowRequests = BorrowRequest::where(
+            'requested_at',
+            '>=',
+            $start
+        )->count();
+
+        $approvedBorrows = BorrowRequest::whereNotNull('approved_at')->where(
+            'requested_at',
+            '>=',
+            $start
+        )->count();
+
+        $returnedBorrows = BorrowRequest::where('status', 'returned')->where(
+            'requested_at',
+            '>=',
+            $start
+        )->count();
 
         $returnConditions = [
-            'ok' => BorrowRequest::where('return_condition', 'ok')->count(),
-            'defective' => BorrowRequest::where('return_condition', 'defective')->count(),
-            'lost' => BorrowRequest::where('return_condition', 'lost')->count(),
+            'ok' => BorrowRequest::where('return_condition', 'ok')
+                ->where('returned_at', '>=', $start)
+                ->count(),
+
+            'defective' => BorrowRequest::where('return_condition', 'defective')
+                ->where('returned_at', '>=', $start)
+                ->count(),
+
+            'lost' => BorrowRequest::where('return_condition', 'lost')
+                ->where('returned_at', '>=', $start)
+                ->count(),
         ];
 
-        $conditionCounts = Asset::query()
+        $conditionCounts = Asset::where(
+            'created_at',
+            '>=',
+            $start
+        )
             ->selectRaw('condition, COUNT(*) as count')
             ->groupBy('condition')
             ->pluck('count', 'condition');
@@ -429,7 +488,54 @@ class ReportController extends Controller
             'poor' => (int) ($conditionCounts[1] ?? 0),
         ];
 
+
+        $totalAssets = Asset::where(
+            'created_at',
+            '>=',
+            $start
+        )->count();
+
+        $overdueItems = BorrowRequest::where('status', 'borrowed')
+            ->where('requested_at', '>=', $start)
+            ->whereDate('expected_return_date', '<', now())
+            ->count();
+
+        $lostAssets = Asset::where('status', 'lost')
+            ->where('updated_at', '>=', $start)
+            ->count();
+
+        $defectiveAssets = Asset::where(function ($q) {
+            $q->where('status', 'defective')
+                ->orWhere('status', 'under_repair');
+        })
+            ->where('updated_at', '>=', $start)
+            ->count();
+
+        $totalAssetValue = Asset::where(
+            'created_at',
+            '>=',
+            $start
+        )->sum('acquisition_cost');
+
+        $totalDepreciation = Asset::where(
+            'created_at',
+            '>=',
+            $start
+        )->sum(
+                DB::raw('acquisition_cost * depreciation_rate / 100')
+            );
+
+        $currentEstimatedValue =
+            max($totalAssetValue - $totalDepreciation, 0);
+
         return [
+            'totalAssets' => $totalAssets,
+            'overdueItems' => $overdueItems,
+            'lostAssets' => $lostAssets,
+            'defectiveAssets' => $defectiveAssets,
+            'totalAssetValue' => $totalAssetValue,
+            'totalDepreciation' => $totalDepreciation,
+            'currentEstimatedValue' => $currentEstimatedValue,
             'totalBorrowRequests' => $totalBorrowRequests,
             'approvedBorrows' => $approvedBorrows,
             'returnedBorrows' => $returnedBorrows,
@@ -598,11 +704,15 @@ class ReportController extends Controller
      *     }>
      * }
      */
-    private function borrowerAnalytics(): array
+    private function borrowerAnalytics(string $period): array
     {
-        $start = now()
-            ->subMonths(11)
-            ->startOfMonth();
+        $start = match ($period) {
+            'today' => now()->startOfDay(),
+            'week' => now()->startOfWeek(),
+            'month' => now()->startOfMonth(),
+            'year' => now()->startOfYear(),
+            default => now()->startOfMonth(),
+        };
 
         $monthExpression = match (
         DB::connection()->getDriverName()
@@ -684,27 +794,20 @@ class ReportController extends Controller
 
         $results = $query
             ->selectRaw("
-            {$monthExpression} as month,
             borrows.borrower_id,
             users.name as borrower,
             COUNT(*) as count
         ")
             ->groupBy(
-                'month',
                 'borrows.borrower_id',
                 'users.name'
             )
-            ->orderBy('month')
             ->orderByDesc('count')
+            ->limit(5)
             ->get();
 
         return $results
             ->map(fn($item) => [
-                'month' => $item->month,
-                'label' => \Carbon\Carbon::createFromFormat(
-                    'Y-m',
-                    $item->month
-                )->format('M'),
                 'borrower_id' => (int) $item->borrower_id,
                 'borrower' => $item->borrower,
                 'count' => (int) $item->count,
@@ -720,9 +823,19 @@ class ReportController extends Controller
      *     assetCount: int
      * }
      */
-    private function depreciationSummary(): array
+    private function depreciationSummary(string $period): array
     {
+
+        $start = match ($period) {
+            'today' => now()->startOfDay(),
+            'week' => now()->startOfWeek(),
+            'month' => now()->startOfMonth(),
+            'year' => now()->startOfYear(),
+            default => now()->startOfMonth(),
+        };
+
         $assets = Asset::query()
+            ->where('created_at', '>=', $start)
             ->select([
                 'acquisition_cost',
                 'depreciation_rate',
@@ -748,11 +861,12 @@ class ReportController extends Controller
         return [
             'totalAssetValue' => round($totalAssetValue, 2),
             'totalDepreciation' => round($totalDepreciation, 2),
-            'currentEstimatedValue' => round(
-                $currentEstimatedValue,
+            'currentEstimatedValue' => round($currentEstimatedValue, 2),
+            'assetCount' => $assets->count(),
+            'averageDepreciationRate' => round(
+                $assets->avg('depreciation_rate') ?? 0,
                 2
             ),
-            'assetCount' => $assets->count(),
         ];
     }
 }

@@ -13,7 +13,7 @@ import { dashboard, reports as custodianReports } from '@/routes/custodian';
 import { exportMethod as exportReports } from '@/routes/custodian/reports';
 import { PaginationBar } from '@/components/ui/pagination';
 import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
-import { ReportSummaryCards } from '@/components/reports/reports-summary-card';
+import { ReportSummaryGrid } from '@/components/reports/report-summary-grid';
 import { Paginated } from '@/types/pagination';
 import { Category } from '@/types/categories';
 import { Asset } from '@/types/assets';
@@ -26,11 +26,20 @@ import {
     DepreciationSummary,
     UsageMetric,
     ReportSummary,
+    ReportPeriod
 } from '@/types/reports';
 
 import { BorrowerAnalyticsChart } from '@/components/reports/borrower-analytics-chart';
-import { DepreciationSummaryCard } from '@/components/reports/depreciation-summary';
-
+import { AssetValuationCard } from '@/components/reports/asset-valuation-card';
+import { DepreciationCard } from '@/components/reports/depreciation-card';
+import { ReportHeader } from '@/components/reports/report-header';
+import { TopEmployeeCard } from '@/components/reports/top-employee-card';
+import { ReportFilters } from '@/components/reports/report-filters';
+import { ReportTabs } from '@/components/reports/report-tabs';
+import { AssetsReportTable } from '@/components/reports/table/assets-report-table';
+import { OverdueReportTable } from '@/components/reports/table/overdue-report-table';
+import { LostsReportTable } from '@/components/reports/table/losts-report-table';
+import { TableReportSwitches } from '@/components/reports/report-table-switcher';
 
 interface Props {
     categories: Category[];
@@ -47,6 +56,10 @@ interface Props {
     assets: Paginated<Asset> | null;
     overdueItems: Paginated<OverdueItem> | null;
     lostItems: Paginated<LostItem> | null;
+    selectedChartPeriod: ReportPeriod;
+    selectedEmployeePeriod: ReportPeriod;
+    selectedHeaderPeriod: ReportPeriod;
+    selectedValuationPeriod: ReportPeriod;
 }
 
 const assetSortOptions = [
@@ -65,29 +78,15 @@ const overdueSortOptions = [
     { value: 'borrower_za', label: 'Borrower Z-A' },
 ];
 
-function OverdueBadge({ days }: { days: number }) {
-    const cls =
-        days >= 14
-            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-            : days >= 7
-                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-
-    return (
-        <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}
-        >
-            <AlertTriangle className="size-3" />
-            {days}d overdue
-        </span>
-    );
-}
-
 export default function Reports({
     categories,
     selectedCategory,
     selectedSort,
     selectedView,
+    selectedChartPeriod,
+    selectedEmployeePeriod,
+    selectedHeaderPeriod,
+    selectedValuationPeriod,
     usageMetric,
     overdueCount,
     lostCount,
@@ -103,6 +102,19 @@ export default function Reports({
     const [category, setCategory] = useState(selectedCategory);
     const [sort, setSort] = useState(selectedSort);
     const [metric, setMetric] = useState<UsageMetric>(usageMetric ?? 'borrows');
+    const [chartPeriod, setChartPeriod] = useState<ReportPeriod>(
+        selectedChartPeriod ?? "month"
+    );
+    const [valuationPeriod, setValuationPeriod] =
+        useState<ReportPeriod>(selectedValuationPeriod);
+
+    const [employeePeriod, setEmployeePeriod] = useState<ReportPeriod>(
+        selectedEmployeePeriod ?? "month"
+    );
+
+    const [headerPeriod, setHeaderPeriod] = useState<ReportPeriod>(
+        selectedHeaderPeriod ?? "month"
+    );
 
     const currentPage =
         view === 'overdue'
@@ -119,17 +131,25 @@ export default function Reports({
             sort?: string;
             per_page?: number;
             usageMetric?: UsageMetric;
+            chart_period?: ReportPeriod;
+            header_period?: ReportPeriod;
+            employee_period?: ReportPeriod;
+            valuation_period?: ReportPeriod;
         } = {},
     ) {
         const nextView = overrides.view ?? view;
         router.get(
             custodianReports.url(),
             {
-                view: nextView,
+                view: overrides.view ?? view,
                 category: overrides.category ?? category,
                 sort: overrides.sort ?? sort,
-                per_page: overrides.per_page ?? currentPage?.per_page ?? 15,
+                chart_period: overrides.chart_period ?? chartPeriod,
+                employee_period: overrides.employee_period ?? employeePeriod,
+                header_period: overrides.header_period ?? headerPeriod,
                 usage_metric: overrides.usageMetric ?? metric,
+                valuation_period: overrides.valuation_period ?? valuationPeriod,
+                per_page: overrides.per_page ?? currentPage?.per_page ?? 15,
                 page,
             },
             {
@@ -140,24 +160,43 @@ export default function Reports({
                     'assets',
                     'overdueItems',
                     'lostItems',
+
                     'monthlyUsage',
+                    'borrowerAnalytics',
+                    'reportSummary',
+                    'depreciationSummary',
+
                     'selectedCategory',
                     'selectedSort',
                     'selectedView',
+
+                    'selectedChartPeriod',
+                    'selectedEmployeePeriod',
+                    'selectedHeaderPeriod',
+                    'selectedValuationPeriod',
+
                     'usageMetric',
+
                     'overdueCount',
                     'lostCount',
-                    'reportSummary',
                 ],
             },
         );
     }
 
+    function handleHeaderPeriodChange(value: string) {
+        const next = value as ReportPeriod;
+
+        setHeaderPeriod(next);
+
+        fetchPage(1, {
+            header_period: next,
+        });
+    }
+
     function handleViewChange(value: string) {
         const nextView = value as ReportView;
         setView(nextView);
-        // Reset sort to the new view's default when switching tabs, since
-        // asset sort keys (e.g. "cost_high") don't apply to overdue items.
         const defaultSort = nextView === 'overdue' ? 'most_overdue' : 'latest';
         setSort(defaultSort);
         fetchPage(1, { view: nextView, sort: defaultSort });
@@ -186,6 +225,36 @@ export default function Reports({
         fetchPage(1, { usageMetric: value });
     }
 
+    function handleChartPeriodChange(value: string) {
+        const next = value as ReportPeriod;
+
+        setChartPeriod(next);
+
+        fetchPage(1, {
+            chart_period: next,
+        });
+    }
+
+    function handleEmployeePeriodChange(value: string) {
+        const next = value as ReportPeriod;
+
+        setEmployeePeriod(next);
+
+        fetchPage(1, {
+            employee_period: next,
+        });
+    }
+
+    function handleValuationPeriodChange(value: string) {
+        const next = value as ReportPeriod;
+
+        setValuationPeriod(next);
+
+        fetchPage(1, {
+            valuation_period: next,
+        });
+    }
+
     const sortOptions =
         view === 'overdue' ? overdueSortOptions : assetSortOptions;
 
@@ -195,29 +264,20 @@ export default function Reports({
 
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 lg:p-8">
                 {/* ── Page header ── */}
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-                            Reports
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Asset insights, overdue monitoring, and lost-item
-                            tracking
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={() =>
-                        (window.location.href = exportReports.url({
-                            query: { view, category, sort },
-                        }))
-                        }
-                        className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
-                    >
-                        <Download className="size-4" />
-                        Export CSV
-                    </button>
-                </div>
+                <ReportHeader
+                    period={headerPeriod}
+                    onPeriodChange={handleHeaderPeriodChange}
+                    onExport={() =>
+                    (window.location.href = exportReports.url({
+                        query: {
+                            view,
+                            category,
+                            sort,
+                            headerPeriod,
+                        },
+                    }))
+                    }
+                />
 
                 {/* ── Overdue stat card (always visible, both tabs) ── */}
                 {overdueCount > 0 && (
@@ -243,409 +303,128 @@ export default function Reports({
                     </div>
                 )}
 
-                <MonthlyUsageChart
-                    data={monthlyUsage}
-                    metric={metric}
-                    onMetricChange={handleMetricChange}
-                />
 
-                <ReportSummaryCards data={reportSummary} />
 
-                <DepreciationSummaryCard
-                    data={depreciationSummary}
-                />
+                <div className="mt-8">
+                    <div className="space-y-8">
 
-                <BorrowerAnalyticsChart
-                    data={borrowerAnalytics}
-                />
+                        <ReportSummaryGrid
+                            data={reportSummary}
+                        />
+
+
+                        <MonthlyUsageChart
+                            data={monthlyUsage}
+                            metric={metric}
+                            period={chartPeriod}
+                            onMetricChange={handleMetricChange}
+                            onPeriodChange={handleChartPeriodChange}
+                        />
+
+                        <div className="grid gap-6 lg:grid-cols-12">
+                            <div className="lg:col-span-5">
+
+                                {/* Top Employees */}
+                                <TopEmployeeCard
+                                    data={borrowerAnalytics}
+                                    period={employeePeriod}
+                                    onPeriodChange={handleEmployeePeriodChange}
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-6 lg:col-span-7">
+                                <div className="flex flex-col gap-6">
+
+                                    <AssetValuationCard
+                                        data={depreciationSummary}
+                                        period={valuationPeriod}
+                                        onPeriodChange={handleValuationPeriodChange}
+                                    />
+
+                                    <DepreciationCard
+                                        data={depreciationSummary}
+                                    />
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
 
                 {/* ── Tabs ── */}
-                <Tabs value={view} onValueChange={handleViewChange}>
-                    <TabsList>
-                        <TabsTrigger value="assets" className="cursor-pointer">
-                            Asset Report
-                        </TabsTrigger>
-                        <TabsTrigger value="overdue" className="cursor-pointer">
-                            Overdue Items
-                            {overdueCount > 0 && (
-                                <span className="ml-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                    {overdueCount}
-                                </span>
-                            )}
-                        </TabsTrigger>
-                        <TabsTrigger value="lost" className="cursor-pointer">
-                            Lost Items
-                            {lostCount > 0 && (
-                                <span className="ml-1.5 rounded-full bg-slate-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                    {lostCount}
-                                </span>
-                            )}
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <ReportTabs
+                    view={view}
+                    overdueCount={overdueCount}
+                    lostCount={lostCount}
+                    onChange={handleViewChange}
+                />
 
                 {/* ── Filters + table ── */}
                 <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-                    <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Select
-                                value={category}
-                                onValueChange={handleCategoryChange}
-                            >
-                                <SelectTrigger className="w-[180px] cursor-pointer">
-                                    <SelectValue placeholder="Category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        All Categories
-                                    </SelectItem>
-                                    {categories.map((cat) => (
-                                        <SelectItem
-                                            key={cat.id}
-                                            value={String(cat.id)}
-                                        >
-                                            {cat.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            <Select
-                                value={sort}
-                                onValueChange={handleSortChange}
-                            >
-                                <SelectTrigger className="w-[180px] cursor-pointer">
-                                    <SelectValue placeholder="Sort by" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {sortOptions.map((option) => (
-                                        <SelectItem
-                                            key={option.value}
-                                            value={option.value}
-                                        >
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                    {/* Header */}
+                    <div className="border-b border-border px-6 py-5">
+                        <h2 className="text-lg font-semibold tracking-tight">
+                            Report Tables
+                        </h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Browse detailed asset, overdue, and lost item records.
+                        </p>
                     </div>
 
+                    {/* Filters */}
+                    <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <ReportFilters
+                            categories={categories}
+                            category={category}
+                            sort={sort}
+                            sortOptions={sortOptions}
+                            onCategoryChange={handleCategoryChange}
+                            onSortChange={handleSortChange}
+                        />
+                    </div>
+
+                    {/* Table */}
                     {view === 'assets' ? (
-                        <>
-                            <div className="overflow-x-auto px-6 pb-2">
-                                <table className="w-full min-w-[760px]">
-                                    <thead>
-                                        <tr className="border-b border-border">
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Asset
-                                            </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Category
-                                            </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Asset Type
-                                            </th>
-                                            <th className="py-3 pr-4 text-right text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Cost
-                                            </th>
-                                            <th className="py-3 pr-4 text-right text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Rate
-                                            </th>
-                                            <th className="py-3 text-right text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Total Depreciation
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {(assets?.data ?? []).map((asset) => (
-                                            <tr
-                                                key={asset.id}
-                                                className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
-                                            >
-                                                <td className="py-3.5 pr-4">
-                                                    <div className="min-w-0">
-                                                        <p className="truncate text-sm font-semibold text-foreground">
-                                                            {asset.name}
-                                                        </p>
-                                                        <p className="truncate text-xs text-muted-foreground">
-                                                            {asset.asset_tag}
-                                                        </p>
-                                                    </div>
-                                                </td>
-                                                <td className="py-3.5 pr-4">
-                                                    <span className="text-sm text-foreground">
-                                                        {asset.category?.name ??
-                                                            '—'}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3.5 pr-4">
-                                                    <span className="text-sm text-muted-foreground">
-                                                        {asset.asset_type
-                                                            ?.name ?? '—'}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3.5 pr-4 text-right font-mono text-sm whitespace-nowrap text-foreground">
-                                                    ₱
-                                                    {Number(
-                                                        asset.acquisition_cost,
-                                                    ).toLocaleString()}
-                                                </td>
-                                                <td className="py-3.5 pr-4 text-right whitespace-nowrap">
-                                                    {asset.depreciation_rate ? (
-                                                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                                                            {
-                                                                asset.depreciation_rate
-                                                            }
-                                                            %
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-sm text-muted-foreground">
-                                                            —
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="py-3.5 text-right font-mono text-sm whitespace-nowrap text-foreground">
-                                                    {asset.total_depreciation
-                                                        ? `₱${asset.total_depreciation.toLocaleString()}`
-                                                        : '—'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-
-                                {(assets?.data ?? []).length === 0 && (
-                                    <div className="flex flex-col items-center gap-1 py-12 text-center">
-                                        <p className="text-sm font-semibold text-foreground">
-                                            No assets found
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Try adjusting your filters
-                                        </p>
-                                    </div>
-                                )}
+                        assets ? (
+                            <AssetsReportTable
+                                assets={assets}
+                                handlePageChange={handlePageChange}
+                                handlePerPageChange={handlePerPageChange}
+                            />
+                        ) : (
+                            <div className="p-6 text-center text-muted-foreground">
+                                No asset data available.
                             </div>
-
-                            {assets && (
-                                <PaginationBar
-                                    currentPage={assets.current_page}
-                                    lastPage={assets.last_page}
-                                    total={assets.total}
-                                    from={assets.from}
-                                    to={assets.to}
-                                    perPage={assets.per_page}
-                                    itemLabel="assets"
-                                    onPageChange={handlePageChange}
-                                    onPerPageChange={handlePerPageChange}
-                                />
-                            )}
-                        </>
+                        )
                     ) : view === 'overdue' ? (
-                        <>
-                            <div className="overflow-x-auto px-6 pb-2">
-                                <table className="w-full min-w-[680px]">
-                                    <thead>
-                                        <tr className="border-b border-border">
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Borrower
-                                            </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Asset
-                                            </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Category
-                                            </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Expected Return
-                                            </th>
-                                            <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Status
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {(overdueItems?.data ?? []).map(
-                                            (item) => (
-                                                <tr
-                                                    key={item.id}
-                                                    className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
-                                                >
-                                                    <td className="py-3.5 pr-4">
-                                                        <span className="text-sm font-semibold text-foreground">
-                                                            {item.borrower ??
-                                                                '—'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3.5 pr-4">
-                                                        <div className="min-w-0">
-                                                            <p className="truncate text-sm text-foreground">
-                                                                {item.asset_name ??
-                                                                    '—'}
-                                                            </p>
-                                                            <p className="truncate text-xs text-muted-foreground">
-                                                                {item.asset_tag}
-                                                            </p>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3.5 pr-4">
-                                                        <span className="text-sm text-muted-foreground">
-                                                            {item.category ??
-                                                                '—'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3.5 pr-4">
-                                                        <span className="text-sm text-muted-foreground">
-                                                            {new Date(
-                                                                item.expected_return_date,
-                                                            ).toLocaleDateString(
-                                                                'en-US',
-                                                                {
-                                                                    year: 'numeric',
-                                                                    month: 'short',
-                                                                    day: 'numeric',
-                                                                },
-                                                            )}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3.5">
-                                                        <OverdueBadge
-                                                            days={
-                                                                item.days_overdue
-                                                            }
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            ),
-                                        )}
-                                    </tbody>
-                                </table>
-
-                                {(overdueItems?.data ?? []).length === 0 && (
-                                    <div className="flex flex-col items-center gap-1 py-12 text-center">
-                                        <p className="text-sm font-semibold text-foreground">
-                                            No overdue items
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Everything currently borrowed is
-                                            within its return window.
-                                        </p>
-                                    </div>
-                                )}
+                        overdueItems ? (
+                            <OverdueReportTable
+                                overdueItems={overdueItems}
+                                handlePerPageChange={handlePerPageChange}
+                                handlePageChange={handlePageChange}
+                            />
+                        ) : (
+                            <div className="p-6 text-center text-muted-foreground">
+                                No overdue items.
                             </div>
-
-                            {overdueItems && (
-                                <PaginationBar
-                                    currentPage={overdueItems.current_page}
-                                    lastPage={overdueItems.last_page}
-                                    total={overdueItems.total}
-                                    from={overdueItems.from}
-                                    to={overdueItems.to}
-                                    perPage={overdueItems.per_page}
-                                    itemLabel="overdue items"
-                                    onPageChange={handlePageChange}
-                                    onPerPageChange={handlePerPageChange}
-                                />
-                            )}
-                        </>
+                        )
                     ) : (
-                        <>
-                            <div className="overflow-x-auto px-6 pb-2">
-                                <table className="w-full min-w-[620px]">
-                                    <thead>
-                                        <tr className="border-b border-border">
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Asset
-                                            </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Category
-                                            </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Asset Type
-                                            </th>
-                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Reported Lost
-                                            </th>
-                                            <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                                Status
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {(lostItems?.data ?? []).map((item) => (
-                                            <tr
-                                                key={item.id}
-                                                className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
-                                            >
-                                                <td className="py-3.5 pr-4">
-                                                    <div className="min-w-0">
-                                                        <p className="truncate text-sm font-semibold text-foreground">
-                                                            {item.name}
-                                                        </p>
-                                                        <p className="truncate text-xs text-muted-foreground">
-                                                            {item.asset_tag}
-                                                        </p>
-                                                    </div>
-                                                </td>
-                                                <td className="py-3.5 pr-4 text-sm text-muted-foreground">
-                                                    {item.category ?? '—'}
-                                                </td>
-                                                <td className="py-3.5 pr-4 text-sm text-muted-foreground">
-                                                    {item.asset_type ?? '—'}
-                                                </td>
-                                                <td className="py-3.5 pr-4 text-sm text-muted-foreground">
-                                                    {new Date(
-                                                        item.reported_at,
-                                                    ).toLocaleDateString(
-                                                        'en-US',
-                                                        {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                        },
-                                                    )}
-                                                </td>
-                                                <td className="py-3.5">
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-                                                        <PackageX className="size-3" />
-                                                        Lost
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-
-                                {(lostItems?.data ?? []).length === 0 && (
-                                    <div className="flex flex-col items-center gap-1 py-12 text-center">
-                                        <p className="text-sm font-semibold text-foreground">
-                                            No lost items
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            No assets have been reported as
-                                            lost.
-                                        </p>
-                                    </div>
-                                )}
+                        lostItems ? (
+                            <LostsReportTable
+                                lostItems={lostItems}
+                                handlePerPageChange={handlePerPageChange}
+                                handlePageChange={handlePageChange}
+                            />
+                        ) : (
+                            <div className="p-6 text-center text-muted-foreground">
+                                No lost items.
                             </div>
-
-                            {lostItems && (
-                                <PaginationBar
-                                    currentPage={lostItems.current_page}
-                                    lastPage={lostItems.last_page}
-                                    total={lostItems.total}
-                                    from={lostItems.from}
-                                    to={lostItems.to}
-                                    perPage={lostItems.per_page}
-                                    itemLabel="lost items"
-                                    onPageChange={handlePageChange}
-                                    onPerPageChange={handlePerPageChange}
-                                />
-                            )}
-                        </>
+                        )
                     )}
                 </div>
-            </div>
+            </div >
         </>
     );
 }

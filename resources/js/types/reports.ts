@@ -18,6 +18,7 @@ export interface LostItem {
 }
 
 export type ReportView = 'assets' | 'overdue' | 'lost';
+export type ReportPeriod = "today" | "week" | "month" | "year";
 
 export interface MonthlyUsagePoint {
     month: string;
@@ -58,6 +59,7 @@ export interface DepreciationSummary {
     totalDepreciation: number;
     currentEstimatedValue: number;
     assetCount: number;
+    averageDepreciationRate: number;
 }
 
 export type UsageMetric = 'borrows' | 'assets_added';
@@ -75,10 +77,25 @@ export interface AssetConditionCounts {
     poor: number;
 }
 
+// export interface ReportSummary {
+//     totalBorrowRequests: number;
+//     approvedBorrows: number;
+//     returnedBorrows: number;
+//     returnConditions: ReturnConditionCounts;
+//     assetConditions: AssetConditionCounts;
+// }
+
 export interface ReportSummary {
+    totalAssets: number;
     totalBorrowRequests: number;
     approvedBorrows: number;
     returnedBorrows: number;
+    overdueItems: number;
+    lostAssets: number;
+    defectiveAssets: number;
+    totalAssetValue: number;
+    totalDepreciation: number;
+    currentEstimatedValue: number;
     returnConditions: ReturnConditionCounts;
     assetConditions: AssetConditionCounts;
 }
