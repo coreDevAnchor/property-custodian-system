@@ -71,6 +71,9 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('/reports/export-csv', [ReportController::class, 'exportCsv'])
             ->name('reports.export');
+
+        Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])
+            ->name('reports.export-pdf');
     });
 
 Route::get('/dev-custodian', function () {

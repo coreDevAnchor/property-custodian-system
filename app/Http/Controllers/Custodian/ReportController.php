@@ -9,6 +9,7 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
@@ -542,6 +543,167 @@ class ReportController extends Controller
             'returnConditions' => $returnConditions,
             'assetConditions' => $assetConditions,
         ];
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $validated = $request->validate([
+            'sections' => ['required', 'array', 'min:1'],
+            'sections.*' => ['string', 'in:summary,assets,overdue,lost,usage_chart,borrowers'],
+            'record_limit' => ['sometimes', 'string'],
+            'orientation' => ['sometimes', 'string', 'in:portrait,landscape'],
+            'action' => ['sometimes', 'string', 'in:preview,download'],
+            'category' => ['sometimes', 'string'],
+            'sort' => ['sometimes', 'string'],
+            'header_period' => ['sometimes', 'string'],
+            'chart_period' => ['sometimes', 'string'],
+            'employee_period' => ['sometimes', 'string'],
+            'valuation_period' => ['sometimes', 'string'],
+            'usage_metric' => ['sometimes', 'string', 'in:borrows,assets_added'],
+        ]);
+
+        $sections = $validated['sections'];
+        $recordLimit = $validated['record_limit'] ?? 'all';
+        $orientation = $validated['orientation'] ?? 'portrait';
+        $action = $validated['action'] ?? 'download';
+        $selectedCategory = $validated['category'] ?? 'all';
+        $sort = $validated['sort'] ?? 'latest';
+        $headerPeriod = $validated['header_period'] ?? 'month';
+        $chartPeriod = $validated['chart_period'] ?? 'month';
+        $employeePeriod = $validated['employee_period'] ?? 'month';
+        $usageMetric = $validated['usage_metric'] ?? 'borrows';
+
+        $limit = $recordLimit === 'all' ? null : (int) $recordLimit;
+
+        $categoryName = 'All Categories';
+        if ($selectedCategory !== 'all') {
+            $categoryName = Category::find($selectedCategory)?->name ?? 'Unknown';
+        }
+
+        // ── Build data for each selected section ──
+
+        $summary = [];
+        if (in_array('summary', $sections)) {
+            $summary = $this->reportSummary($headerPeriod);
+        }
+
+        $monthlyUsage = [];
+        if (in_array('usage_chart', $sections)) {
+            $monthlyUsage = $this->monthlyUsageSeries($usageMetric, $selectedCategory, $chartPeriod);
+        }
+
+        $assets = collect();
+        $assetsTotalCount = 0;
+        if (in_array('assets', $sections)) {
+            $query = Asset::with(['category:id,name', 'assetType:id,name']);
+
+            if ($selectedCategory !== 'all') {
+                $query->where('category_id', $selectedCategory);
+            }
+
+            match ($sort) {
+                'oldest' => $query->oldest(),
+                'name_asc' => $query->orderBy('name'),
+                'name_desc' => $query->orderByDesc('name'),
+                'cost_high' => $query->orderByDesc('acquisition_cost'),
+                'cost_low' => $query->orderBy('acquisition_cost'),
+                default => $query->latest(),
+            };
+
+            $assetsTotalCount = $query->count();
+            $assets = $limit ? $query->limit($limit)->get() : $query->get();
+        }
+
+        $overdueItems = collect();
+        $overdueTotalCount = 0;
+        if (in_array('overdue', $sections)) {
+            $query = BorrowRequest::with(['asset.category:id,name', 'borrower:id,name'])
+                ->where('status', 'borrowed')
+                ->whereNotNull('expected_return_date')
+                ->whereDate('expected_return_date', '<', now());
+
+            if ($selectedCategory !== 'all') {
+                $query->whereHas('asset', fn ($q) => $q->where('category_id', $selectedCategory));
+            }
+
+            $query->orderBy('expected_return_date');
+
+            $overdueTotalCount = $query->count();
+            $results = $limit ? $query->limit($limit)->get() : $query->get();
+
+            $overdueItems = $results->map(function ($borrow) {
+                $daysOverdue = now()->startOfDay()
+                    ->diffInDays(\Carbon\Carbon::parse($borrow->expected_return_date)->startOfDay());
+
+                return [
+                    'id' => $borrow->id,
+                    'borrower' => $borrow->borrower?->name,
+                    'asset_name' => $borrow->asset?->name,
+                    'asset_tag' => $borrow->asset?->asset_tag,
+                    'category' => $borrow->asset?->category?->name,
+                    'expected_return_date' => $borrow->expected_return_date,
+                    'days_overdue' => $daysOverdue,
+                ];
+            });
+        }
+
+        $lostItems = collect();
+        $lostTotalCount = 0;
+        if (in_array('lost', $sections)) {
+            $query = Asset::with(['category:id,name', 'assetType:id,name'])
+                ->where('status', 'lost');
+
+            if ($selectedCategory !== 'all') {
+                $query->where('category_id', $selectedCategory);
+            }
+
+            $query->latest();
+
+            $lostTotalCount = $query->count();
+            $results = $limit ? $query->limit($limit)->get() : $query->get();
+
+            $lostItems = $results->map(fn ($asset) => [
+                'id' => $asset->id,
+                'name' => $asset->name,
+                'asset_tag' => $asset->asset_tag,
+                'category' => $asset->category?->name,
+                'asset_type' => $asset->assetType?->name,
+                'reported_at' => $asset->updated_at,
+            ]);
+        }
+
+        $borrowerAnalytics = [];
+        if (in_array('borrowers', $sections)) {
+            $borrowerAnalytics = $this->borrowerAnalytics($employeePeriod);
+        }
+
+        $pdf = Pdf::loadView('reports.pdf', [
+            'sections' => $sections,
+            'summary' => $summary,
+            'monthlyUsage' => $monthlyUsage,
+            'usageMetric' => $usageMetric,
+            'assets' => $assets,
+            'assetsTotalCount' => $assetsTotalCount,
+            'overdueItems' => $overdueItems,
+            'overdueTotalCount' => $overdueTotalCount,
+            'lostItems' => $lostItems,
+            'lostTotalCount' => $lostTotalCount,
+            'borrowerAnalytics' => $borrowerAnalytics,
+            'recordLimit' => $recordLimit,
+            'orientation' => $orientation,
+            'headerPeriod' => $headerPeriod,
+            'category' => $selectedCategory,
+            'categoryName' => $categoryName,
+            'generatedAt' => now()->format('F d, Y h:i A'),
+        ])->setPaper('a4', $orientation);
+
+        $filename = 'custodian_report_' . now()->format('Y-m-d') . '.pdf';
+
+        if ($action === 'preview') {
+            return $pdf->stream($filename);
+        }
+
+        return $pdf->download($filename);
     }
 
     public function exportCsv(Request $request): StreamedResponse

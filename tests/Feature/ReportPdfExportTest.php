@@ -1,0 +1,69 @@
+<?php
+
+use App\Models\User;
+use App\Models\Category;
+use App\Models\Asset;
+use App\Models\Location;
+use App\Models\AssetType;
+
+test('custodians can export reports as pdf', function () {
+    $custodian = User::factory()->custodian()->create();
+
+    // Create prerequisite models to avoid factory issues
+    $category = Category::create(['name' => 'IT Equipment', 'prefix' => 'ITQ']);
+    $location = Location::create(['name' => 'Main Lab']);
+    
+    // We create an asset type manually to avoid issues if factory doesn't exist
+    $type = AssetType::create([
+        'name' => 'Laptop',
+        'category_id' => $category->id,
+        'prefix' => 'LAP',
+    ]);
+
+    $asset = Asset::create([
+        'name' => 'Test Laptop',
+        'asset_tag' => 'ITQ-2026-0001',
+        'category_id' => $category->id,
+        'location_id' => $location->id,
+        'asset_type_id' => $type->id,
+        'status' => 'available',
+        'acquisition_cost' => 50000.00,
+        'condition' => 'excellent',
+        'acquisition_date' => now()->format('Y-m-d'),
+    ]);
+
+    $response = $this->actingAs($custodian)
+        ->get(route('custodian.reports.export-pdf', [
+            'sections' => ['summary', 'assets'],
+            'record_limit' => '50',
+            'orientation' => 'landscape',
+            'action' => 'download',
+        ]));
+
+    $response->assertSuccessful();
+    $response->assertHeader('Content-Type', 'application/pdf');
+    
+    // Assert download headers
+    $contentDisposition = $response->headers->get('Content-Disposition');
+    expect($contentDisposition)->toContain('attachment');
+    expect($contentDisposition)->toContain('custodian_report_');
+});
+
+test('custodians can preview reports as pdf stream', function () {
+    $custodian = User::factory()->custodian()->create();
+
+    $response = $this->actingAs($custodian)
+        ->get(route('custodian.reports.export-pdf', [
+            'sections' => ['summary'],
+            'record_limit' => 'all',
+            'orientation' => 'portrait',
+            'action' => 'preview',
+        ]));
+
+    $response->assertSuccessful();
+    $response->assertHeader('Content-Type', 'application/pdf');
+    
+    // Assert inline preview headers
+    $contentDisposition = $response->headers->get('Content-Disposition');
+    expect($contentDisposition)->toContain('inline');
+});

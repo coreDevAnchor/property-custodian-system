@@ -39,6 +39,7 @@ import { ReportTabs } from '@/components/reports/report-tabs';
 import { AssetsReportTable } from '@/components/reports/table/assets-report-table';
 import { OverdueReportTable } from '@/components/reports/table/overdue-report-table';
 import { LostsReportTable } from '@/components/reports/table/losts-report-table';
+import { ExportPdfModal } from '@/components/reports/export-pdf-modal';
 
 interface Props {
     categories: Category[];
@@ -101,6 +102,7 @@ export default function Reports({
     const [category, setCategory] = useState(selectedCategory);
     const [sort, setSort] = useState(selectedSort);
     const [metric, setMetric] = useState<UsageMetric>(usageMetric ?? 'borrows');
+    const [isExportPdfOpen, setIsExportPdfOpen] = useState(false);
     const [chartPeriod, setChartPeriod] = useState<ReportPeriod>(
         selectedChartPeriod ?? "month"
     );
@@ -276,6 +278,7 @@ export default function Reports({
                         },
                     }))
                     }
+                    onExportPdf={() => setIsExportPdfOpen(true)}
                 />
 
                 {/* ── Overdue stat card (always visible, both tabs) ── */}
@@ -424,6 +427,19 @@ export default function Reports({
                     )}
                 </div>
             </div >
+
+            <ExportPdfModal
+                open={isExportPdfOpen}
+                onOpenChange={setIsExportPdfOpen}
+                filters={{
+                    category,
+                    sort,
+                    headerPeriod,
+                    chartPeriod,
+                    employeePeriod,
+                    usageMetric: metric,
+                }}
+            />
         </>
     );
 }

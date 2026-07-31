@@ -1,4 +1,4 @@
-import { Download } from "lucide-react";
+import { Download, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Select,
@@ -12,12 +12,14 @@ interface Props {
     period: string;
     onPeriodChange: (value: string) => void;
     onExport: () => void;
+    onExportPdf: () => void;
 }
 
 export function ReportHeader({
     period,
     onPeriodChange,
     onExport,
+    onExportPdf,
 }: Props) {
     return (
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -48,9 +50,14 @@ export function ReportHeader({
                     </SelectContent>
                 </Select>
 
-                <Button onClick={onExport}>
+                <Button variant="outline" onClick={onExport} className="cursor-pointer">
                     <Download className="mr-2 h-4 w-4" />
-                    Export
+                    Export CSV
+                </Button>
+
+                <Button onClick={onExportPdf} className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white">
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Export PDF
                 </Button>
             </div>
         </div>
