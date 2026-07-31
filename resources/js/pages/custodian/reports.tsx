@@ -39,7 +39,6 @@ import { ReportTabs } from '@/components/reports/report-tabs';
 import { AssetsReportTable } from '@/components/reports/table/assets-report-table';
 import { OverdueReportTable } from '@/components/reports/table/overdue-report-table';
 import { LostsReportTable } from '@/components/reports/table/losts-report-table';
-import { TableReportSwitches } from '@/components/reports/report-table-switcher';
 
 interface Props {
     categories: Category[];
