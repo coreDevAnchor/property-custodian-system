@@ -50,4 +50,38 @@ class NotificationController extends Controller
 
         return back();
     }
+
+    public function destroy(Request $request, string $notification): RedirectResponse
+    {
+        $request->user()
+            ->notifications()
+            ->whereKey($notification)
+            ->firstOrFail()
+            ->delete();
+
+        return back();
+    }
+
+    public function destroyRead(Request $request): RedirectResponse
+    {
+        $request->user()
+            ->readNotifications()
+            ->delete();
+
+        return back();
+    }
+
+    public function markAsUnread(Request $request, string $notification): RedirectResponse
+    {
+        $notification = $request->user()
+            ->notifications()
+            ->whereKey($notification)
+            ->firstOrFail();
+
+        $notification->update([
+            'read_at' => null,
+        ]);
+
+        return back();
+    }
 }
