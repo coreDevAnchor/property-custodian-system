@@ -24,12 +24,6 @@ export function ReportSummaryCard({
 
     const from = previous.current;
 
-    console.log({
-        title,
-        value,
-        type: typeof value,
-    });
-
     useEffect(() => {
         if (typeof value === "number") {
             previous.current = value;
@@ -38,13 +32,22 @@ export function ReportSummaryCard({
 
     return (
         <div className="rounded-2xl border bg-card p-5 transition-all hover:-translate-y-1 hover:shadow-lg">
-            <div className="flex items-start justify-between">
-                <div>
+            <div className="relative">
+                {/* Icon */}
+                <div className="absolute top-0 right-0 rounded-xl bg-orange-100 p-3 dark:bg-orange-900/30">
+                    <Icon className="h-5 w-5 text-orange-500" />
+                </div>
+
+                {/* Content */}
+                <div className="pr-20">
                     <p className="text-sm text-muted-foreground">
                         {title}
                     </p>
 
-                    <h2 className="mt-2 text-3xl font-bold">
+                    <h2
+                        className={`mt-2 font-bold leading-tight ${currency ? "text-2xl" : "text-3xl"
+                            }`}
+                    >
                         {typeof value === "number" ? (
                             <AnimatedNumber
                                 from={from}
@@ -62,10 +65,6 @@ export function ReportSummaryCard({
                             {subtitle}
                         </p>
                     )}
-                </div>
-
-                <div className="rounded-xl bg-orange-100 p-3 dark:bg-orange-900/30">
-                    <Icon className="h-5 w-5 text-orange-500" />
                 </div>
             </div>
         </div>
