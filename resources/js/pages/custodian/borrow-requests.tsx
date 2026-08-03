@@ -8,6 +8,10 @@ import {
     Search,
     X,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { update as updateRenewal } from '@/actions/App/Http/Controllers/BorrowRenewalController';
+import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
+import { PaginationBar } from '@/components/ui/pagination';
 import {
     Select,
     SelectContent,
@@ -15,50 +19,26 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { dashboard } from '@/routes/custodian';
-import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
-import { PaginationBar } from '@/components/ui/pagination';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useEffect, useRef, useState } from 'react';
-import { Paginated } from '@/types/pagination';
-import {
+import { dashboard } from '@/routes/custodian';
+import { borrowStatusLabels, borrowStatusStyles } from '@/types/borrow-status';
+import type {
     BorrowStatus,
     SortKey,
     BorrowRequest,
     BorrowRenewalRequest,
     Filters
 } from '@/types/borrows';
-import { update as updateRenewal } from '@/actions/App/Http/Controllers/BorrowRenewalController';
-
-const statusLabels: Record<BorrowStatus, string> = {
-    pending: 'Pending',
-    borrowed: 'Borrowed',
-    awaiting_check: 'Awaiting Check',
-    returned: 'Returned',
-    rejected: 'Rejected',
-};
-
-const statusStyles: Record<BorrowStatus, string> = {
-    pending:
-        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    borrowed:
-        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    awaiting_check:
-        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    returned:
-        'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    rejected:
-        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-};
+import type { Paginated } from '@/types/pagination';
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: BorrowStatus }) {
     return (
         <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[status]}`}
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${borrowStatusStyles[status]}`}
         >
-            {statusLabels[status]}
+            {borrowStatusLabels[status]}
         </span>
     );
 }
@@ -203,14 +183,20 @@ export default function BorrowRequests({
     useEffect(() => {
         if (isFirstRun.current) {
             isFirstRun.current = false;
+
             return;
         }
 
-        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (debounceRef.current) {
+clearTimeout(debounceRef.current);
+}
+
         debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
         return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (debounceRef.current) {
+clearTimeout(debounceRef.current);
+}
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
@@ -240,6 +226,7 @@ export default function BorrowRequests({
     ) {
         if (status === 'borrowed' && !expectedReturnDate) {
             setApprovalRequest(request);
+
             return;
         }
 
@@ -435,6 +422,7 @@ export default function BorrowRequests({
                     if (approvalRequest) {
                         handleUpdateStatus(approvalRequest, 'borrowed', expectedReturnDate);
                     }
+
                     setApprovalRequest(null);
                 }}
             />

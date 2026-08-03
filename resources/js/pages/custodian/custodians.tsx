@@ -244,7 +244,7 @@ export default function Custodians({ custodians, filters }: Props) {
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Added
                                     </th>
-                                    <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                    <th className="py-3 text-middle text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Actions
                                     </th>
                                 </tr>
@@ -291,8 +291,8 @@ export default function Custodians({ custodians, filters }: Props) {
                                                     custodian.created_at,
                                                 ).toLocaleDateString()}
                                             </td>
-                                            <td className="py-3.5 text-right">
-                                                <div className="flex justify-end gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                            <td className="py-3.5  text-center">
+                                                <div className="flex justify-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                                                     <button
                                                         onClick={() =>
                                                             setFormTarget(

@@ -1,0 +1,22 @@
+import type { BorrowStatus } from './borrows';
+
+export const borrowStatusLabels: Record<BorrowStatus, string> = {
+    pending: 'Pending',
+    borrowed: 'Borrowed',
+    awaiting_check: 'Awaiting Check',
+    returned: 'Returned',
+    rejected: 'Rejected',
+};
+
+export const borrowStatusStyles: Record<BorrowStatus, string> = {
+    pending:
+        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    borrowed:
+        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    awaiting_check:
+        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    returned:
+        'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    rejected:
+        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};

@@ -383,7 +383,7 @@ export default function Returns({
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                         Checked By
                                     </th>
-                                    <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 text-middle text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                         Actions
                                     </th>
                                 </tr>

@@ -1,5 +1,4 @@
-import type { Borrower } from "./borrows";
-import type { Category } from "./categories";
+import type { AssetSummary, EntityRef } from './common';
 
 export interface Stats {
     totalAssets: number;
@@ -14,14 +13,9 @@ export interface PendingRequest {
     requested_at: string;
     remarks?: string | null;
 
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-        category: Category;
-    };
+    asset: AssetSummary;
 
-    borrower: Borrower | null;
+    borrower: EntityRef | null;
 }
 
 export interface CategoryBreakdown {
@@ -29,12 +23,4 @@ export interface CategoryBreakdown {
     count: number;
 }
 
-export interface ActivityItem {
-    id: number;
-    action: string;
-    description: string;
-    created_at: string;
-    asset?: { id: number; name: string; asset_tag: string } | null;
-    actor?: { id: number; name: string } | null;
-}
-
+export type { ActivityItem } from './activities';

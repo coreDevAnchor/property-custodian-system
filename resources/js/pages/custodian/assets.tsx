@@ -415,7 +415,7 @@ export default function Assets({
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                         Date Added
                                     </th>
-                                    <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground text-center">
                                         Actions
                                     </th>
                                 </tr>

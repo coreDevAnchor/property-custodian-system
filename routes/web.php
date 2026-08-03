@@ -20,7 +20,7 @@ use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\BorrowRenewalController;
 use App\Http\Controllers\NotificationController;
 
-Route::redirect('/', '/login');
+Route::redirect('/', '/login')->name('home');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/force-change-password', [ForcePasswordChangeController::class, 'edit'])

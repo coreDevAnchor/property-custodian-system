@@ -1,4 +1,7 @@
+import { CalendarClock, CalendarDays } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
     Dialog,
     DialogContent,
@@ -7,21 +10,18 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { CalendarClock, CalendarDays } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     borrowId: number;
-    currentDueDate: string;
+    currentDueDate?: string | null;
     assetName: string;
     assetTag: string;
     onSubmit: (
@@ -32,7 +32,9 @@ interface Props {
 }
 
 function formatDate(value?: string | null) {
-    if (!value) return '—';
+    if (!value) {
+return '—';
+}
 
     const date = new Date(value);
 
@@ -68,14 +70,16 @@ export function BorrowRenewalDialog({
         }
     }, [open]);
 
-    const currentDueDateObject = new Date(currentDueDate);
+    const currentDueDateObject = new Date(currentDueDate ?? '');
 
     const selectedDate = requestedDueDate
         ? new Date(`${requestedDueDate}T00:00:00`)
         : undefined;
 
     const handleDateSelect = (date: Date | undefined) => {
-        if (!date) return;
+        if (!date) {
+return;
+}
 
         // Convert Date to YYYY-MM-DD
         const formattedDate = [

@@ -1,5 +1,4 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
 import {
     AlertCircle,
     CalendarClock,
@@ -10,12 +9,17 @@ import {
     PackageOpen,
     PackageX,
 } from 'lucide-react';
+import { useState } from 'react';
+import { BorrowRenewalDialog } from '@/components/borrow/borrow-renewal-dialog';
+import { LostAssetDialog } from '@/components/lost/lost-asset-dialog';
+import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PaginationBar } from '@/components/ui/pagination';
 import {
     Select,
     SelectContent,
@@ -23,25 +27,33 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { PaginationBar } from '@/components/ui/pagination';
-import { BorrowRenewalDialog } from '@/components/borrow/borrow-renewal-dialog';
-import { LostAssetDialog } from '@/components/lost/lost-asset-dialog';
-import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
-import { Paginated } from '@/types/pagination';
-import { BorrowItem, BorrowCounts, Filters, BorrowStatus } from '@/types/currentborrows';
+import type {
+    BorrowItem,
+    BorrowCounts,
+    CurrentBorrowFilters,
+    ActiveBorrowStatus,
+} from '@/types/borrows';
+import type { Paginated } from '@/types/pagination';
 
 interface Props {
     borrows: Paginated<BorrowItem>;
     borrowCounts: BorrowCounts;
-    filters: Filters;
+    filters: CurrentBorrowFilters;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmtDate(value?: string | null) {
-    if (!value) return null;
+    if (!value) {
+return null;
+}
+
     const d = new Date(value);
-    if (isNaN(d.getTime())) return value;
+
+    if (isNaN(d.getTime())) {
+return value;
+}
+
     return d.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -50,18 +62,22 @@ function fmtDate(value?: string | null) {
 }
 
 function daysUntil(value?: string | null): number | null {
-    if (!value) return null;
+    if (!value) {
+return null;
+}
+
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const due = new Date(value);
     due.setHours(0, 0, 0, 0);
+
     return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 const statusConfig: Record<
-    BorrowStatus,
+    ActiveBorrowStatus,
     { label: string; icon: typeof Clock; color: string; dot: string }
 > = {
     pending: {
@@ -86,7 +102,10 @@ const statusConfig: Record<
 
 function DueDateBadge({ date }: { date?: string | null }) {
     const days = daysUntil(date);
-    if (days === null) return null;
+
+    if (days === null) {
+return null;
+}
 
     let cls: string;
     let label: string;
@@ -116,7 +135,7 @@ function DueDateBadge({ date }: { date?: string | null }) {
 
 
 function BorrowCard({ item }: { item: BorrowItem }) {
-    const { label, icon: Icon, color, dot } = statusConfig[item.status];
+    const { label, icon: Icon, color, dot } = statusConfig[item.status as ActiveBorrowStatus];
     const canReturn = item.status === 'borrowed';
     const [openReturnDialog, setOpenReturnDialog] = useState(false);
     const [openRenewalDialog, setOpenRenewalDialog] = useState(false);
@@ -332,7 +351,7 @@ function BorrowCard({ item }: { item: BorrowItem }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-const statusFilterOptions: { value: 'All' | BorrowStatus; label: string }[] = [
+const statusFilterOptions: { value: 'All' | ActiveBorrowStatus; label: string }[] = [
     { value: 'All', label: 'All Statuses' },
     { value: 'borrowed', label: 'Currently Borrowed' },
     { value: 'pending', label: 'Pending Approval' },
@@ -344,11 +363,11 @@ export default function CurrentBorrows({
     borrowCounts,
     filters = { status: 'All', per_page: 12 },
 }: Props) {
-    const [status, setStatus] = useState<'All' | BorrowStatus>(filters.status ?? 'All');
+    const [status, setStatus] = useState<'All' | ActiveBorrowStatus>(filters.status ?? 'All');
 
     const isEmpty = borrows.total === 0;
 
-    function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+    function fetchPage(page: number, overrides: Partial<CurrentBorrowFilters> = {}) {
         router.get(
             '/employee/current-borrows',
             {
@@ -365,7 +384,7 @@ export default function CurrentBorrows({
         );
     }
 
-    function handleStatusChange(value: 'All' | BorrowStatus) {
+    function handleStatusChange(value: 'All' | ActiveBorrowStatus) {
         setStatus(value);
         fetchPage(1, { status: value });
     }

@@ -11,23 +11,7 @@ import {
     XCircle,
 } from 'lucide-react';
 
-interface ActivityItem {
-    id: number;
-    action: string;
-    description: string;
-    created_at: string;
-
-    asset?: {
-        id: number;
-        name: string;
-        asset_tag: string;
-    } | null;
-
-    actor?: {
-        id: number;
-        name: string;
-    } | null;
-}
+import type { ActivityItem } from '@/types/activities';
 
 const actionIcons: Record<string, typeof History> = {
     asset_created: PackagePlus,
@@ -61,13 +45,27 @@ function timeAgo(dateString: string) {
     const date = new Date(dateString);
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
 
-    if (seconds < 60) return 'just now';
+    if (seconds < 60) {
+return 'just now';
+}
+
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+
+    if (minutes < 60) {
+return `${minutes}m ago`;
+}
+
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+
+    if (hours < 24) {
+return `${hours}h ago`;
+}
+
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
+
+    if (days < 7) {
+return `${days}d ago`;
+}
 
     return date.toLocaleDateString('en-US', {
         year: 'numeric',

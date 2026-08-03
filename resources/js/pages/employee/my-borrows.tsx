@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
 import { History, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import {
     Select,
     SelectContent,
@@ -8,41 +8,21 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { BorrowItem, BorrowStatus } from '@/types/myborrows';
+import { borrowStatusLabels, borrowStatusStyles } from '@/types/borrow-status';
+import type { BorrowItem, BorrowStatus } from '@/types/borrows';
 
 
 
 type SortKey = 'newest' | 'oldest';
-
-const statusLabels: Record<BorrowStatus, string> = {
-    pending: 'Pending',
-    borrowed: 'Borrowed',
-    awaiting_check: 'Awaiting Check',
-    returned: 'Returned',
-    rejected: 'Rejected',
-};
-
-const statusStyles: Record<BorrowStatus, string> = {
-    pending:
-        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    borrowed:
-        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    awaiting_check:
-        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    returned:
-        'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    rejected:
-        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-};
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: BorrowStatus }) {
     return (
         <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[status]}`}
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${borrowStatusStyles[status]}`}
         >
-            {statusLabels[status]}
+            {borrowStatusLabels[status]}
         </span>
     );
 }
@@ -129,6 +109,7 @@ export default function MyBorrows({ borrows }: Props) {
             const diff =
                 new Date(b.requested_at).getTime() -
                 new Date(a.requested_at).getTime();
+
             return sortKey === 'newest' ? diff : -diff;
         });
     }, [borrows, search, statusFilter, sortKey]);

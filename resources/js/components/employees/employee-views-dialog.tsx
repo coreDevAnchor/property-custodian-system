@@ -1,13 +1,3 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import {
     Building2,
     ChevronLeft,
@@ -19,38 +9,18 @@ import {
     UserRound,
     Wallet,
 } from 'lucide-react';
-
-interface EmployeeBorrow {
-    id: number;
-    status: string;
-    requested_at: string;
-    returned_at?: string | null;
-
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-        acquisition_cost?: number | string | null;
-        acquisition_date?: string | null;
-        depreciation_rate?: number | string | null;
-    };
-}
-
-interface Employee {
-    id: number;
-    department: string;
-    employee_id?: string | null;
-    contact?: string | null;
-    is_active: boolean;
-
-    user: {
-        id: number;
-        name: string;
-        email: string;
-    };
-
-    borrows?: EmployeeBorrow[];
-}
+import { useEffect, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { borrowStatusLabels, borrowStatusStyles } from '@/types/borrow-status';
+import type { Employee } from '@/types/employee';
 
 const BORROWS_PER_PAGE = 5;
 
@@ -74,33 +44,12 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
 }
 
 function BorrowStatusBadge({ status }: { status: string }) {
-    const styles: Record<string, string> = {
-        pending:
-            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-        borrowed:
-            'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-        awaiting_check:
-            'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-        returned:
-            'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-        rejected:
-            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    };
-
-    const labels: Record<string, string> = {
-        pending: 'Pending',
-        borrowed: 'Borrowed',
-        awaiting_check: 'Awaiting Check',
-        returned: 'Returned',
-        rejected: 'Rejected',
-    };
-
     return (
         <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${styles[status] ?? 'bg-muted text-muted-foreground'
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${borrowStatusStyles[status as keyof typeof borrowStatusStyles] ?? 'bg-muted text-muted-foreground'
                 }`}
         >
-            {labels[status] ?? status}
+            {borrowStatusLabels[status as keyof typeof borrowStatusLabels] ?? status}
         </span>
     );
 }
@@ -174,7 +123,9 @@ export function EmployeeViewDialog({ open, employee, onOpenChange, onEdit }: Pro
         currentPage * BORROWS_PER_PAGE
     );
 
-    if (!employee) return null;
+    if (!employee) {
+return null;
+}
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

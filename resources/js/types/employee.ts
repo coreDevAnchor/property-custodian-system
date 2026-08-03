@@ -1,15 +1,7 @@
-export interface EmployeeBorrow {
-    id: number;
-    status: string;
-    requested_at: string;
-    returned_at?: string | null;
+import type { BorrowBrief } from './borrows';
+import type { BaseFilters, UserRef } from './common';
 
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-    };
-}
+export type EmployeeStatusFilter = 'All' | 'active' | 'inactive';
 
 export interface Employee {
     id: number;
@@ -18,17 +10,12 @@ export interface Employee {
     contact?: string | null;
     is_active: boolean;
 
-    user: {
-        id: number;
-        name: string;
-        email: string;
-    };
+    user: UserRef;
 
-    borrows?: EmployeeBorrow[];
+    borrows?: BorrowBrief[];
 }
 
-export interface Filters {
+export interface Filters extends BaseFilters {
     search: string;
-    status: string;
-    per_page: number;
+    status: EmployeeStatusFilter;
 }

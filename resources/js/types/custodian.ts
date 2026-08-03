@@ -1,22 +1,14 @@
-export interface CustodianBorrow {
-    id: number;
-    status: string;
-    requested_at: string;
-    asset: {
-        name: string;
-        asset_tag: string;
-    };
-}
+import type { BorrowBrief } from './borrows';
+import type { BaseFilters } from './common';
 
 export interface Custodian {
     id: number;
     name: string;
     email: string;
     created_at: string;
-    borrows?: CustodianBorrow[];
+    borrows?: BorrowBrief[];
 }
 
-export interface Filters {
+export interface Filters extends BaseFilters {
     search: string;
-    per_page: number;
 }

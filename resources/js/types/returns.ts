@@ -1,4 +1,4 @@
-import { Borrower } from "./borrows";
+import type { AssetSummary, BaseFilters, EntityRef } from './common';
 
 export type ReturnStatus = 'awaiting_check' | 'returned';
 export type ReturnCondition = 'ok' | 'defective' | 'lost';
@@ -14,35 +14,19 @@ export interface ReturnItem {
     is_acknowledged: boolean;
     lost_reason?: string | null;
 
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-        category: {
-            id: number;
-            name: string;
-        };
-    };
+    asset: AssetSummary;
 
-    borrower: Borrower
+    borrower: EntityRef;
 
-    checked_by?: {
-        id: number;
-        name: string;
-    } | null;
+    checked_by?: EntityRef | null;
 
-    approved_by?: {
-        id: number;
-        name: string;
-    } | null;
-
+    approved_by?: EntityRef | null;
 }
 
 export type SortKey = 'newest' | 'oldest' | 'borrower_az' | 'borrower_za';
 
-export interface Filters {
+export interface Filters extends BaseFilters {
     search: string;
     status: 'All' | ReturnStatus;
     sort: SortKey;
-    per_page: number;
 }

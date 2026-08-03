@@ -8,13 +8,19 @@ import {
     RefreshCcw,
     Undo2,
 } from 'lucide-react';
-import * as assets from '@/routes/employee/assets';
-import * as borrows from '@/routes/employee/borrows';
 import { useState } from 'react';
 import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
-import { Paginated } from '@/types/pagination';
-import { BorrowItem, Stats, Filters, BorrowStatus } from '@/types/employeeborrows';
+import * as assets from '@/routes/employee/assets';
+import * as borrows from '@/routes/employee/borrows';
+import { borrowStatusLabels, borrowStatusStyles } from '@/types/borrow-status';
+import type {
+    BorrowItem,
+    DashboardFilters,
+    Stats,
+    BorrowStatus,
+} from '@/types/borrows';
+import type { Paginated } from '@/types/pagination';
 
 
 interface Props {
@@ -22,38 +28,17 @@ interface Props {
     currentBorrows: Paginated<BorrowItem>;
     recentActivity: Paginated<BorrowItem>;
     returnableBorrows: BorrowItem[];
-    filters: Filters;
+    filters: DashboardFilters;
 }
 
-// ─── Style maps ─────────────────────────────────────────────────────────────
-
-const statusLabels: Record<BorrowStatus, string> = {
-    pending: 'Pending',
-    borrowed: 'Borrowed',
-    awaiting_check: 'Awaiting Check',
-    returned: 'Returned',
-    rejected: 'Rejected',
-};
-
-const statusStyles: Record<BorrowStatus, string> = {
-    pending:
-        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    borrowed:
-        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    awaiting_check:
-        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    returned:
-        'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    rejected:
-        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-};
+// ─── Sub-components ─────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: BorrowStatus }) {
     return (
         <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[status]}`}
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${borrowStatusStyles[status]}`}
         >
-            {statusLabels[status]}
+            {borrowStatusLabels[status]}
         </span>
     );
 }

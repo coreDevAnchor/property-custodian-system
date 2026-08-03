@@ -1,10 +1,4 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
-import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
-} from '@/components/ui/hover-card';
 import {
     Building2,
     Eye,
@@ -16,12 +10,18 @@ import {
     Trash2,
     UserRound,
 } from 'lucide-react';
-import { dashboard } from '@/routes/custodian';
-import { EmployeeFormDialog } from '@/components/employees/employee-form-dialog';
+import { useEffect, useRef, useState } from 'react';
 import { EmployeeDeleteDialog } from '@/components/employees/employee-delete-dialog';
+import { EmployeeFormDialog } from '@/components/employees/employee-form-dialog';
 import { EmployeeViewDialog } from '@/components/employees/employee-views-dialog';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { PaginationBar } from '@/components/ui/pagination';
-import type { Employee, Filters } from '@/types/employee';
+import { dashboard } from '@/routes/custodian';
+import type { Employee, EmployeeStatusFilter, Filters } from '@/types/employee';
 import type { Paginated } from '@/types/pagination';
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
@@ -180,8 +180,8 @@ interface Props {
 
 export default function Employees({ employees, nextEmployeeId, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [statusFilter, setStatusFilter] = useState<'All' | 'active' | 'inactive'>(
-        (filters.status as 'All' | 'active' | 'inactive') ?? 'All',
+    const [statusFilter, setStatusFilter] = useState<EmployeeStatusFilter>(
+        filters.status ?? 'All',
     );
     const [viewTarget, setViewTarget] = useState<Employee | undefined>();
 
@@ -209,19 +209,25 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
     useEffect(() => {
         if (isFirstRun.current) {
             isFirstRun.current = false;
+
             return;
         }
 
-        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
         debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
         return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
-    function handleStatusChange(value: 'All' | 'active' | 'inactive') {
+    function handleStatusChange(value: EmployeeStatusFilter) {
         setStatusFilter(value);
         fetchPage(1, { status: value });
     }
@@ -245,7 +251,9 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
     }
 
     function handleDeleteConfirm() {
-        if (!deleteTarget) return;
+        if (!deleteTarget) {
+            return;
+        }
 
         router.delete(`/custodian/employees/${deleteTarget.id}`, {
             onSuccess: () => setDeleteTarget(null),
@@ -295,7 +303,7 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
                             <select
                                 value={statusFilter}
                                 onChange={(e) =>
-                                    handleStatusChange(e.target.value as 'All' | 'active' | 'inactive')
+                                    handleStatusChange(e.target.value as EmployeeStatusFilter)
                                 }
                                 className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                             >
@@ -325,7 +333,7 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                         Status
                                     </th>
-                                    <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 text-middle text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                         Actions
                                     </th>
                                 </tr>

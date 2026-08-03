@@ -1,7 +1,7 @@
-import { Borrow } from "./borrows";
-import { Location } from "./location";
-import { Category } from "./categories";
+import type { Borrow } from "./borrows";
+import type { Category } from "./categories";
 import { StagedImage } from "./images";
+import type { Location } from "./location";
 
 export type AssetStatus =
     | 'available'

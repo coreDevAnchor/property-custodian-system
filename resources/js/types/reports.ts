@@ -77,14 +77,6 @@ export interface AssetConditionCounts {
     poor: number;
 }
 
-// // export interface ReportSummary {
-//     totalBorrowRequests: number;
-//     approvedBorrows: number;
-//     returnedBorrows: number;
-//     returnConditions: ReturnConditionCounts;
-//     assetConditions: AssetConditionCounts;
-// }
-
 export interface ReportSummary {
     totalAssets: number;
     totalBorrowRequests: number;
