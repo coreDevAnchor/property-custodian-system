@@ -13,48 +13,9 @@ import * as borrows from '@/routes/employee/borrows';
 import { useState } from 'react';
 import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
+import { Paginated } from '@/types/pagination';
+import { BorrowItem, Stats, Filters, BorrowStatus } from '@/types/employeeborrows';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-type BorrowStatus = 'pending' | 'borrowed' | 'awaiting_check' | 'returned' | 'rejected';
-
-interface BorrowItem {
-    id: number;
-    status: BorrowStatus;
-    requested_at: string;
-
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-        category: {
-            id: number;
-            name: string;
-        };
-    };
-}
-
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-interface Stats {
-    availableAssets: number;
-    activeBorrows: number;
-    pendingRequests: number;
-    totalBorrowed: number;
-}
-
-interface Filters {
-    current_per_page: number;
-    activity_per_page: number;
-}
 
 interface Props {
     stats: Stats;

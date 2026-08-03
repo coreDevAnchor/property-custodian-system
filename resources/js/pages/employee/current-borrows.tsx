@@ -27,56 +27,8 @@ import { PaginationBar } from '@/components/ui/pagination';
 import { BorrowRenewalDialog } from '@/components/borrow/borrow-renewal-dialog';
 import { LostAssetDialog } from '@/components/lost/lost-asset-dialog';
 import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type BorrowStatus = 'pending' | 'borrowed' | 'awaiting_check';
-
-interface BorrowItem {
-    id: number;
-    status: BorrowStatus;
-    remarks?: string | null;
-    requested_at: string;
-    approved_at?: string | null;
-    expected_return_date: string;
-
-    asset: {
-        id: number;
-        name: string;
-        asset_tag: string;
-        photo?: string | null;
-        description?: string | null;
-        category: {
-            id: number;
-            name: string;
-        };
-        location?: {
-            id: number;
-            name: string;
-        } | null;
-    };
-}
-
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-interface BorrowCounts {
-    borrowed: number;
-    pending: number;
-    awaiting_check: number;
-}
-
-interface Filters {
-    status: 'All' | BorrowStatus;
-    per_page: number;
-}
+import { Paginated } from '@/types/pagination';
+import { BorrowItem, BorrowCounts, Filters, BorrowStatus } from '@/types/currentborrows';
 
 interface Props {
     borrows: Paginated<BorrowItem>;

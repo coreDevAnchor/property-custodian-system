@@ -39,7 +39,7 @@ export interface Asset {
 
     category: Category;
 
-    location?: Location;
+    location?: Location | null;
 
     borrows?: Borrow[];
 }

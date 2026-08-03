@@ -19,21 +19,14 @@ import { BorrowRequestDialog } from '@/components/borrow/borrow-request-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
 import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import type { Asset } from "@/components/assets/types";
+import { Paginated } from '@/types/pagination';
+
 
 interface Category {
     id: number;
     name: string;
 }
 
-interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
 
 interface Filters {
     search: string;

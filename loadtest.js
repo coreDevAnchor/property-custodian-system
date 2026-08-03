@@ -7,4 +7,4 @@ export const options = {
 
 export default function () {
     http.get('http://localhost:8000/custodian/assets');
-}
+}k6
