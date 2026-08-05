@@ -146,7 +146,9 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                                     {notification.title}
                                                 </p>
                                             </div>
-                                            <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
+                                            <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">
+                                                {notification.message}
+                                            </p>
                                             {notification.asset_name && (
                                                 <p className="mt-2 text-xs font-medium text-foreground">
                                                     {notification.asset_name}{notification.asset_tag ? ` · ${notification.asset_tag}` : ''}

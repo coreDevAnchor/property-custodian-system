@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Notifications\BorrowRequestStatusNotification;
 
 class BorrowRequestController extends Controller
 {
@@ -176,6 +177,7 @@ class BorrowRequestController extends Controller
             'remarks' => ['nullable', 'string'],
             'return_condition' => ['nullable', 'in:ok,defective,lost'],
             'expected_return_date' => ['nullable', 'date', 'after_or_equal:today'],
+            'rejection_message' => ['nullable', 'string'],
         ]);
 
         $borrowRequest = BorrowRequest::with(['asset', 'borrower'])->findOrFail($id);
@@ -214,6 +216,17 @@ class BorrowRequestController extends Controller
         $borrowRequest->update([
             'status' => $validated['status'],
         ] + $updateData);
+
+        $borrowRequest->load('asset');
+
+        if (in_array($validated['status'], ['borrowed', 'rejected'])) {
+            $borrowRequest->borrower->notify(
+                new BorrowRequestStatusNotification(
+                    $borrowRequest,
+                    $validated['rejection_message'] ?? null,
+                )
+            );
+        }
 
         if ($validated['status'] === 'borrowed') {
             $asset->update([
