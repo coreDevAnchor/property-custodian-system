@@ -392,6 +392,7 @@ export default function Reports({
                         assets ? (
                             <AssetsReportTable
                                 assets={assets}
+                                animationKey={`${view}-${category}-${sort}-${assets.current_page}`}
                                 handlePageChange={handlePageChange}
                                 handlePerPageChange={handlePerPageChange}
                             />
@@ -404,6 +405,7 @@ export default function Reports({
                         overdueItems ? (
                             <OverdueReportTable
                                 overdueItems={overdueItems}
+                                animationKey={`${view}-${category}-${sort}-${overdueItems.current_page}`}
                                 handlePerPageChange={handlePerPageChange}
                                 handlePageChange={handlePageChange}
                             />
@@ -416,6 +418,7 @@ export default function Reports({
                         lostItems ? (
                             <LostsReportTable
                                 lostItems={lostItems}
+                                animationKey={`${view}-${category}-${sort}-${lostItems.current_page}`}
                                 handlePerPageChange={handlePerPageChange}
                                 handlePageChange={handlePageChange}
                             />

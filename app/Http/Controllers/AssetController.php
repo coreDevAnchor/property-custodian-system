@@ -22,18 +22,56 @@ class AssetController extends Controller
         $status = $request->input('status', 'All');
         $perPage = (int) $request->input('per_page', 10);
 
-        $assets = Asset::with(['category', 'assetType', 'location', 'borrows.borrower'])
-            ->when($search, function ($query) use ($search) {
-                $search = mb_strtolower($search);
-                $searchPattern = "%{$search}%";
+        $assets = Asset::query()
+            ->select([
+                'id',
+                'name',
+                'asset_tag',
+                'category_id',
+                'asset_type_id',
+                'location_id',
+                'status',
+                'condition',
+                'photo',
+            ])
+            ->with([
+                'category:id,name',
+                'assetType:id,name,prefix',
+                'location:id,name',
 
-                $query->where(function ($q) use ($searchPattern) {
-                    $q->whereRaw('LOWER(name) LIKE ?', [$searchPattern])
-                        ->orWhereRaw('LOWER(asset_tag) LIKE ?', [$searchPattern])
-                        ->orWhereHas('category', fn($c) => $c->whereRaw('LOWER(name) LIKE ?', [$searchPattern]))
-                        ->orWhereHas('assetType', fn($c) => $c->whereRaw('LOWER(name) LIKE ?', [$searchPattern]))
-                        ->orWhereHas('location', fn($c) => $c->whereRaw('LOWER(name) LIKE ?', [$searchPattern]));
+                'currentBorrow',
+
+                'currentBorrow.borrower:id,name'
+            ])
+            ->when($search, function ($query) use ($search) {
+
+                $pattern = "%{$search}%";
+
+                $query->where(function ($q) use ($pattern) {
+
+                    $q->where('name', 'ILIKE', $pattern)
+                        ->orWhere('asset_tag', 'ILIKE', $pattern)
+
+                        ->orWhereHas(
+                            'category',
+                            fn($c) =>
+                            $c->where('name', 'ILIKE', $pattern)
+                        )
+
+                        ->orWhereHas(
+                            'assetType',
+                            fn($t) =>
+                            $t->where('name', 'ILIKE', $pattern)
+                        )
+
+                        ->orWhereHas(
+                            'location',
+                            fn($l) =>
+                            $l->where('name', 'ILIKE', $pattern)
+                        );
+
                 });
+
             })
             ->when($category !== 'All', fn($q) => $q->where('category_id', $category))
             ->when($status !== 'All', fn($q) => $q->where('status', $status))
@@ -121,6 +159,7 @@ class AssetController extends Controller
                 'location',
                 'currentBorrow',
                 'activityLogs.actor',
+                'borrows.borrower'
             ])
         );
     }

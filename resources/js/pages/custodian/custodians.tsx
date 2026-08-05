@@ -25,7 +25,7 @@ import {
     HoverCardTrigger,
 } from '@/components/ui/hover-card';
 import { Input } from '@/components/ui/input';
-import { dashboard } from '@/routes/custodian';
+import custodian, { dashboard } from '@/routes/custodian';
 import { destroy, store, update } from '@/routes/custodian/custodians';
 import { router } from '@inertiajs/react';
 import { PaginationBar } from '@/components/ui/pagination';
@@ -33,6 +33,9 @@ import { CustodianDeleteDialog } from '@/components/custodian/custodian-delete-d
 import type { SharedData } from '@/types';
 import type { Paginated } from '@/types/pagination';
 import type { Custodian, Filters } from '@/types/custodian';
+import { motion } from "framer-motion";
+import { rowVariants } from "@/components/assets/asset-table-animations";
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
 
 interface Props {
     custodians: Paginated<Custodian>;
@@ -144,11 +147,16 @@ export default function Custodians({ custodians, filters }: Props) {
     const [deleteTarget, setDeleteTarget] = useState<Custodian | null>(null);
     const deleteForm = useForm({});
 
+
+    const [loading, setLoading] = useState(false);
+
     // ── Server-driven filtering/pagination ──
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRun = useRef(true);
 
     function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        setLoading(true);
+
         router.get(
             '/custodian/custodians',
             {
@@ -156,7 +164,14 @@ export default function Custodians({ custodians, filters }: Props) {
                 per_page: overrides.per_page ?? custodians.per_page,
                 page,
             },
-            { preserveState: true, preserveScroll: true, replace: true, only: ['custodians', 'filters'] },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['custodians', 'filters'],
+                onFinish: () => setLoading(false),
+            },
+
         );
     }
 
@@ -249,7 +264,11 @@ export default function Custodians({ custodians, filters }: Props) {
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <AnimatedTableBody
+                                loading={loading}
+                                animate
+                                animationKey={`${custodians.current_page}-${search}`}
+                            >
                                 {custodians.data.map((custodian) => {
                                     const isCurrentUser =
                                         custodian.id === props.auth.user?.id;
@@ -259,7 +278,8 @@ export default function Custodians({ custodians, filters }: Props) {
                                     );
 
                                     return (
-                                        <tr
+                                        <motion.tr
+                                            variants={rowVariants}
                                             key={custodian.id}
                                             className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50"
                                         >
@@ -362,10 +382,10 @@ export default function Custodians({ custodians, filters }: Props) {
                                                     </HoverCard>
                                                 </div>
                                             </td>
-                                        </tr>
+                                        </motion.tr>
                                     );
                                 })}
-                            </tbody>
+                            </AnimatedTableBody>
                         </table>
 
                         {custodians.data.length === 0 && (

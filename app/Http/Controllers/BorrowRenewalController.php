@@ -15,7 +15,7 @@ class BorrowRenewalController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'borrow_id' => ['required', 'exists:borrow_requests,id'],
+            'borrow_id' => ['required', 'exists:borrows,id'],
             'requested_due_date' => ['required', 'date', 'after:today'],
             'reason' => ['required', 'string'],
         ]);

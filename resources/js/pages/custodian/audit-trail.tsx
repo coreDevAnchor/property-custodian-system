@@ -12,13 +12,7 @@ import { ActivityFeed } from '@/components/activity/activity-feed';
 import { dashboard } from '@/routes/custodian';
 import { PaginationBar } from '@/components/ui/pagination';
 import type { Paginated } from '@/types/pagination';
-import type {
-    ActivityItem,
-    Category,
-    DateRange,
-    Filters
-} from '@/types/activities';
-
+import type { ActivityItem, Category, DateRange, Filters } from '@/types/activities';
 
 
 interface Props {
@@ -46,8 +40,11 @@ export default function AuditTrail({
 }: Props) {
     const [category, setCategory] = useState<Category>(filters.category ?? 'All');
     const [range, setRange] = useState<DateRange>(filters.range ?? 'all');
+    const [loading, setLoading] = useState(false);
 
     function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        setLoading(true);
+
         router.get(
             '/custodian/activity',
             {
@@ -56,7 +53,13 @@ export default function AuditTrail({
                 per_page: overrides.per_page ?? activity.per_page,
                 page,
             },
-            { preserveState: true, preserveScroll: true, replace: true, only: ['activity', 'filters'] },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['activity', 'filters'],
+                onFinish: () => setLoading(false),
+            },
         );
     }
 
@@ -129,7 +132,10 @@ export default function AuditTrail({
                     </div>
 
                     <div className="px-6 py-6">
-                        <ActivityFeed items={activity.data} />
+                        <ActivityFeed
+                            key={`${activity.current_page}-${category}-${range}`}
+                            items={activity.data}
+                        />
 
                         {activity.data.length === 0 && (
                             <div className="flex flex-col items-center gap-1 py-12 text-center">

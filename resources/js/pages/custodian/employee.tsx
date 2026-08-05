@@ -23,6 +23,9 @@ import { PaginationBar } from '@/components/ui/pagination';
 import { dashboard } from '@/routes/custodian';
 import type { Employee, EmployeeStatusFilter, Filters } from '@/types/employee';
 import type { Paginated } from '@/types/pagination';
+import { motion } from "framer-motion";
+import { rowVariants } from "@/components/assets/asset-table-animations";
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
@@ -55,7 +58,8 @@ function EmployeeRow({
     );
 
     return (
-        <tr
+        <motion.tr
+            variants={rowVariants}
             onClick={() => onView(employee)}
             className="group cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50">
             <td className="py-3.5 pr-4">
@@ -166,7 +170,7 @@ function EmployeeRow({
                 </div>
             </td>
 
-        </tr>
+        </motion.tr>
     );
 }
 
@@ -189,11 +193,15 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
     const [editingEmployee, setEditingEmployee] = useState<Employee | undefined>();
     const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
 
+    const [loading, setLoading] = useState(false);
+
     // ── Server-driven filtering/pagination ──
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRun = useRef(true);
 
     function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        setLoading(true);
+
         router.get(
             '/custodian/employees',
             {
@@ -202,7 +210,13 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
                 per_page: overrides.per_page ?? employees.per_page,
                 page,
             },
-            { preserveState: true, preserveScroll: true, replace: true, only: ['employees', 'filters'] },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['employees', 'filters'],
+                onFinish: () => setLoading(false),
+            },
         );
     }
 
@@ -338,7 +352,11 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <AnimatedTableBody
+                                loading={loading}
+                                animate
+                                animationKey={`${employees.current_page}-${search}-${statusFilter}`}
+                            >
                                 {employees.data.map((employee) => (
                                     <EmployeeRow
                                         key={employee.id}
@@ -348,7 +366,7 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
                                         onView={setViewTarget}
                                     />
                                 ))}
-                            </tbody>
+                            </AnimatedTableBody>
                         </table>
 
                         {employees.data.length === 0 && (

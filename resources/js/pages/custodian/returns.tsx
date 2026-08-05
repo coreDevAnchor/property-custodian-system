@@ -27,6 +27,10 @@ import type {
     Filters
 } from '@/types/returns';
 
+import { motion } from "framer-motion";
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
+import { rowVariants } from "@/components/assets/asset-table-animations";
+
 const statusLabels: Record<ReturnStatus, string> = {
     awaiting_check: 'Awaiting Check',
     returned: 'Returned',
@@ -90,7 +94,9 @@ function ReturnRow({
     onConfirmReturn: (item: ReturnItem, condition: ReturnCondition) => void;
 }) {
     return (
-        <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+        <motion.tr
+            variants={rowVariants}
+            className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
             <td className="py-3.5 pr-4">
                 <p className="truncate text-sm font-semibold text-foreground">
                     {item.borrower?.name ?? "Unknown Employee"}
@@ -183,7 +189,7 @@ function ReturnRow({
                     </span>
                 )}
             </td>
-        </tr>
+        </motion.tr>
     );
 }
 
@@ -204,13 +210,17 @@ export default function Returns({
     const [statusFilter, setStatusFilter] = useState<'All' | ReturnStatus>(filters.status ?? 'awaiting_check');
     const [sortKey, setSortKey] = useState<SortKey>(filters.sort ?? 'newest');
     const [lostConfirmItem, setLostConfirmItem] = useState<ReturnItem | null>(null);
+    const [loading, setLoading] = useState(false);
+    const animationKey = `${returns.current_page}-${search}-${statusFilter}-${sortKey}`;
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRun = useRef(true);
 
     function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        setLoading(true);
+
         router.get(
-            '/custodian/returns',
+            "/custodian/returns",
             {
                 search: overrides.search ?? search,
                 status: overrides.status ?? statusFilter,
@@ -218,7 +228,14 @@ export default function Returns({
                 per_page: overrides.per_page ?? returns.per_page,
                 page,
             },
-            { preserveState: true, preserveScroll: true, replace: true, only: ['returns', 'awaitingCount', 'filters'] },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ["returns", "awaitingCount", "filters"],
+
+                onFinish: () => setLoading(false),
+            }
         );
     }
 
@@ -267,6 +284,8 @@ export default function Returns({
         item: ReturnItem,
         condition: ReturnCondition
     ) {
+        setLoading(true);
+
         router.put(
             `/custodian/returns/${item.id}`,
             {
@@ -276,6 +295,9 @@ export default function Returns({
                 preserveScroll: true,
                 onSuccess: () => {
                     setLostConfirmItem(null);
+                },
+                onFinish: () => {
+                    setLoading(false);
                 },
             }
         );
@@ -388,7 +410,11 @@ export default function Returns({
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <AnimatedTableBody
+                                loading={loading}
+                                animate
+                                animationKey={animationKey}
+                            >
                                 {returns.data.map((item) => (
                                     <ReturnRow
                                         key={item.id}
@@ -396,7 +422,7 @@ export default function Returns({
                                         onConfirmReturn={handleConfirmReturn}
                                     />
                                 ))}
-                            </tbody>
+                            </AnimatedTableBody>
                         </table>
 
                         {returns.data.length === 0 && (

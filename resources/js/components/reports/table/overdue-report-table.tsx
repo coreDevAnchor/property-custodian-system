@@ -5,6 +5,9 @@ import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { router } from "@inertiajs/react";
 import borrowRequests from "@/routes/custodian/borrow-requests";
+import { motion } from "framer-motion";
+import { rowVariants } from "@/components/assets/asset-table-animations";
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
 
 function OverdueBadge({ days }: { days: number }) {
     const cls =
@@ -26,11 +29,12 @@ function OverdueBadge({ days }: { days: number }) {
 
 interface Props {
     overdueItems: Paginated<OverdueItem>;
+    animationKey: string;
     handlePageChange: (page: number) => void;
     handlePerPageChange: (perPage: number) => void;
 }
 
-export function OverdueReportTable({ overdueItems, handlePageChange, handlePerPageChange }: Props) {
+export function OverdueReportTable({ overdueItems, animationKey, handlePageChange, handlePerPageChange }: Props) {
 
 
     return (
@@ -59,11 +63,16 @@ export function OverdueReportTable({ overdueItems, handlePageChange, handlePerPa
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <AnimatedTableBody
+                        loading={false}
+                        animate
+                        animationKey={animationKey}
+                    >
                         {(overdueItems?.data ?? []).map(
                             (item) => (
-                                <tr
+                                <motion.tr
                                     key={item.id}
+                                    variants={rowVariants}
                                     className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
                                 >
                                     <td className="py-3.5 pr-4">
@@ -129,10 +138,10 @@ export function OverdueReportTable({ overdueItems, handlePageChange, handlePerPa
                                             Remind
                                         </Button>
                                     </td>
-                                </tr>
+                                </motion.tr>
                             ),
                         )}
-                    </tbody>
+                    </AnimatedTableBody>
                 </table>
 
                 {(overdueItems?.data ?? []).length === 0 && (

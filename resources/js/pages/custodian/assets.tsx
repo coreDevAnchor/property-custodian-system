@@ -28,7 +28,8 @@ import {
 import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import { dashboard } from '@/routes/custodian';
 import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
-// import { Asset } from "@/components/assets/types";
+import { motion } from "framer-motion";
+import { rowVariants, tableVariants } from '@/components/assets/asset-table-animations';
 import { PaginationBar } from '@/components/ui/pagination';
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,6 +43,7 @@ import {
 import type { Location } from '@/types/location';
 import type { Paginated } from '@/types/pagination';
 import type { Category } from '@/types/categories';
+import { AnimatedTableBody } from '@/components/ui/animated-table-body';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -110,7 +112,9 @@ function AssetRow({
     const Icon = categoryIcon[asset.category.name];
 
     return (
-        <tr
+        <motion.tr
+            variants={rowVariants}
+            layout={false}
             onClick={() => onView(asset)}
             className="group cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50"
         >
@@ -215,7 +219,7 @@ function AssetRow({
                     </HoverCard>
                 </div>
             </td>
-        </tr>
+        </motion.tr>
     );
 }
 
@@ -247,6 +251,20 @@ export default function Assets({
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState<Asset | undefined>();
+
+    const animationKey = useMemo(() => {
+        return [
+            assets.current_page,
+            filters.search,
+            filters.category,
+            filters.status,
+        ].join("-");
+    }, [
+        assets.current_page,
+        filters.search,
+        filters.category,
+        filters.status,
+    ]);
 
     // ── Server-driven filtering/pagination ──
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -420,7 +438,11 @@ export default function Assets({
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <AnimatedTableBody
+                                loading={false}
+                                animate
+                                animationKey={animationKey}
+                            >
                                 {assets.data.map((asset) => (
                                     <AssetRow
                                         key={asset.id}
@@ -429,7 +451,7 @@ export default function Assets({
                                         onView={setViewTarget}
                                     />
                                 ))}
-                            </tbody>
+                            </AnimatedTableBody>
                         </table>
 
                         {assets.data.length === 0 && (

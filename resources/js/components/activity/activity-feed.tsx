@@ -12,6 +12,11 @@ import {
 } from 'lucide-react';
 
 import type { ActivityItem } from '@/types/activities';
+import { motion } from "framer-motion";
+import {
+    tableVariants,
+    rowVariants,
+} from "@/components/assets/asset-table-animations";
 
 const actionIcons: Record<string, typeof History> = {
     asset_created: PackagePlus,
@@ -46,26 +51,26 @@ function timeAgo(dateString: string) {
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
 
     if (seconds < 60) {
-return 'just now';
-}
+        return 'just now';
+    }
 
     const minutes = Math.floor(seconds / 60);
 
     if (minutes < 60) {
-return `${minutes}m ago`;
-}
+        return `${minutes}m ago`;
+    }
 
     const hours = Math.floor(minutes / 60);
 
     if (hours < 24) {
-return `${hours}h ago`;
-}
+        return `${hours}h ago`;
+    }
 
     const days = Math.floor(hours / 24);
 
     if (days < 7) {
-return `${days}d ago`;
-}
+        return `${days}d ago`;
+    }
 
     return date.toLocaleDateString('en-US', {
         year: 'numeric',
@@ -74,7 +79,11 @@ return `${days}d ago`;
     });
 }
 
-export function ActivityFeed({ items }: { items: ActivityItem[] }) {
+export function ActivityFeed({
+    items,
+}: {
+    items: ActivityItem[];
+}) {
     if (items.length === 0) {
         return (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
@@ -88,15 +97,21 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
     }
 
     return (
-        <div className="space-y-1">
+        <motion.div
+            className="space-y-1"
+            variants={tableVariants}
+            initial="hidden"
+            animate="show"
+        >
             {items.map((item) => {
                 const Icon = actionIcons[item.action] ?? History;
                 const colorClass =
                     actionColors[item.action] ?? 'bg-muted text-muted-foreground';
 
                 return (
-                    <div
+                    <motion.div
                         key={item.id}
+                        variants={rowVariants}
                         className="flex items-start gap-3 border-b border-border py-3 last:border-0"
                     >
                         <div
@@ -112,9 +127,9 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
                                 {timeAgo(item.created_at)}
                             </p>
                         </div>
-                    </div>
+                    </motion.div>
                 );
             })}
-        </div>
+        </motion.div>
     );
 }

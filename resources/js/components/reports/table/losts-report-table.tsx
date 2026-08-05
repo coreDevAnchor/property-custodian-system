@@ -2,14 +2,18 @@ import { Paginated } from "@/types/pagination";
 import { PaginationBar } from "@/components/ui/pagination";
 import { LostItem } from "@/types/reports";
 import { PackageX } from "lucide-react";
+import { motion } from "framer-motion";
+import { rowVariants } from "@/components/assets/asset-table-animations";
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
 
 interface Props {
     lostItems: Paginated<LostItem>;
+    animationKey: string;
     handlePageChange: (page: number) => void;
     handlePerPageChange: (perPage: number) => void;
 }
 
-export function LostsReportTable({ lostItems, handlePageChange, handlePerPageChange }: Props) {
+export function LostsReportTable({ lostItems, animationKey, handlePageChange, handlePerPageChange }: Props) {
 
 
     return (
@@ -35,10 +39,15 @@ export function LostsReportTable({ lostItems, handlePageChange, handlePerPageCha
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <AnimatedTableBody
+                        loading={false}
+                        animate
+                        animationKey={animationKey}
+                    >
                         {(lostItems?.data ?? []).map((item) => (
-                            <tr
+                            <motion.tr
                                 key={item.id}
+                                variants={rowVariants}
                                 className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
                             >
                                 <td className="py-3.5 pr-4">
@@ -75,9 +84,9 @@ export function LostsReportTable({ lostItems, handlePageChange, handlePerPageCha
                                         Lost
                                     </span>
                                 </td>
-                            </tr>
+                            </motion.tr>
                         ))}
-                    </tbody>
+                    </AnimatedTableBody>
                 </table>
 
                 {(lostItems?.data ?? []).length === 0 && (

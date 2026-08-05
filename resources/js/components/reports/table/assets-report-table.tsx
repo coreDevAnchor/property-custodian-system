@@ -1,14 +1,18 @@
 import { Asset } from "@/types/assets"
 import { Paginated } from "@/types/pagination";
 import { PaginationBar } from "@/components/ui/pagination";
+import { motion } from "framer-motion";
+import { rowVariants } from "@/components/assets/asset-table-animations";
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
 
 interface Props {
     assets: Paginated<Asset>;
+    animationKey: string;
     handlePageChange: (page: number) => void;
     handlePerPageChange: (perPage: number) => void;
 }
 
-export function AssetsReportTable({ assets, handlePageChange, handlePerPageChange }: Props) {
+export function AssetsReportTable({ assets, animationKey, handlePageChange, handlePerPageChange }: Props) {
 
 
     return (
@@ -38,10 +42,15 @@ export function AssetsReportTable({ assets, handlePageChange, handlePerPageChang
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <AnimatedTableBody
+                        loading={false}
+                        animate
+                        animationKey={animationKey}
+                    >
                         {assets.data.map((asset) => (
-                            <tr
+                            <motion.tr
                                 key={asset.id}
+                                variants={rowVariants}
                                 className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
                             >
                                 <td className="py-3.5 pr-4">
@@ -91,9 +100,9 @@ export function AssetsReportTable({ assets, handlePageChange, handlePerPageChang
                                         ? `₱${asset.total_depreciation.toLocaleString()}`
                                         : '—'}
                                 </td>
-                            </tr>
+                            </motion.tr>
                         ))}
-                    </tbody>
+                    </AnimatedTableBody>
                 </table>
 
                 {assets?.data.length === 0 && (

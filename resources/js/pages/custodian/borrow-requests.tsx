@@ -30,6 +30,10 @@ import type {
     Filters
 } from '@/types/borrows';
 import type { Paginated } from '@/types/pagination';
+import { motion } from "framer-motion";
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
+import { rowVariants } from "@/components/assets/asset-table-animations";
+import { useInertiaLoading } from "@/hooks/use-inertia-loading"
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
@@ -52,7 +56,10 @@ function BorrowRequestRow({
     onUpdateStatus: (request: BorrowRequest, status: BorrowStatus) => void;
 }) {
     return (
-        <tr className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+        <motion.tr
+            variants={rowVariants}
+            className="group border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+        >
             <td className="py-3.5 pr-4">
                 <p className="truncate text-sm font-semibold text-foreground">
                     {request.borrower?.name ?? 'Unknown borrower'}
@@ -134,7 +141,7 @@ function BorrowRequestRow({
                         )}
                 </div>
             </td>
-        </tr>
+        </motion.tr>
     );
 }
 
@@ -162,11 +169,16 @@ export default function BorrowRequests({
     const [sortKey, setSortKey] = useState<SortKey>(filters.sort ?? 'newest');
     const [approvalRequest, setApprovalRequest] = useState<BorrowRequest | null>(null);
     const [view, setView] = useState<'borrows' | 'renewals'>('borrows');
+    const [loading, setLoading] = useState(false);
+    const animationKey = `${borrowRequests.current_page}-${search}-${statusFilter}-${sortKey}`;
+    const renewalAnimationKey = `${renewalRequests.length}-${pendingRenewalCount}`;
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRun = useRef(true);
 
     function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        setLoading(true);
+
         router.get(
             '/custodian/borrow-requests',
             {
@@ -176,7 +188,13 @@ export default function BorrowRequests({
                 per_page: overrides.per_page ?? borrowRequests.per_page,
                 page,
             },
-            { preserveState: true, preserveScroll: true, replace: true, only: ['borrowRequests', 'pendingCount', 'filters'] },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['borrowRequests', 'pendingCount', 'filters'],
+                onFinish: () => setLoading(false),
+            },
         );
     }
 
@@ -188,15 +206,15 @@ export default function BorrowRequests({
         }
 
         if (debounceRef.current) {
-clearTimeout(debounceRef.current);
-}
+            clearTimeout(debounceRef.current);
+        }
 
         debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
         return () => {
             if (debounceRef.current) {
-clearTimeout(debounceRef.current);
-}
+                clearTimeout(debounceRef.current);
+            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
@@ -341,7 +359,11 @@ clearTimeout(debounceRef.current);
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <AnimatedTableBody
+                                loading={loading}
+                                animate
+                                animationKey={animationKey}
+                            >
                                 {borrowRequests.data.map((request) => (
                                     <BorrowRequestRow
                                         key={request.id}
@@ -349,7 +371,7 @@ clearTimeout(debounceRef.current);
                                         onUpdateStatus={handleUpdateStatus}
                                     />
                                 ))}
-                            </tbody>
+                            </AnimatedTableBody>
                         </table>
 
                         {borrowRequests.data.length === 0 && (
@@ -389,9 +411,19 @@ clearTimeout(debounceRef.current);
                                     <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+
+                            <AnimatedTableBody
+                                loading={loading}
+                                animate
+                                animationKey={renewalAnimationKey}
+                            >
+
                                 {renewalRequests.map((renewal) => (
-                                    <tr key={renewal.id} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+                                    <motion.tr
+                                        key={renewal.id}
+                                        variants={rowVariants}
+                                        className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                                    >
                                         <td className="py-3.5 pr-4 text-sm font-semibold text-foreground">{renewal.borrow.borrower?.name ?? 'Unknown borrower'}</td>
                                         <td className="py-3.5 pr-4"><p className="text-sm text-foreground">{renewal.borrow.asset.name}</p><p className="text-xs text-muted-foreground">{renewal.borrow.asset.asset_tag}</p></td>
                                         <td className="py-3.5 pr-4 text-sm text-muted-foreground">{renewal.borrow.expected_return_date ? new Date(renewal.borrow.expected_return_date).toLocaleDateString() : '—'} → {new Date(renewal.requested_due_date).toLocaleDateString()}</td>
@@ -400,9 +432,9 @@ clearTimeout(debounceRef.current);
                                             <button onClick={() => handleRenewalDecision(renewal, 'approved')} className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-500/10"><Check className="size-3.5" /> Approve</button>
                                             <button onClick={() => handleRenewalDecision(renewal, 'rejected')} className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-500/10"><X className="size-3.5" /> Reject</button>
                                         </div></td>
-                                    </tr>
+                                    </motion.tr>
                                 ))}
-                            </tbody>
+                            </AnimatedTableBody>
                         </table>
                         {renewalRequests.length === 0 && (
                             <div className="flex flex-col items-center gap-2 py-12 text-center">
@@ -413,7 +445,7 @@ clearTimeout(debounceRef.current);
                         )}
                     </div>
                 </div>
-            </div>
+            </div >
 
             <BorrowApprovalDialog
                 request={approvalRequest}
