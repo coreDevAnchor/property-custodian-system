@@ -2,6 +2,9 @@ import { Paginated } from "@/types/pagination";
 import { PaginationBar } from "@/components/ui/pagination";
 import { OverdueItem } from "@/types/reports";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { router } from "@inertiajs/react";
+import borrowRequests from "@/routes/custodian/borrow-requests";
 
 function OverdueBadge({ days }: { days: number }) {
     const cls =
@@ -50,6 +53,9 @@ export function OverdueReportTable({ overdueItems, handlePageChange, handlePerPa
                             </th>
                             <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                 Status
+                            </th>
+                            <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                Action
                             </th>
                         </tr>
                     </thead>
@@ -103,6 +109,25 @@ export function OverdueReportTable({ overdueItems, handlePageChange, handlePerPa
                                                 item.days_overdue
                                             }
                                         />
+                                    </td>
+
+                                    <td className="py-3.5">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                router.post(
+                                                    borrowRequests.remind(item.id),
+                                                    {},
+                                                    {
+                                                        preserveScroll: true,
+                                                        preserveState: true,
+                                                    }
+                                                );
+                                            }}
+                                        >
+                                            Remind
+                                        </Button>
                                     </td>
                                 </tr>
                             ),
