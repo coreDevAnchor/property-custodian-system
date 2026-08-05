@@ -45,14 +45,14 @@ interface Props {
 
 function fmtDate(value?: string | null) {
     if (!value) {
-return null;
-}
+        return null;
+    }
 
     const d = new Date(value);
 
     if (isNaN(d.getTime())) {
-return value;
-}
+        return value;
+    }
 
     return d.toLocaleDateString('en-US', {
         year: 'numeric',
@@ -63,8 +63,8 @@ return value;
 
 function daysUntil(value?: string | null): number | null {
     if (!value) {
-return null;
-}
+        return null;
+    }
 
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -104,8 +104,8 @@ function DueDateBadge({ date }: { date?: string | null }) {
     const days = daysUntil(date);
 
     if (days === null) {
-return null;
-}
+        return null;
+    }
 
     let cls: string;
     let label: string;
@@ -132,8 +132,6 @@ return null;
     );
 }
 
-
-
 function BorrowCard({ item }: { item: BorrowItem }) {
     const { label, icon: Icon, color, dot } = statusConfig[item.status as ActiveBorrowStatus];
     const canReturn = item.status === 'borrowed';
@@ -142,9 +140,11 @@ function BorrowCard({ item }: { item: BorrowItem }) {
     const [lostAsset, setLostAsset] = useState<BorrowItem | null>(null);
     const [submittingLost, setSubmittingLost] = useState(false);
     const [openLostDialog, setOpenLostDialog] = useState(false);
+    const [lostError, setLostError] = useState<string | null>(null);
 
     function handleLostSubmit(borrowId: number, reason: string) {
         setSubmittingLost(true);
+        setLostError(null);
 
         router.post(
             '/employee/returns',
@@ -159,6 +159,14 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                     setOpenLostDialog(false);
                 },
 
+                onError: (errors) => {
+                    setLostError(
+                        errors.lost_reason ??
+                        errors.lost_id ??
+                        'Something went wrong. Please try again.',
+                    );
+                },
+
                 onFinish: () => {
                     setSubmittingLost(false);
                 },
@@ -166,7 +174,13 @@ function BorrowCard({ item }: { item: BorrowItem }) {
         );
     }
 
+    function handleLostDialogOpenChange(open: boolean) {
+        setOpenLostDialog(open);
 
+        if (!open) {
+            setLostError(null);
+        }
+    }
 
     return (
         <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
@@ -337,11 +351,12 @@ function BorrowCard({ item }: { item: BorrowItem }) {
 
             <LostAssetDialog
                 open={openLostDialog}
-                onOpenChange={setOpenLostDialog}
+                onOpenChange={handleLostDialogOpenChange}
                 borrowId={item.id}
                 assetName={item.asset.name}
                 assetTag={item.asset.asset_tag}
                 submitting={submittingLost}
+                error={lostError}
                 onSubmit={handleLostSubmit}
             />
         </article>
