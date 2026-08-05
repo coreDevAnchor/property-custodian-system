@@ -17,8 +17,11 @@ interface Props {
     assetName: string;
     assetTag: string;
     submitting?: boolean;
+    error?: string | null;
     onSubmit: (borrowId: number, reason: string) => void;
 }
+
+const MIN_REASON_LENGTH = 10; // must match backend validation rule
 
 export function LostAssetDialog({
     open,
@@ -27,14 +30,29 @@ export function LostAssetDialog({
     assetName,
     assetTag,
     submitting = false,
+    error = null,
     onSubmit,
 }: Props) {
     const [reason, setReason] = useState('');
+    const [touched, setTouched] = useState(false);
+
+    const trimmedLength = reason.trim().length;
+    const isTooShort = trimmedLength > 0 && trimmedLength < MIN_REASON_LENGTH;
+
+    const clientError = touched && trimmedLength === 0
+        ? 'Please provide a reason.'
+        : touched && isTooShort
+            ? `Please enter at least ${MIN_REASON_LENGTH} characters (currently ${trimmedLength}).`
+            : null;
+
+    const displayedError = clientError ?? error;
 
     function handleSubmit() {
+        setTouched(true);
+
         const trimmedReason = reason.trim();
 
-        if (!trimmedReason) {
+        if (trimmedReason.length < MIN_REASON_LENGTH) {
             return;
         }
 
@@ -44,6 +62,7 @@ export function LostAssetDialog({
     function handleOpenChange(value: boolean) {
         if (!value && !submitting) {
             setReason('');
+            setTouched(false);
         }
 
         onOpenChange(value);
@@ -89,20 +108,32 @@ export function LostAssetDialog({
                             id={`lost-reason-${borrowId}`}
                             value={reason}
                             onChange={(event) => setReason(event.target.value)}
+                            onBlur={() => setTouched(true)}
                             placeholder="Explain how or why the asset was lost..."
                             rows={5}
                             maxLength={1000}
                             disabled={submitting}
-                            className="flex w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                            aria-invalid={!!displayedError}
+                            aria-describedby={`lost-reason-hint-${borrowId}`}
+                            className={`flex w-full resize-none rounded-xl border bg-background px-3 py-2.5 text-sm shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${displayedError
+                                    ? 'border-red-400 focus-visible:border-red-500 focus-visible:ring-red-500/50'
+                                    : 'border-input focus-visible:border-ring focus-visible:ring-ring/50'
+                                }`}
                         />
 
-                        <div className="flex justify-between">
-                            <p className="text-xs text-muted-foreground">
-                                Please provide enough details for the custodian
-                                to review your report.
+                        <div className="flex items-start justify-between gap-3">
+                            <p
+                                id={`lost-reason-hint-${borrowId}`}
+                                className={`text-xs ${displayedError
+                                        ? 'font-medium text-red-600 dark:text-red-400'
+                                        : 'text-muted-foreground'
+                                    }`}
+                            >
+                                {displayedError ??
+                                    `Please provide at least ${MIN_REASON_LENGTH} characters so the custodian can review your report.`}
                             </p>
 
-                            <span className="text-xs text-muted-foreground">
+                            <span className="shrink-0 text-xs text-muted-foreground">
                                 {reason.length}/1000
                             </span>
                         </div>
@@ -130,7 +161,7 @@ export function LostAssetDialog({
                         variant="destructive"
                         className="cursor-pointer"
                         onClick={handleSubmit}
-                        disabled={!reason.trim() || submitting}
+                        disabled={trimmedLength < MIN_REASON_LENGTH || submitting}
                     >
                         <PackageX className="size-4" />
                         {submitting

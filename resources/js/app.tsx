@@ -7,13 +7,15 @@ import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { FlashToastListener } from './components/toast/flash-toast-listener';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Property Custodian System';
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title) => (title ? `${title} - Property Custodian System` : 'Property Custodian System'),
     layout: (name) => {
         switch (true) {
             case name === 'welcome':
+                return null;
+            case name === 'auth/login':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
