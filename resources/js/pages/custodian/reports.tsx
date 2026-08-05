@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AlertTriangle, Download, PackageX } from 'lucide-react';
 import {
     Select,
@@ -116,6 +116,8 @@ export default function Reports({
     const [headerPeriod, setHeaderPeriod] = useState<ReportPeriod>(
         selectedHeaderPeriod ?? "month"
     );
+
+    const reportTableRef = useRef<HTMLDivElement>(null);
 
     const currentPage =
         view === 'overdue'
@@ -295,7 +297,16 @@ export default function Reports({
                             </p>
                             {view !== 'overdue' && (
                                 <button
-                                    onClick={() => handleViewChange('overdue')}
+                                    onClick={() => {
+                                        handleViewChange('overdue');
+
+                                        setTimeout(() => {
+                                            reportTableRef.current?.scrollIntoView({
+                                                behavior: 'smooth',
+                                                block: 'start',
+                                            });
+                                        }, 150);
+                                    }}
                                     className="cursor-pointer text-xs font-semibold text-red-600 underline hover:text-red-700 dark:text-red-400"
                                 >
                                     View overdue items
@@ -364,7 +375,10 @@ export default function Reports({
                 />
 
                 {/* ── Filters + table ── */}
-                <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                <div
+                    ref={reportTableRef}
+                    className="rounded-xl border border-border bg-card text-card-foreground shadow-sm"
+                >
                     {/* Header */}
                     <div className="border-b border-border px-6 py-5">
                         <h2 className="text-lg font-semibold tracking-tight">
