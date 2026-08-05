@@ -76,7 +76,7 @@ interface Props {
 // ─── Style helpers ──────────────────────────────────────────────────────────
 
 const categoryColors = [
-    'bg-[#0d7a5f]',
+    'bg-primary',
     'bg-orange-500',
     'bg-sky-500',
     'bg-violet-500',
@@ -234,7 +234,7 @@ function RequestRow({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => onSelect(request)}
-                        className="cursor-pointer rounded-lg bg-[#0d7a5f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#0a6550] active:scale-95"
+                        className="cursor-pointer rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95"
                         aria-label={`Approve request from ${borrower?.name ?? 'Unknown Employee'
                             }`}
                     >
@@ -283,7 +283,7 @@ export default function Dashboard({
             label: 'Available',
             value: stats.availableAssets,
             icon: CheckCircle,
-            color: 'text-[#0d7a5f]',
+            color: 'text-primary',
             bgColor: 'bg-emerald-50',
         },
         {
@@ -370,7 +370,7 @@ export default function Dashboard({
                                 </div>
                                 <button
                                     onClick={() => router.visit('/custodian/borrow-requests')}
-                                    className="flex items-center gap-1 text-xs font-semibold text-[#0d7a5f] hover:underline cursor-pointer"
+                                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
                                 >
                                     View all
                                     <ArrowRight className="size-3" />
@@ -437,7 +437,7 @@ export default function Dashboard({
                                 </div>
                                 <Link
                                     href={auditTrail()}
-                                    className="flex items-center gap-1 text-xs font-semibold text-[#0d7a5f] hover:underline"
+                                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                                 >
                                     View all
                                     <ArrowRight className="size-3" />

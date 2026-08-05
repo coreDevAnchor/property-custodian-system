@@ -65,7 +65,7 @@ export default function ForceChangePassword() {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0d7a5f] text-sm font-bold text-white transition-all hover:bg-[#0a6550] disabled:opacity-70"
+                            className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-bold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-70"
                         >
                             {processing && <Spinner />}
                             {processing

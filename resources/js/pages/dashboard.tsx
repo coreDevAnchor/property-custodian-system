@@ -28,8 +28,8 @@ const stats = [
         label: 'Available',
         value: 316,
         icon: CheckCircle,
-        color: 'text-[#0d7a5f]',
-        bgColor: 'bg-emerald-50',
+        color: 'text-primary',
+        bgColor: 'bg-orange-50',
     },
     {
         id: 'borrowed-out',
@@ -101,7 +101,7 @@ const pendingRequests = [
 ];
 
 const assetCategories = [
-    { label: 'IT Equipment', count: 186, max: 482, color: 'bg-[#0d7a5f]' },
+    { label: 'IT Equipment', count: 186, max: 482, color: 'bg-primary' },
     { label: 'Vehicles', count: 24, max: 482, color: 'bg-orange-500' },
     { label: 'Office Furniture', count: 140, max: 482, color: 'bg-sky-500' },
     { label: 'Lab Equipment', count: 67, max: 482, color: 'bg-violet-500' },
@@ -184,7 +184,7 @@ function RequestRow({
             <td className="py-3.5">
                 <div className="flex items-center gap-2 whitespace-nowrap">
                     <button
-                        className="shrink-0 rounded-lg bg-[#0d7a5f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#0a6550] active:scale-95"
+                        className="shrink-0 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95"
                         aria-label={`Approve request from ${employee}`}
                     >
                         Approve
@@ -232,7 +232,7 @@ export default function Dashboard() {
                             id="dashboard-search"
                             type="text"
                             placeholder="Search assets, employees, requests…"
-                            className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 text-sm text-gray-700 placeholder:text-gray-400 focus:border-[#0d7a5f] focus:ring-2 focus:ring-[#0d7a5f]/20 focus:outline-none"
+                            className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 text-sm text-gray-700 placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                         />
                     </div>
                 </div>
@@ -259,7 +259,7 @@ export default function Dashboard() {
                                         Review and approve employee asset requests
                                     </p>
                                 </div>
-                                <button className="flex items-center gap-1 text-xs font-semibold text-[#0d7a5f] hover:underline">
+                                <button className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
                                     View all
                                     <ArrowRight className="size-3" />
                                 </button>

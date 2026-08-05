@@ -43,8 +43,8 @@ export function NavMain({ items = [], label }: { items: NavItem[]; label?: strin
                                 dark:hover:bg-white/10
                                 dark:hover:text-white
 
-                                data-[active=true]:bg-[#0d7a5f]
-                                data-[active=true]:text-white
+                                data-[active=true]:bg-primary
+                                data-[active=true]:text-primary-foreground
                             "
                         >
                             <Link href={item.href} prefetch>
