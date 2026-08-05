@@ -11,6 +11,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { update as updateRenewal } from '@/actions/App/Http/Controllers/BorrowRenewalController';
 import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
+import { BorrowRejectionDialog } from '@/components/borrow/borrow-rejection-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
 import {
     Select,
@@ -161,6 +162,7 @@ export default function BorrowRequests({
     const [statusFilter, setStatusFilter] = useState<'All' | BorrowStatus>(filters.status ?? 'pending');
     const [sortKey, setSortKey] = useState<SortKey>(filters.sort ?? 'newest');
     const [approvalRequest, setApprovalRequest] = useState<BorrowRequest | null>(null);
+    const [rejectionRequest, setRejectionRequest] = useState<BorrowRequest | null>(null);
     const [view, setView] = useState<'borrows' | 'renewals'>('borrows');
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -222,10 +224,17 @@ clearTimeout(debounceRef.current);
     function handleUpdateStatus(
         request: BorrowRequest,
         status: BorrowStatus,
-        expectedReturnDate?: string
+        expectedReturnDate?: string,
+        rejectionMessage?: string,
     ) {
         if (status === 'borrowed' && !expectedReturnDate) {
             setApprovalRequest(request);
+
+            return;
+        }
+
+        if (status === 'rejected' && rejectionMessage === undefined) {
+            setRejectionRequest(request);
 
             return;
         }
@@ -235,6 +244,7 @@ clearTimeout(debounceRef.current);
             {
                 status,
                 expected_return_date: expectedReturnDate,
+                rejection_message: rejectionMessage,
             },
             { preserveScroll: true }
         );
@@ -424,6 +434,18 @@ clearTimeout(debounceRef.current);
                     }
 
                     setApprovalRequest(null);
+                }}
+            />
+
+            <BorrowRejectionDialog
+                request={rejectionRequest}
+                onClose={() => setRejectionRequest(null)}
+                onConfirm={(message) => {
+                    if (rejectionRequest) {
+                        handleUpdateStatus(rejectionRequest, 'rejected', undefined, message);
+                    }
+
+                    setRejectionRequest(null);
                 }}
             />
         </>
