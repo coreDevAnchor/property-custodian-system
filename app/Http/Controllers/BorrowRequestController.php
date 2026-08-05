@@ -7,6 +7,7 @@ use App\Models\Asset;
 use App\Models\BorrowRequest;
 use App\Models\BorrowRenewal;
 use App\Models\User;
+use App\Notifications\ManualOverdueReminderNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -266,6 +267,27 @@ class BorrowRequestController extends Controller
         return redirect()
             ->back()
             ->with($toastType, $message);
+    }
+
+    public function sendOverdueReminder(BorrowRequest $borrowRequest): RedirectResponse
+    {
+        $borrowRequest->load(['asset', 'borrower']);
+
+        if ($borrowRequest->status !== 'borrowed') {
+            return back()->with('error', 'This borrow request is no longer active.');
+        }
+
+        $borrowRequest->borrower->notify(
+            new ManualOverdueReminderNotification(
+                $borrowRequest,
+                Auth::user(),
+            )
+        );
+
+        return back()->with(
+            'success',
+            'Reminder sent successfully.'
+        );
     }
 
     public function destroy(string $id): RedirectResponse

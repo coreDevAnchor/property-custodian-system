@@ -52,6 +52,12 @@ Route::middleware(['auth', 'verified'])
 
         Route::resource('borrow-requests', BorrowRequestController::class);
 
+        // Manual overdue reminder
+        Route::post(
+            'borrow-requests/{borrowRequest}/remind',
+            [BorrowRequestController::class, 'sendOverdueReminder']
+        )->name('borrow-requests.remind');
+
         Route::patch('borrow-renewals/{borrowRenewal}', [BorrowRenewalController::class, 'update'])
             ->name('borrow-renewals.update');
 
@@ -99,7 +105,7 @@ Route::middleware(['auth', 'verified'])
 
         Route::post('/borrow-requests', [BorrowRequestController::class, 'store'])
             ->name('borrow-requests.store');
-        
+
         Route::post('/borrow-renewals', [BorrowRenewalController::class, 'store'])
             ->name('borrow-renewals.store');
 

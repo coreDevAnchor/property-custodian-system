@@ -112,23 +112,6 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                 Mark all as read
                             </Button>
                         )}
-
-                        <Button
-                            variant="outline"
-                            disabled={!hasReadNotifications}
-                            onClick={() => {
-                                if (
-                                    confirm(
-                                        "Delete all read notifications? This action cannot be undone."
-                                    )
-                                ) {
-                                    deleteReadNotifications();
-                                }
-                            }}
-                        >
-                            <Trash2 className="size-4" />
-                            Delete read
-                        </Button>
                     </div>
                 </div>
 
@@ -158,11 +141,10 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                             <Icon className="size-5" />
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                                <p className="font-semibold text-foreground">{notification.title}</p>
-                                                <time className="shrink-0 text-xs text-muted-foreground" dateTime={notification.created_at}>
-                                                    {formatDate(notification.created_at)}
-                                                </time>
+                                            <div className="flex flex-col gap-1">
+                                                <p className="font-semibold text-foreground">
+                                                    {notification.title}
+                                                </p>
                                             </div>
                                             <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
                                             {notification.asset_name && (
@@ -171,7 +153,14 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                                 </p>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-col items-end gap-2">
+                                            <time
+                                                className="text-xs text-muted-foreground"
+                                                dateTime={notification.created_at}
+                                            >
+                                                {formatDate(notification.created_at)}
+                                            </time>
+
                                             {!notification.read_at ? (
                                                 <Button
                                                     variant="ghost"
@@ -189,14 +178,6 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                                     Mark unread
                                                 </Button>
                                             )}
-
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => deleteNotification(notification.id)}
-                                            >
-                                                <Trash2 className="size-4" />
-                                            </Button>
                                         </div>
                                     </article>
                                 );
