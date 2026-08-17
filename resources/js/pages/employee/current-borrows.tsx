@@ -143,6 +143,7 @@ function BorrowCard({ item }: { item: BorrowItem }) {
     const { label, color, dot } =
         statusConfig[item.status as ActiveBorrowStatus];
     const canReturn = item.status === 'borrowed';
+    const hasPendingRenewal = item.renewals?.some((r) => r.status === 'pending') ?? false;
     const [openReturnDialog, setOpenReturnDialog] = useState(false);
     const [openRenewalDialog, setOpenRenewalDialog] = useState(false);
     const [submittingLost, setSubmittingLost] = useState(false);
@@ -232,9 +233,10 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                         <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem
                                 onSelect={() => setOpenRenewalDialog(true)}
+                                disabled={hasPendingRenewal}
                             >
                                 <CalendarClock />
-                                Request extension
+                                {hasPendingRenewal ? 'Renewal pending' : 'Request extension'}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 variant="destructive"

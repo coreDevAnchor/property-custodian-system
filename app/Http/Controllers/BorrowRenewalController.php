@@ -12,6 +12,60 @@ use Illuminate\Support\Facades\Auth;
 
 class BorrowRenewalController extends Controller
 {
+    public function update(Request $request, BorrowRenewal $borrowRenewal): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:approved,rejected'],
+        ]);
+
+        if ($borrowRenewal->status !== 'pending') {
+            return back()->with('error', 'This renewal request has already been processed.');
+        }
+
+        $user = Auth::user();
+
+        if (!$user instanceof User) {
+            abort(403);
+        }
+
+        $borrow = BorrowRequest::with('asset')->findOrFail($borrowRenewal->borrow_id);
+
+        $borrowRenewal->update([
+            'status' => $validated['status'],
+            'approved_by' => $user->id,
+            'approved_at' => now(),
+        ]);
+
+        $asset = $borrow->asset;
+        $borrowerName = $borrow->borrower?->name ?? 'Unknown';
+
+        if ($validated['status'] === 'approved') {
+            $borrow->update([
+                'expected_return_date' => $borrowRenewal->requested_due_date,
+            ]);
+
+            ActivityLogs::record(
+                $asset,
+                'renewal_approved',
+                "Renewal request from {$borrowerName} for {$asset->name} was approved. New return date: {$borrowRenewal->requested_due_date->format('M d, Y')}.",
+                ['borrow_renewal_id' => $borrowRenewal->id, 'status' => 'approved'],
+            );
+        } else {
+            ActivityLogs::record(
+                $asset,
+                'renewal_rejected',
+                "Renewal request from {$borrowerName} for {$asset->name} was rejected.",
+                ['borrow_renewal_id' => $borrowRenewal->id, 'status' => 'rejected'],
+            );
+        }
+
+        $message = $validated['status'] === 'approved'
+            ? 'Renewal request approved successfully.'
+            : 'Renewal request rejected.';
+
+        return back()->with('success', $message);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([

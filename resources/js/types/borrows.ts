@@ -48,6 +48,13 @@ export interface BorrowItem {
     expected_return_date?: string | null;
 
     asset: AssetSummary;
+
+    renewals?: Array<{
+        id: number;
+        requested_due_date: string;
+        reason: string;
+        status: 'pending' | 'approved' | 'rejected';
+    }>;
 }
 
 export interface BorrowRequest {
