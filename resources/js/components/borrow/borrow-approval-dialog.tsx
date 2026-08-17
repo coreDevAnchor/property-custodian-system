@@ -8,6 +8,12 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { CalendarDays, FileText, Package, User } from 'lucide-react';
 
 interface BorrowRequest {
@@ -150,14 +156,57 @@ export function BorrowApprovalDialog({ request, onClose, onConfirm }: Props) {
                         <label className="text-sm font-bold text-foreground">
                             Expected Return Date
                         </label>
-                        <input
-                            type="date"
-                            value={expectedReturnDate}
-                            min={new Date().toISOString().split('T')[0]}
-                            onChange={(e) => setExpectedReturnDate(e.target.value)}
-                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus:outline-none transition-shadow"
-                            required
-                        />
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className={`h-10 w-full cursor-pointer justify-start text-left font-normal ${
+                                        !expectedReturnDate
+                                            ? 'text-muted-foreground'
+                                            : ''
+                                    }`}
+                                >
+                                    <CalendarDays className="mr-2 size-4" />
+                                    {expectedReturnDate
+                                        ? new Date(`${expectedReturnDate}T00:00:00`).toLocaleDateString(
+                                              'en-US',
+                                              {
+                                                  year: 'numeric',
+                                                  month: 'long',
+                                                  day: 'numeric',
+                                              },
+                                          )
+                                        : 'Select expected return date'}
+                                </Button>
+                            </PopoverTrigger>
+
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={
+                                        expectedReturnDate
+                                            ? new Date(`${expectedReturnDate}T00:00:00`)
+                                            : undefined
+                                    }
+                                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                                    onSelect={(date) => {
+                                        if (!date) {
+                                            setExpectedReturnDate('');
+                                            return;
+                                        }
+
+                                        const formattedDate = [
+                                            date.getFullYear(),
+                                            String(date.getMonth() + 1).padStart(2, '0'),
+                                            String(date.getDate()).padStart(2, '0'),
+                                        ].join('-');
+
+                                        setExpectedReturnDate(formattedDate);
+                                    }}
+                                />
+                            </PopoverContent>
+                        </Popover>
                         <p className="text-xs text-muted-foreground">
                             You can modify the date that was originally set by the employee.
                         </p>

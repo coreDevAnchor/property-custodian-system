@@ -54,11 +54,7 @@
         "clsx": "^2.1.1",
         "concurrently": "^9.0.1",
         "date-fns": "^4.4.0",
-<<<<<<< Updated upstream
         "framer-motion": "^13.0.0",
-=======
-        "framer-motion": "^12.43.0",
->>>>>>> Stashed changes
         "globals": "^15.14.0",
         "input-otp": "^1.4.2",
         "laravel-vite-plugin": "^3.0.0",

@@ -10,6 +10,12 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, ImageOff, MapPin, ShieldCheck } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface Asset {
     id: number;
@@ -170,13 +176,57 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
                         Expected Return Date
                     </label>
 
-                    <input
-                        type="date"
-                        value={expectedReturnDate}
-                        min={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => setExpectedReturnDate(e.target.value)}
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    />
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className={`h-10 w-full cursor-pointer justify-start text-left font-normal ${
+                                    !expectedReturnDate
+                                        ? 'text-muted-foreground'
+                                        : ''
+                                }`}
+                            >
+                                <CalendarDays className="mr-2 size-4" />
+                                {expectedReturnDate
+                                    ? new Date(`${expectedReturnDate}T00:00:00`).toLocaleDateString(
+                                          'en-US',
+                                          {
+                                              year: 'numeric',
+                                              month: 'long',
+                                              day: 'numeric',
+                                          },
+                                      )
+                                    : 'Select expected return date'}
+                            </Button>
+                        </PopoverTrigger>
+
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={
+                                    expectedReturnDate
+                                        ? new Date(`${expectedReturnDate}T00:00:00`)
+                                        : undefined
+                                }
+                                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                                onSelect={(date) => {
+                                    if (!date) {
+                                        setExpectedReturnDate('');
+                                        return;
+                                    }
+
+                                    const formattedDate = [
+                                        date.getFullYear(),
+                                        String(date.getMonth() + 1).padStart(2, '0'),
+                                        String(date.getDate()).padStart(2, '0'),
+                                    ].join('-');
+
+                                    setExpectedReturnDate(formattedDate);
+                                }}
+                            />
+                        </PopoverContent>
+                    </Popover>
                 </div>
 
                 <div className="space-y-2">

@@ -17,7 +17,7 @@ class CurrentBorrowsController extends Controller
         $status = $request->input('status', 'All');
         $perPage = (int) $request->input('per_page', 12);
 
-        $borrows = BorrowRequest::with(['asset.category', 'asset.location'])
+        $borrows = BorrowRequest::with(['asset.category', 'asset.location', 'renewals'])
             ->where('borrower_id', $user->id)
             ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
             ->when($status !== 'All', fn($q) => $q->where('status', $status))
