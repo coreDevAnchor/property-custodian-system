@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { motion } from 'framer-motion';
 import {
     AlertCircle,
     ArrowRight,
@@ -9,16 +10,22 @@ import {
     Plus,
     UserPlus,
 } from 'lucide-react';
+import { useState } from 'react';
 import { ActivityFeed } from '@/components/activity/activity-feed';
+import {
+    pageStaggerVariants,
+    rowVariants,
+    tableVariants,
+} from '@/components/assets/asset-table-animations';
+import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
+import { SectionReveal } from '@/components/ui/section-reveal';
 import { dashboard } from '@/routes/custodian';
 import { index as auditTrail } from '@/routes/custodian/activity';
-import { useState } from 'react';
-import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
 import type {
     Stats,
     PendingRequest,
     CategoryBreakdown,
-    ActivityItem
+    ActivityItem,
 } from '@/types/custodiandashboard';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -121,22 +128,16 @@ function StatCard({
     bgColor: string;
 }) {
     return (
-        <div
-            className="
-                flex flex-col gap-3 rounded-xl
-                border border-gray-100 dark:border-zinc-800
-                bg-white dark:bg-zinc-900
-                p-5
-                shadow-xs
-                transition-shadow
-                hover:shadow-sm
-                "
-        >
-            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bgColor}`}>
+        <div className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white p-5 shadow-xs transition-shadow hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <div
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${bgColor}`}
+            >
                 <Icon className={`size-5 ${color}`} />
             </div>
             <div>
-                <p className={`text-2xl font-extrabold tracking-tight ${color}`}>
+                <p
+                    className={`text-2xl font-extrabold tracking-tight ${color}`}
+                >
                     {value.toLocaleString()}
                 </p>
                 <p className="mt-0.5 text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -149,7 +150,6 @@ function StatCard({
 
 function RequestRow({
     request,
-    onApprove,
     onReject,
     onSelect,
 }: {
@@ -162,30 +162,26 @@ function RequestRow({
     const asset = request.asset;
 
     return (
-        <tr
-            className="
-                group
-                border-b border-gray-50 dark:border-zinc-800
-                transition-colors
-                last:border-0
-                hover:bg-gray-50 dark:hover:bg-zinc-800/40
-            "
+        <motion.tr
+            variants={rowVariants}
+            className="group border-b border-gray-50 transition-colors last:border-0 hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-800/40"
         >
             {/* Employee */}
             <td className="py-3.5 pr-4">
                 <div className="flex items-center gap-3">
                     <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${request.borrower
-                            ? avatarColorFor(request.borrower.id)
-                            : 'bg-gray-400'
-                            } text-xs font-bold text-white`}
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                            request.borrower
+                                ? avatarColorFor(request.borrower.id)
+                                : 'bg-gray-400'
+                        } text-xs font-bold text-white`}
                     >
                         {request.borrower
                             ? getInitials(request.borrower.name)
                             : '?'}
                     </div>
 
-                    <div className="min-w-0 max-w-[140px]">
+                    <div className="max-w-[140px] min-w-0">
                         <p className="truncate text-sm font-semibold text-gray-800 dark:text-white">
                             {request.borrower?.name ?? 'Unknown User'}
                         </p>
@@ -219,13 +215,14 @@ function RequestRow({
             {/* Requested */}
             <td className="py-3.5 pr-4">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(
-                        request.requested_at
-                    ).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                    })}
+                    {new Date(request.requested_at).toLocaleDateString(
+                        'en-US',
+                        {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                        },
+                    )}
                 </span>
             </td>
 
@@ -235,8 +232,9 @@ function RequestRow({
                     <button
                         onClick={() => onSelect(request)}
                         className="cursor-pointer rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95"
-                        aria-label={`Approve request from ${borrower?.name ?? 'Unknown Employee'
-                            }`}
+                        aria-label={`Approve request from ${
+                            borrower?.name ?? 'Unknown Employee'
+                        }`}
                     >
                         Approve
                     </button>
@@ -244,14 +242,15 @@ function RequestRow({
                     <button
                         onClick={() => onReject(request.id)}
                         className="cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-bold text-red-500 transition-colors hover:bg-red-50 active:scale-95"
-                        aria-label={`Reject request from ${borrower?.name ?? 'Unknown Employee'
-                            }`}
+                        aria-label={`Reject request from ${
+                            borrower?.name ?? 'Unknown Employee'
+                        }`}
                     >
                         Reject
                     </button>
                 </div>
             </td>
-        </tr>
+        </motion.tr>
     );
 }
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -316,7 +315,7 @@ export default function Dashboard({
                 status: 'borrowed',
                 expected_return_date: expectedReturnDate,
             },
-            { preserveScroll: true }
+            { preserveScroll: true },
         );
     }
 
@@ -324,7 +323,7 @@ export default function Dashboard({
         router.put(
             `/custodian/borrow-requests/${id}`,
             { status: 'rejected' },
-            { preserveScroll: true }
+            { preserveScroll: true },
         );
     }
 
@@ -332,210 +331,245 @@ export default function Dashboard({
         <>
             <Head title="Dashboard" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 lg:p-8">
+            <motion.div
+                className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 lg:p-8"
+                variants={pageStaggerVariants}
+                initial="hidden"
+                animate="show"
+            >
                 {/* ── Page header ── */}
-                <div>
-                    <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                        Dashboard
-                    </h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{today}</p>
-                </div>
+                <SectionReveal>
+                    <div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+                            Dashboard
+                        </h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {today}
+                        </p>
+                    </div>
+                </SectionReveal>
 
                 {/* ── Stat cards ── */}
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-                    {statCards.map((stat) => (
-                        <StatCard key={stat.label} {...stat} />
-                    ))}
-                </div>
+                <SectionReveal>
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+                        {statCards.map((stat) => (
+                            <StatCard key={stat.label} {...stat} />
+                        ))}
+                    </div>
+                </SectionReveal>
 
                 {/* ── Main content grid ── */}
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                    {/* Pending Borrow Requests table — takes 2/3 width */}
-                    <div className="flex flex-col gap-6 xl:col-span-2">
-                        <div className="
-                                rounded-xl
-                                border border-gray-100 dark:border-zinc-800
-                                bg-white dark:bg-zinc-900
-                                shadow-xs
-                            ">
-                            {/* Card header */}
-                            <div className="flex items-start justify-between border-b border-gray-100 dark:border-zinc-800 px-6 py-4">
-                                <div>
-                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">
-                                        Pending Borrow Requests
-                                    </h2>
-                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                        Review and approve employee asset requests
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => router.visit('/custodian/borrow-requests')}
-                                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
-                                >
-                                    View all
-                                    <ArrowRight className="size-3" />
-                                </button>
-                            </div>
-
-                            {/* Table */}
-                            <div className="overflow-x-auto px-6 pb-4">
-                                {pendingRequests.length > 0 ? (
-                                    <table className="w-full min-w-[640px]">
-                                        <thead>
-                                            <tr className="border-b border-gray-100 dark:border-zinc-800">
-                                                <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                                    Employee
-                                                </th>
-                                                <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                                    Asset
-                                                </th>
-                                                <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                                    Category
-                                                </th>
-                                                <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                                    Requested
-                                                </th>
-                                                <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                                    Actions
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {pendingRequests.map((req) => (
-                                                <RequestRow
-                                                    key={req.id}
-                                                    request={req}
-                                                    onApprove={handleApprove}
-                                                    onReject={handleReject}
-                                                    onSelect={setSelectedRequest}
-                                                />
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <div className="flex flex-col items-center gap-1 py-10 text-center">
-                                        <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                                            No pending requests
-                                        </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            New borrow requests will appear here
+                <SectionReveal>
+                    <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                        {/* Pending Borrow Requests table — takes 2/3 width */}
+                        <div className="flex flex-col gap-6 xl:col-span-2">
+                            <div className="rounded-xl border border-gray-100 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                                {/* Card header */}
+                                <div className="flex items-start justify-between border-b border-gray-100 px-6 py-4 dark:border-zinc-800">
+                                    <div>
+                                        <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                                            Pending Borrow Requests
+                                        </h2>
+                                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                            Review and approve employee asset
+                                            requests
                                         </p>
                                     </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="rounded-xl border border-gray-100 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
-                            <div className="flex items-start justify-between border-b border-gray-100 px-6 py-4 dark:border-zinc-800">
-                                <div>
-                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">
-                                        Recent Activity
-                                    </h2>
-                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                        Latest updates from the audit trail
-                                    </p>
+                                    <button
+                                        onClick={() =>
+                                            router.visit(
+                                                '/custodian/borrow-requests',
+                                            )
+                                        }
+                                        className="flex cursor-pointer items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                                    >
+                                        View all
+                                        <ArrowRight className="size-3" />
+                                    </button>
                                 </div>
-                                <Link
-                                    href={auditTrail()}
-                                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                                >
-                                    View all
-                                    <ArrowRight className="size-3" />
-                                </Link>
-                            </div>
-                            <div className="px-6 py-1">
-                                <ActivityFeed items={recentActivity} />
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Right column: Quick Actions + Asset Categories */}
-                    <div className="flex flex-col gap-6">
-                        {/* Quick Actions */}
-                        <div className="rounded-xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs">
-                            <div className="border-b border-gray-100 dark:border-zinc-800 px-6 py-4">
-                                <h2 className="text-base font-bold text-gray-900 dark:text-white">
-                                    Quick Actions
-                                </h2>
-                            </div>
-                            <div className="flex flex-col gap-3 p-6">
-                                <button
-                                    onClick={() => router.visit('/custodian/assets')}
-                                    className="cursor-pointer flex h-11 w-full items-center gap-3 rounded-xl bg-orange-500 px-5 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
-                                >
-                                    <Plus className="size-4 shrink-0" />
-                                    Add New Asset
-                                </button>
-
-                                <button
-                                    onClick={() => router.visit('/custodian/employees')}
-                                    className="cursor-pointer flex p-2 h-11 w-full items-center gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 transition-all hover:border-gray-300 dark:hover:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 active:scale-[0.98]"
-                                >
-                                    <UserPlus className="size-4 shrink-0 text-gray-500" />
-                                    Add Employee
-                                </button>
-
-                                <button
-                                    onClick={() => router.visit('/custodian/activity')}
-                                    className="cursor-pointer flex p-2 h-11 w-full items-center gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 transition-all hover:border-gray-300 dark:hover:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 active:scale-[0.98]"
-                                >
-                                    <BarChart3 className="size-4 shrink-0 text-gray-500" />
-                                    View Audit Trail
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Asset Categories */}
-                        <div className="
-                                rounded-xl
-                                border border-gray-100 dark:border-zinc-800
-                                bg-white dark:bg-zinc-900
-                                shadow-xs
-                            ">
-                            <div className="border-b border-gray-100 dark:border-zinc-800 px-6 py-4">
-                                <h2 className="text-base font-bold text-gray-900 dark:text-white">
-                                    Asset Categories
-                                </h2>
-                            </div>
-                            <div className="flex flex-col gap-4 p-6">
-                                {assetCategories.breakdown.length > 0 ? (
-                                    assetCategories.breakdown.map((cat, index) => (
-                                        <div key={cat.label} className="flex flex-col gap-1.5">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">
-                                                    {cat.label}
-                                                </span>
-                                                <span className="text-sm font-bold text-gray-900 dark:text-white">
-                                                    {cat.count}
-                                                </span>
-                                            </div>
-                                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-zinc-800">
-                                                <div
-                                                    className={`h-full rounded-full ${categoryColors[index % categoryColors.length]
-                                                        } transition-all duration-500`}
-                                                    style={{
-                                                        width: `${assetCategories.total > 0
-                                                            ? Math.round(
-                                                                (cat.count / assetCategories.total) * 100
-                                                            )
-                                                            : 0
-                                                            }%`,
-                                                    }}
-                                                />
-                                            </div>
+                                {/* Table */}
+                                <div className="overflow-x-auto px-6 pb-4">
+                                    {pendingRequests.length > 0 ? (
+                                        <table className="w-full min-w-[640px]">
+                                            <thead>
+                                                <tr className="border-b border-gray-100 dark:border-zinc-800">
+                                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                                                        Employee
+                                                    </th>
+                                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                                                        Asset
+                                                    </th>
+                                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                                                        Category
+                                                    </th>
+                                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                                                        Requested
+                                                    </th>
+                                                    <th className="py-3 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                                                        Actions
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <motion.tbody
+                                                variants={tableVariants}
+                                                initial="hidden"
+                                                animate="show"
+                                            >
+                                                {pendingRequests.map((req) => (
+                                                    <RequestRow
+                                                        key={req.id}
+                                                        request={req}
+                                                        onApprove={
+                                                            handleApprove
+                                                        }
+                                                        onReject={handleReject}
+                                                        onSelect={
+                                                            setSelectedRequest
+                                                        }
+                                                    />
+                                                ))}
+                                            </motion.tbody>
+                                        </table>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-1 py-10 text-center">
+                                            <p className="text-sm font-semibold text-gray-800 dark:text-white">
+                                                No pending requests
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                New borrow requests will appear
+                                                here
+                                            </p>
                                         </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        No categories yet.
-                                    </p>
-                                )}
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="rounded-xl border border-gray-100 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                                <div className="flex items-start justify-between border-b border-gray-100 px-6 py-4 dark:border-zinc-800">
+                                    <div>
+                                        <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                                            Recent Activity
+                                        </h2>
+                                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                            Latest updates from the audit trail
+                                        </p>
+                                    </div>
+                                    <Link
+                                        href={auditTrail()}
+                                        className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                                    >
+                                        View all
+                                        <ArrowRight className="size-3" />
+                                    </Link>
+                                </div>
+                                <div className="px-6 py-1">
+                                    <ActivityFeed items={recentActivity} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right column: Quick Actions + Asset Categories */}
+                        <div className="flex flex-col gap-6">
+                            {/* Quick Actions */}
+                            <div className="rounded-xl border border-gray-100 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                                <div className="border-b border-gray-100 px-6 py-4 dark:border-zinc-800">
+                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                                        Quick Actions
+                                    </h2>
+                                </div>
+                                <div className="flex flex-col gap-3 p-6">
+                                    <button
+                                        onClick={() =>
+                                            router.visit('/custodian/assets')
+                                        }
+                                        className="flex h-11 w-full cursor-pointer items-center gap-3 rounded-xl bg-orange-500 px-5 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
+                                    >
+                                        <Plus className="size-4 shrink-0" />
+                                        Add New Asset
+                                    </button>
+
+                                    <button
+                                        onClick={() =>
+                                            router.visit('/custodian/employees')
+                                        }
+                                        className="flex h-11 w-full cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-white p-2 text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-800 dark:text-gray-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
+                                    >
+                                        <UserPlus className="size-4 shrink-0 text-gray-500" />
+                                        Add Employee
+                                    </button>
+
+                                    <button
+                                        onClick={() =>
+                                            router.visit('/custodian/activity')
+                                        }
+                                        className="flex h-11 w-full cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-white p-2 text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-800 dark:text-gray-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
+                                    >
+                                        <BarChart3 className="size-4 shrink-0 text-gray-500" />
+                                        View Audit Trail
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Asset Categories */}
+                            <div className="rounded-xl border border-gray-100 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                                <div className="border-b border-gray-100 px-6 py-4 dark:border-zinc-800">
+                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                                        Asset Categories
+                                    </h2>
+                                </div>
+                                <div className="flex flex-col gap-4 p-6">
+                                    {assetCategories.breakdown.length > 0 ? (
+                                        assetCategories.breakdown.map(
+                                            (cat, index) => (
+                                                <div
+                                                    key={cat.label}
+                                                    className="flex flex-col gap-1.5"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                            {cat.label}
+                                                        </span>
+                                                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                                            {cat.count}
+                                                        </span>
+                                                    </div>
+                                                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-zinc-800">
+                                                        <div
+                                                            className={`h-full rounded-full ${
+                                                                categoryColors[
+                                                                    index %
+                                                                        categoryColors.length
+                                                                ]
+                                                            } transition-all duration-500`}
+                                                            style={{
+                                                                width: `${
+                                                                    assetCategories.total >
+                                                                    0
+                                                                        ? Math.round(
+                                                                              (cat.count /
+                                                                                  assetCategories.total) *
+                                                                                  100,
+                                                                          )
+                                                                        : 0
+                                                                }%`,
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ),
+                                        )
+                                    ) : (
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            No categories yet.
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-            </div>
+                </SectionReveal>
+            </motion.div>
             <BorrowApprovalDialog
                 request={selectedRequest}
                 onClose={() => setSelectedRequest(null)}
@@ -543,6 +577,7 @@ export default function Dashboard({
                     if (selectedRequest) {
                         handleApprove(selectedRequest.id, expectedReturnDate);
                     }
+
                     setSelectedRequest(null);
                 }}
             />

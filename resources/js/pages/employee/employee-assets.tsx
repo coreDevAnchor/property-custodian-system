@@ -1,13 +1,13 @@
 import { Head, router } from '@inertiajs/react';
+import { motion } from 'framer-motion';
+import { Armchair, Laptop, PackageSearch, Search, Video } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import {
-    Armchair,
-    ImageOff,
-    Laptop,
-    PackageSearch,
-    Search,
-    Video,
-} from 'lucide-react';
+import { cardVariants } from '@/components/assets/asset-table-animations';
+import { AssetViewDialog } from '@/components/assets/assets-views-dialog';
+import type { Asset } from '@/components/assets/types';
+import { BorrowRequestDialog } from '@/components/borrow/borrow-request-dialog';
+import { AnimatedCardGrid } from '@/components/ui/animated-card-grid';
+import { PaginationBar } from '@/components/ui/pagination';
 import {
     Select,
     SelectContent,
@@ -15,18 +15,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { BorrowRequestDialog } from '@/components/borrow/borrow-request-dialog';
-import { PaginationBar } from '@/components/ui/pagination';
-import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
-import type { Asset } from "@/components/assets/types";
-import { Paginated } from '@/types/pagination';
-
+import type { Paginated } from '@/types/pagination';
 
 interface Category {
     id: number;
     name: string;
 }
-
 
 interface Filters {
     search: string;
@@ -54,7 +48,8 @@ function AssetCard({
     const Icon = categoryIcon[asset.category.name] ?? Laptop;
 
     return (
-        <div
+        <motion.div
+            variants={cardVariants}
             onClick={() => onView(asset)}
             className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md"
         >
@@ -93,12 +88,12 @@ function AssetCard({
                         e.stopPropagation();
                         onRequest(asset);
                     }}
-                    className="mt-auto flex h-9 w-full items-center justify-center rounded-lg bg-orange-500 text-sm font-bold text-white transition-colors hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
+                    className="mt-auto flex h-9 w-full cursor-pointer items-center justify-center rounded-lg bg-orange-500 text-sm font-bold text-white transition-colors hover:bg-orange-600 active:scale-[0.98]"
                 >
                     Request to Borrow
                 </button>
             </div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -116,15 +111,20 @@ export default function AvailableAssets({
     filters = { search: '', category: 'All', per_page: 12 },
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [categoryFilter, setCategoryFilter] = useState<string>(filters.category ?? 'All');
+    const [categoryFilter, setCategoryFilter] = useState<string>(
+        filters.category ?? 'All',
+    );
     const [requestTarget, setRequestTarget] = useState<Asset | undefined>();
     const [viewTarget, setViewTarget] = useState<Asset | undefined>();
+    const [loading, setLoading] = useState(false);
 
     // ── Server-driven filtering/pagination ──
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isFirstRun = useRef(true);
+    const searchRef = useRef(search);
 
     function fetchPage(page: number, overrides: Partial<Filters> = {}) {
+        setLoading(true);
+
         router.get(
             '/employee/assets',
             {
@@ -133,21 +133,34 @@ export default function AvailableAssets({
                 per_page: overrides.per_page ?? assets.per_page,
                 page,
             },
-            { preserveState: true, preserveScroll: true, replace: true, only: ['assets', 'filters'] },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['assets', 'filters'],
+                onFinish: () => setLoading(false),
+                onError: () => setLoading(false),
+            },
         );
     }
 
     useEffect(() => {
-        if (isFirstRun.current) {
-            isFirstRun.current = false;
+        if (searchRef.current === search) {
             return;
         }
 
-        if (debounceRef.current) clearTimeout(debounceRef.current);
+        searchRef.current = search;
+
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
         debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
         return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
@@ -168,7 +181,7 @@ export default function AvailableAssets({
     function handleSubmitRequest(
         assetId: number,
         expectedReturnDate: string,
-        remarks: string
+        remarks: string,
     ) {
         router.post(
             '/employee/borrow-requests',
@@ -180,7 +193,7 @@ export default function AvailableAssets({
             {
                 preserveScroll: true,
                 onSuccess: () => setRequestTarget(undefined),
-            }
+            },
         );
     }
 
@@ -203,7 +216,7 @@ export default function AvailableAssets({
                 <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
                     <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="relative w-full max-w-xs">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                             <input
                                 type="text"
                                 value={search}
@@ -213,13 +226,18 @@ export default function AvailableAssets({
                             />
                         </div>
 
-                        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
+                        <Select
+                            value={categoryFilter}
+                            onValueChange={handleCategoryChange}
+                        >
                             <SelectTrigger className="w-[200px] cursor-pointer">
                                 <SelectValue placeholder="Filter by category" />
                             </SelectTrigger>
 
                             <SelectContent>
-                                <SelectItem value="All">All Categories</SelectItem>
+                                <SelectItem value="All">
+                                    All Categories
+                                </SelectItem>
                                 {categories.map((category) => (
                                     <SelectItem
                                         key={category.id}
@@ -234,7 +252,12 @@ export default function AvailableAssets({
 
                     <div className="px-6 py-6">
                         {assets.data.length > 0 ? (
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                            <AnimatedCardGrid
+                                loading={loading}
+                                animate
+                                animationKey={`${categoryFilter}-${assets.current_page}`}
+                                gridClass="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+                            >
                                 {assets.data.map((asset) => (
                                     <AssetCard
                                         key={asset.id}
@@ -243,7 +266,7 @@ export default function AvailableAssets({
                                         onView={setViewTarget}
                                     />
                                 ))}
-                            </div>
+                            </AnimatedCardGrid>
                         ) : (
                             <div className="flex flex-col items-center gap-2 py-16 text-center">
                                 <PackageSearch className="size-8 text-muted-foreground" />

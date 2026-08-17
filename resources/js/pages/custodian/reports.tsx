@@ -1,14 +1,11 @@
 import { Head, router } from '@inertiajs/react';
+import { motion } from 'framer-motion';
 import { useRef, useState } from 'react';
 import { AlertTriangle, Download, PackageX } from 'lucide-react';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    pageStaggerVariants,
+} from '@/components/assets/asset-table-animations';
+import { SectionReveal } from '@/components/ui/section-reveal';
 import { dashboard, reports as custodianReports } from '@/routes/custodian';
 import { exportMethod as exportReports } from '@/routes/custodian/reports';
 import { PaginationBar } from '@/components/ui/pagination';
@@ -265,61 +262,71 @@ export default function Reports({
         <>
             <Head title="Reports" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 lg:p-8">
+            <motion.div
+                className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 lg:p-8"
+                variants={pageStaggerVariants}
+                initial="hidden"
+                animate="show"
+            >
                 {/* ── Page header ── */}
-                <ReportHeader
-                    period={headerPeriod}
-                    onPeriodChange={handleHeaderPeriodChange}
-                    onExport={() =>
-                    (window.location.href = exportReports.url({
-                        query: {
-                            view,
-                            category,
-                            sort,
-                            headerPeriod,
-                        },
-                    }))
-                    }
-                    onExportPdf={() => setIsExportPdfOpen(true)}
-                />
+                <SectionReveal>
+                    <ReportHeader
+                        period={headerPeriod}
+                        onPeriodChange={handleHeaderPeriodChange}
+                        onExport={() =>
+                        (window.location.href = exportReports.url({
+                            query: {
+                                view,
+                                category,
+                                sort,
+                                headerPeriod,
+                            },
+                        }))
+                        }
+                        onExportPdf={() => setIsExportPdfOpen(true)}
+                    />
+                </SectionReveal>
 
                 {/* ── Overdue stat card (always visible, both tabs) ── */}
-                {overdueCount > 0 && (
-                    <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/40 dark:bg-red-950/20">
-                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-red-500/10 dark:bg-red-500/20">
-                            <AlertTriangle className="size-4 text-red-600 dark:text-red-400" />
+                <SectionReveal>
+                    {overdueCount > 0 && (
+                        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/40 dark:bg-red-950/20">
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-red-500/10 dark:bg-red-500/20">
+                                <AlertTriangle className="size-4 text-red-600 dark:text-red-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-red-700 dark:text-red-400">
+                                    {overdueCount}{' '}
+                                    {overdueCount === 1 ? 'asset is' : 'assets are'}{' '}
+                                    currently overdue
+                                </p>
+                                {view !== 'overdue' && (
+                                    <button
+                                        onClick={() => {
+                                            handleViewChange('overdue');
+
+                                            setTimeout(() => {
+                                                reportTableRef.current?.scrollIntoView({
+                                                    behavior: 'smooth',
+                                                    block: 'start',
+                                                });
+                                            }, 150);
+                                        }}
+                                        className="cursor-pointer text-xs font-semibold text-red-600 underline hover:text-red-700 dark:text-red-400"
+                                    >
+                                        View overdue items
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-sm font-bold text-red-700 dark:text-red-400">
-                                {overdueCount}{' '}
-                                {overdueCount === 1 ? 'asset is' : 'assets are'}{' '}
-                                currently overdue
-                            </p>
-                            {view !== 'overdue' && (
-                                <button
-                                    onClick={() => {
-                                        handleViewChange('overdue');
-
-                                        setTimeout(() => {
-                                            reportTableRef.current?.scrollIntoView({
-                                                behavior: 'smooth',
-                                                block: 'start',
-                                            });
-                                        }, 150);
-                                    }}
-                                    className="cursor-pointer text-xs font-semibold text-red-600 underline hover:text-red-700 dark:text-red-400"
-                                >
-                                    View overdue items
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
+                    )}
+                </SectionReveal>
 
 
 
-                <div className="mt-8">
-                    <div className="space-y-8">
+                <SectionReveal>
+                    <div className="mt-8">
+                        <div className="space-y-8">
 
                         <ReportSummaryGrid
                             data={reportSummary}
@@ -363,22 +370,25 @@ export default function Reports({
                         </div>
 
                     </div>
-
-                </div>
+                    </div>
+                </SectionReveal>
 
                 {/* ── Tabs ── */}
-                <ReportTabs
-                    view={view}
-                    overdueCount={overdueCount}
-                    lostCount={lostCount}
-                    onChange={handleViewChange}
-                />
+                <SectionReveal>
+                    <ReportTabs
+                        view={view}
+                        overdueCount={overdueCount}
+                        lostCount={lostCount}
+                        onChange={handleViewChange}
+                    />
+                </SectionReveal>
 
                 {/* ── Filters + table ── */}
-                <div
-                    ref={reportTableRef}
-                    className="rounded-xl border border-border bg-card text-card-foreground shadow-sm"
-                >
+                <SectionReveal>
+                    <div
+                        ref={reportTableRef}
+                        className="rounded-xl border border-border bg-card text-card-foreground shadow-sm"
+                    >
                     {/* Header */}
                     <div className="border-b border-border px-6 py-5">
                         <h2 className="text-lg font-semibold tracking-tight">
@@ -442,8 +452,9 @@ export default function Reports({
                             </div>
                         )
                     )}
-                </div>
-            </div >
+                    </div>
+                </SectionReveal>
+            </motion.div >
 
             <ExportPdfModal
                 open={isExportPdfOpen}

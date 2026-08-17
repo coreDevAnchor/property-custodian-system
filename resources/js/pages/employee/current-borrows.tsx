@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { motion } from 'framer-motion';
 import {
     AlertCircle,
     CalendarClock,
@@ -10,9 +11,11 @@ import {
     PackageX,
 } from 'lucide-react';
 import { useState } from 'react';
+import { cardVariants } from '@/components/assets/asset-table-animations';
 import { BorrowRenewalDialog } from '@/components/borrow/borrow-renewal-dialog';
 import { LostAssetDialog } from '@/components/lost/lost-asset-dialog';
 import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
+import { AnimatedCardGrid } from '@/components/ui/animated-card-grid';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -114,10 +117,12 @@ function DueDateBadge({ date }: { date?: string | null }) {
         cls = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
         label = `${Math.abs(days)}d overdue`;
     } else if (days === 0) {
-        cls = 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+        cls =
+            'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
         label = 'Due today';
     } else if (days <= 3) {
-        cls = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+        cls =
+            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
         label = `${days}d left`;
     } else {
         cls = 'bg-muted text-muted-foreground';
@@ -125,7 +130,9 @@ function DueDateBadge({ date }: { date?: string | null }) {
     }
 
     return (
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cls}`}>
+        <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cls}`}
+        >
             <CalendarClock className="size-3" />
             {label}
         </span>
@@ -133,11 +140,11 @@ function DueDateBadge({ date }: { date?: string | null }) {
 }
 
 function BorrowCard({ item }: { item: BorrowItem }) {
-    const { label, icon: Icon, color, dot } = statusConfig[item.status as ActiveBorrowStatus];
+    const { label, color, dot } =
+        statusConfig[item.status as ActiveBorrowStatus];
     const canReturn = item.status === 'borrowed';
     const [openReturnDialog, setOpenReturnDialog] = useState(false);
     const [openRenewalDialog, setOpenRenewalDialog] = useState(false);
-    const [lostAsset, setLostAsset] = useState<BorrowItem | null>(null);
     const [submittingLost, setSubmittingLost] = useState(false);
     const [openLostDialog, setOpenLostDialog] = useState(false);
     const [lostError, setLostError] = useState<string | null>(null);
@@ -162,8 +169,8 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                 onError: (errors) => {
                     setLostError(
                         errors.lost_reason ??
-                        errors.lost_id ??
-                        'Something went wrong. Please try again.',
+                            errors.lost_id ??
+                            'Something went wrong. Please try again.',
                     );
                 },
 
@@ -183,7 +190,10 @@ function BorrowCard({ item }: { item: BorrowItem }) {
     }
 
     return (
-        <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+        <motion.article
+            variants={cardVariants}
+            className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+        >
             {/* Photo / placeholder strip */}
             <div className="relative flex h-40 w-full items-center justify-center overflow-hidden bg-muted/40">
                 {item.asset.photo ? (
@@ -197,9 +207,15 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                 )}
 
                 {/* Status pill overlay */}
-                <div className={`absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-background/90 backdrop-blur-sm px-2.5 py-1 shadow-sm`}>
-                    <span className={`size-2 rounded-full ${dot} animate-pulse`} />
-                    <span className={`text-[11px] font-bold ${color}`}>{label}</span>
+                <div
+                    className={`absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-background/90 px-2.5 py-1 shadow-sm backdrop-blur-sm`}
+                >
+                    <span
+                        className={`size-2 rounded-full ${dot} animate-pulse`}
+                    />
+                    <span className={`text-[11px] font-bold ${color}`}>
+                        {label}
+                    </span>
                 </div>
 
                 {canReturn && (
@@ -207,14 +223,16 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                         <DropdownMenuTrigger asChild>
                             <button
                                 type="button"
-                                className="absolute top-3 right-3 flex size-9 cursor-pointer items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                className="absolute top-3 right-3 flex size-9 cursor-pointer items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 aria-label={`Actions for ${item.asset.name}`}
                             >
                                 <MoreHorizontal className="size-5" />
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onSelect={() => setOpenRenewalDialog(true)}>
+                            <DropdownMenuItem
+                                onSelect={() => setOpenRenewalDialog(true)}
+                            >
                                 <CalendarClock />
                                 Request extension
                             </DropdownMenuItem>
@@ -234,11 +252,13 @@ function BorrowCard({ item }: { item: BorrowItem }) {
             <div className="flex flex-1 flex-col gap-3 p-4">
                 {/* Asset name + tag */}
                 <div>
-                    <p className="truncate text-base font-bold text-foreground leading-tight">
+                    <p className="truncate text-base leading-tight font-bold text-foreground">
                         {item.asset.name}
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                        <span className="font-mono">{item.asset.asset_tag}</span>
+                        <span className="font-mono">
+                            {item.asset.asset_tag}
+                        </span>
                         {' · '}
                         {item.asset.category.name}
                     </p>
@@ -247,19 +267,31 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                 {/* Meta grid */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                        <p className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Requested</p>
-                        <p className="font-medium text-foreground">{fmtDate(item.requested_at)}</p>
+                        <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                            Requested
+                        </p>
+                        <p className="font-medium text-foreground">
+                            {fmtDate(item.requested_at)}
+                        </p>
                     </div>
                     {item.approved_at && (
                         <div>
-                            <p className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Approved</p>
-                            <p className="font-medium text-foreground">{fmtDate(item.approved_at)}</p>
+                            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                                Approved
+                            </p>
+                            <p className="font-medium text-foreground">
+                                {fmtDate(item.approved_at)}
+                            </p>
                         </div>
                     )}
                     {item.asset.location && (
                         <div className="col-span-2">
-                            <p className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Location</p>
-                            <p className="font-medium text-foreground">{item.asset.location.name}</p>
+                            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                                Location
+                            </p>
+                            <p className="font-medium text-foreground">
+                                {item.asset.location.name}
+                            </p>
                         </div>
                     )}
                 </div>
@@ -267,14 +299,16 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                 {/* Due date badge */}
                 {item.status === 'borrowed' && (
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Due:</span>
+                        <span className="text-xs text-muted-foreground">
+                            Due:
+                        </span>
                         <DueDateBadge date={item.expected_return_date} />
                     </div>
                 )}
 
                 {/* Remarks */}
                 {item.remarks && (
-                    <p className="line-clamp-2 rounded-lg bg-muted/50 px-3 py-2 text-xs italic text-muted-foreground">
+                    <p className="line-clamp-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground italic">
                         &ldquo;{item.remarks}&rdquo;
                     </p>
                 )}
@@ -289,7 +323,6 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                             Return Asset
                         </button>
                     </div>
-
                 )}
 
                 {item.status === 'pending' && (
@@ -327,7 +360,7 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                             onSuccess: () => {
                                 setOpenRenewalDialog(false);
                             },
-                        }
+                        },
                     );
                 }}
             />
@@ -359,14 +392,16 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                 error={lostError}
                 onSubmit={handleLostSubmit}
             />
-        </article>
-
+        </motion.article>
     );
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-const statusFilterOptions: { value: 'All' | ActiveBorrowStatus; label: string }[] = [
+const statusFilterOptions: {
+    value: 'All' | ActiveBorrowStatus;
+    label: string;
+}[] = [
     { value: 'All', label: 'All Statuses' },
     { value: 'borrowed', label: 'Currently Borrowed' },
     { value: 'pending', label: 'Pending Approval' },
@@ -378,11 +413,19 @@ export default function CurrentBorrows({
     borrowCounts,
     filters = { status: 'All', per_page: 12 },
 }: Props) {
-    const [status, setStatus] = useState<'All' | ActiveBorrowStatus>(filters.status ?? 'All');
+    const [status, setStatus] = useState<'All' | ActiveBorrowStatus>(
+        filters.status ?? 'All',
+    );
+    const [loading, setLoading] = useState(false);
 
     const isEmpty = borrows.total === 0;
 
-    function fetchPage(page: number, overrides: Partial<CurrentBorrowFilters> = {}) {
+    function fetchPage(
+        page: number,
+        overrides: Partial<CurrentBorrowFilters> = {},
+    ) {
+        setLoading(true);
+
         router.get(
             '/employee/current-borrows',
             {
@@ -395,6 +438,8 @@ export default function CurrentBorrows({
                 preserveScroll: true,
                 replace: true,
                 only: ['borrows', 'filters', 'borrowCounts'],
+                onFinish: () => setLoading(false),
+                onError: () => setLoading(false),
             },
         );
     }
@@ -424,7 +469,8 @@ export default function CurrentBorrows({
                             My Current Borrows
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Assets you currently have in your possession or pending approval
+                            Assets you currently have in your possession or
+                            pending approval
                         </p>
                     </div>
 
@@ -434,7 +480,10 @@ export default function CurrentBorrows({
                         </SelectTrigger>
                         <SelectContent>
                             {statusFilterOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -471,12 +520,20 @@ export default function CurrentBorrows({
                             key={label}
                             className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
                         >
-                            <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${bg}`}>
+                            <div
+                                className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${bg}`}
+                            >
                                 <Ico className={`size-4 ${color}`} />
                             </div>
                             <div>
-                                <p className={`text-xl font-extrabold leading-none ${color}`}>{count}</p>
-                                <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+                                <p
+                                    className={`text-xl leading-none font-extrabold ${color}`}
+                                >
+                                    {count}
+                                </p>
+                                <p className="text-[11px] font-semibold text-muted-foreground">
+                                    {label}
+                                </p>
                             </div>
                         </div>
                     ))}
@@ -495,16 +552,21 @@ export default function CurrentBorrows({
                                         No active borrows
                                     </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        You have no assets currently borrowed or awaiting approval.
+                                        You have no assets currently borrowed or
+                                        awaiting approval.
                                     </p>
                                 </div>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            <AnimatedCardGrid
+                                loading={loading}
+                                animate
+                                animationKey={`${status}-${borrows.current_page}`}
+                            >
                                 {borrows.data.map((item) => (
                                     <BorrowCard key={item.id} item={item} />
                                 ))}
-                            </div>
+                            </AnimatedCardGrid>
                         )}
                     </div>
 

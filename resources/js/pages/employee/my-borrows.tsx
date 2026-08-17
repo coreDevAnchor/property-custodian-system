@@ -1,6 +1,9 @@
 import { Head } from '@inertiajs/react';
 import { History, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { rowVariants } from '@/components/assets/asset-table-animations';
+import { AnimatedTableBody } from '@/components/ui/animated-table-body';
 import {
     Select,
     SelectContent,
@@ -10,8 +13,6 @@ import {
 } from '@/components/ui/select';
 import { borrowStatusLabels, borrowStatusStyles } from '@/types/borrow-status';
 import type { BorrowItem, BorrowStatus } from '@/types/borrows';
-
-
 
 type SortKey = 'newest' | 'oldest';
 
@@ -29,7 +30,10 @@ function StatusBadge({ status }: { status: BorrowStatus }) {
 
 function BorrowRow({ item }: { item: BorrowItem }) {
     return (
-        <tr className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+        <motion.tr
+            variants={rowVariants}
+            className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+        >
             <td className="py-3.5 pr-4">
                 <p className="truncate text-sm font-semibold text-foreground">
                     {item.asset.name}
@@ -50,11 +54,14 @@ function BorrowRow({ item }: { item: BorrowItem }) {
             <td className="py-3.5 pr-4">
                 {item.returned_at ? (
                     <span className="text-sm text-muted-foreground">
-                        {new Date(item.returned_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                        })}
+                        {new Date(item.returned_at).toLocaleDateString(
+                            'en-US',
+                            {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                            },
+                        )}
                     </span>
                 ) : (
                     <span className="text-sm text-muted-foreground">—</span>
@@ -72,7 +79,7 @@ function BorrowRow({ item }: { item: BorrowItem }) {
                     <span className="text-xs text-muted-foreground">—</span>
                 )}
             </td>
-        </tr>
+        </motion.tr>
     );
 }
 
@@ -86,7 +93,9 @@ interface Props {
 
 export default function MyBorrows({ borrows }: Props) {
     const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'All' | BorrowStatus>('All');
+    const [statusFilter, setStatusFilter] = useState<'All' | BorrowStatus>(
+        'All',
+    );
     const [sortKey, setSortKey] = useState<SortKey>('newest');
 
     const filteredBorrows = useMemo(() => {
@@ -114,6 +123,8 @@ export default function MyBorrows({ borrows }: Props) {
         });
     }, [borrows, search, statusFilter, sortKey]);
 
+    const animationKey = `${search}-${statusFilter}-${sortKey}`;
+
     return (
         <>
             <Head title="My Borrow History" />
@@ -125,7 +136,8 @@ export default function MyBorrows({ borrows }: Props) {
                         My Borrow History
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Track the status of everything you've requested or borrowed
+                        Track the status of everything you've requested or
+                        borrowed
                     </p>
                 </div>
 
@@ -133,13 +145,13 @@ export default function MyBorrows({ borrows }: Props) {
                 <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
                     <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="relative w-full max-w-xs">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                             <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search by asset name or tag…"
-                                className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                className="h-10 w-full rounded-lg border border-border bg-background pr-3 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                             />
                         </div>
 
@@ -147,7 +159,9 @@ export default function MyBorrows({ borrows }: Props) {
                             <Select
                                 value={statusFilter}
                                 onValueChange={(value) =>
-                                    setStatusFilter(value as 'All' | BorrowStatus)
+                                    setStatusFilter(
+                                        value as 'All' | BorrowStatus,
+                                    )
                                 }
                             >
                                 <SelectTrigger className="w-[180px] cursor-pointer">
@@ -155,28 +169,44 @@ export default function MyBorrows({ borrows }: Props) {
                                 </SelectTrigger>
 
                                 <SelectContent>
-                                    <SelectItem value="All">All Statuses</SelectItem>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="borrowed">Borrowed</SelectItem>
+                                    <SelectItem value="All">
+                                        All Statuses
+                                    </SelectItem>
+                                    <SelectItem value="pending">
+                                        Pending
+                                    </SelectItem>
+                                    <SelectItem value="borrowed">
+                                        Borrowed
+                                    </SelectItem>
                                     <SelectItem value="awaiting_check">
                                         Awaiting Check
                                     </SelectItem>
-                                    <SelectItem value="returned">Returned</SelectItem>
-                                    <SelectItem value="rejected">Rejected</SelectItem>
+                                    <SelectItem value="returned">
+                                        Returned
+                                    </SelectItem>
+                                    <SelectItem value="rejected">
+                                        Rejected
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
 
                             <Select
                                 value={sortKey}
-                                onValueChange={(value) => setSortKey(value as SortKey)}
+                                onValueChange={(value) =>
+                                    setSortKey(value as SortKey)
+                                }
                             >
                                 <SelectTrigger className="w-[160px] cursor-pointer">
                                     <SelectValue placeholder="Sort by" />
                                 </SelectTrigger>
 
                                 <SelectContent>
-                                    <SelectItem value="newest">Newest First</SelectItem>
-                                    <SelectItem value="oldest">Oldest First</SelectItem>
+                                    <SelectItem value="newest">
+                                        Newest First
+                                    </SelectItem>
+                                    <SelectItem value="oldest">
+                                        Oldest First
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -186,28 +216,32 @@ export default function MyBorrows({ borrows }: Props) {
                         <table className="w-full min-w-[720px]">
                             <thead>
                                 <tr className="border-b border-border">
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Asset
                                     </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Requested
                                     </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Returned
                                     </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Status
                                     </th>
-                                    <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Remarks
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <AnimatedTableBody
+                                loading={false}
+                                animate
+                                animationKey={animationKey}
+                            >
                                 {filteredBorrows.map((item) => (
                                     <BorrowRow key={item.id} item={item} />
                                 ))}
-                            </tbody>
+                            </AnimatedTableBody>
                         </table>
 
                         {filteredBorrows.length === 0 && (

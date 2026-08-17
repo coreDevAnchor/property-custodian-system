@@ -16,8 +16,6 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
-
-
         $view = $request->get('view', 'assets');
         $selectedCategory = $request->get('category', 'all');
         $sort = $request->get('sort', $view === 'overdue' ? 'most_overdue' : 'latest');
@@ -623,7 +621,7 @@ class ReportController extends Controller
                 ->whereDate('expected_return_date', '<', now());
 
             if ($selectedCategory !== 'all') {
-                $query->whereHas('asset', fn ($q) => $q->where('category_id', $selectedCategory));
+                $query->whereHas('asset', fn($q) => $q->where('category_id', $selectedCategory));
             }
 
             $query->orderBy('expected_return_date');
@@ -662,7 +660,7 @@ class ReportController extends Controller
             $lostTotalCount = $query->count();
             $results = $limit ? $query->limit($limit)->get() : $query->get();
 
-            $lostItems = $results->map(fn ($asset) => [
+            $lostItems = $results->map(fn($asset) => [
                 'id' => $asset->id,
                 'name' => $asset->name,
                 'asset_tag' => $asset->asset_tag,

@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { motion } from 'framer-motion';
 import {
     Box,
     Clock,
@@ -9,8 +10,14 @@ import {
     Undo2,
 } from 'lucide-react';
 import { useState } from 'react';
+import {
+    pageStaggerVariants,
+    rowVariants,
+    tableVariants,
+} from '@/components/assets/asset-table-animations';
 import { ReturnRequestDialog } from '@/components/return/return-request-dialog';
 import { PaginationBar } from '@/components/ui/pagination';
+import { SectionReveal } from '@/components/ui/section-reveal';
 import * as assets from '@/routes/employee/assets';
 import * as borrows from '@/routes/employee/borrows';
 import { borrowStatusLabels, borrowStatusStyles } from '@/types/borrow-status';
@@ -21,7 +28,6 @@ import type {
     BorrowStatus,
 } from '@/types/borrows';
 import type { Paginated } from '@/types/pagination';
-
 
 interface Props {
     stats: Stats;
@@ -63,7 +69,9 @@ function StatCard({
                 <p className="text-2xl font-extrabold tracking-tight text-foreground">
                     {value}
                 </p>
-                <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                    {label}
+                </p>
             </div>
         </div>
     );
@@ -89,7 +97,9 @@ function QuickActionCard({
             </div>
             <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground">{title}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                    {description}
+                </p>
             </div>
         </>
     );
@@ -99,7 +109,10 @@ function QuickActionCard({
 
     if (onClick) {
         return (
-            <button onClick={onClick} className={`${className} w-full text-left cursor-pointer`}>
+            <button
+                onClick={onClick}
+                className={`${className} w-full cursor-pointer text-left`}
+            >
                 {content}
             </button>
         );
@@ -119,7 +132,6 @@ export default function EmployeeDashboard({
     currentBorrows,
     recentActivity,
     returnableBorrows,
-    filters = { current_per_page: 10, activity_per_page: 5 },
 }: Props) {
     const [returnDialogOpen, setReturnDialogOpen] = useState(false);
 
@@ -171,234 +183,277 @@ export default function EmployeeDashboard({
         <>
             <Head title="Dashboard" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 lg:p-8">
+            <motion.div
+                className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 lg:p-8"
+                variants={pageStaggerVariants}
+                initial="hidden"
+                animate="show"
+            >
                 {/* ── Page header ── */}
-                <div>
-                    <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-                        My Dashboard
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Browse assets, track your borrows, and manage returns
-                    </p>
-                </div>
+                <SectionReveal>
+                    <div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+                            My Dashboard
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            Browse assets, track your borrows, and manage
+                            returns
+                        </p>
+                    </div>
+                </SectionReveal>
 
                 {/* ── Stats ── */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatCard
-                        icon={Box}
-                        label="Available Assets"
-                        value={stats.availableAssets}
-                    />
-                    <StatCard
-                        icon={Package}
-                        label="Currently Borrowed"
-                        value={stats.activeBorrows}
-                    />
-                    <StatCard
-                        icon={Clock}
-                        label="Pending Requests"
-                        value={stats.pendingRequests}
-                    />
-                    <StatCard
-                        icon={History}
-                        label="Total Borrows"
-                        value={stats.totalBorrowed}
-                    />
-                </div>
+                <SectionReveal>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <StatCard
+                            icon={Box}
+                            label="Available Assets"
+                            value={stats.availableAssets}
+                        />
+                        <StatCard
+                            icon={Package}
+                            label="Currently Borrowed"
+                            value={stats.activeBorrows}
+                        />
+                        <StatCard
+                            icon={Clock}
+                            label="Pending Requests"
+                            value={stats.pendingRequests}
+                        />
+                        <StatCard
+                            icon={History}
+                            label="Total Borrows"
+                            value={stats.totalBorrowed}
+                        />
+                    </div>
+                </SectionReveal>
 
                 {/* ── Quick actions ── */}
-                <div>
-                    <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                        Quick Actions
-                    </h2>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <QuickActionCard
-                            icon={PackageSearch}
-                            title="Browse Assets"
-                            description="Find and request available equipment"
-                            href={assets.index.url()}
-                        />
-                        <QuickActionCard
-                            icon={RefreshCcw}
-                            title="My Borrow Requests"
-                            description="Track the status of your requests"
-                            href={borrows.index.url()}
-                        />
-                        <QuickActionCard
-                            icon={Undo2}
-                            title="Process a Return"
-                            description="Return an item you've borrowed"
-                            onClick={() => setReturnDialogOpen(true)}
-                        />
+                <SectionReveal>
+                    <div>
+                        <h2 className="mb-3 text-sm font-bold tracking-wider text-muted-foreground uppercase">
+                            Quick Actions
+                        </h2>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <QuickActionCard
+                                icon={PackageSearch}
+                                title="Browse Assets"
+                                description="Find and request available equipment"
+                                href={assets.index.url()}
+                            />
+                            <QuickActionCard
+                                icon={RefreshCcw}
+                                title="My Borrow Requests"
+                                description="Track the status of your requests"
+                                href={borrows.index.url()}
+                            />
+                            <QuickActionCard
+                                icon={Undo2}
+                                title="Process a Return"
+                                description="Return an item you've borrowed"
+                                onClick={() => setReturnDialogOpen(true)}
+                            />
+                        </div>
                     </div>
-                </div>
+                </SectionReveal>
 
                 {/* ── Currently borrowed ── */}
-                <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-                    <div className="border-b border-border px-6 py-4">
-                        <h2 className="text-sm font-bold text-foreground">
-                            Currently Borrowed
-                        </h2>
-                    </div>
+                <SectionReveal>
+                    <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                        <div className="border-b border-border px-6 py-4">
+                            <h2 className="text-sm font-bold text-foreground">
+                                Currently Borrowed
+                            </h2>
+                        </div>
 
-                    <div className="overflow-x-auto px-6 pb-2">
-                        {currentBorrows.data.length > 0 ? (
-                            <table className="w-full min-w-[500px]">
-                                <thead>
-                                    <tr className="border-b border-border">
-                                        <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                            Asset
-                                        </th>
-                                        <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                            Borrowed On
-                                        </th>
-                                        <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                            Status
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {currentBorrows.data.map((borrow) => (
-                                        <tr
-                                            key={borrow.id}
-                                            className="border-b border-border last:border-0"
-                                        >
-                                            <td className="py-3.5 pr-4">
-                                                <p className="text-sm font-semibold text-foreground">
-                                                    {borrow.asset.name}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {borrow.asset.asset_tag} ·{' '}
-                                                    {borrow.asset.category.name}
-                                                </p>
-                                            </td>
-                                            <td className="py-3.5 pr-4 text-sm text-muted-foreground">
-                                                {new Date(
-                                                    borrow.requested_at
-                                                ).toLocaleDateString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                })}
-                                            </td>
-                                            <td className="py-3.5">
-                                                <StatusBadge status={borrow.status} />
-                                            </td>
+                        <div className="overflow-x-auto px-6 pb-2">
+                            {currentBorrows.data.length > 0 ? (
+                                <table className="w-full min-w-[500px]">
+                                    <thead>
+                                        <tr className="border-b border-border">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Asset
+                                            </th>
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Borrowed On
+                                            </th>
+                                            <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Status
+                                            </th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <div className="flex flex-col items-center gap-1 py-10 text-center">
-                                <p className="text-sm font-semibold text-foreground">
-                                    Nothing borrowed right now
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    Browse available assets to make a request
-                                </p>
-                            </div>
+                                    </thead>
+                                    <motion.tbody
+                                        variants={tableVariants}
+                                        initial="hidden"
+                                        animate="show"
+                                    >
+                                        {currentBorrows.data.map((borrow) => (
+                                            <motion.tr
+                                                key={borrow.id}
+                                                variants={rowVariants}
+                                                className="border-b border-border last:border-0"
+                                            >
+                                                <td className="py-3.5 pr-4">
+                                                    <p className="text-sm font-semibold text-foreground">
+                                                        {borrow.asset.name}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {borrow.asset.asset_tag}{' '}
+                                                        ·{' '}
+                                                        {
+                                                            borrow.asset
+                                                                .category.name
+                                                        }
+                                                    </p>
+                                                </td>
+                                                <td className="py-3.5 pr-4 text-sm text-muted-foreground">
+                                                    {new Date(
+                                                        borrow.requested_at,
+                                                    ).toLocaleDateString(
+                                                        'en-US',
+                                                        {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                        },
+                                                    )}
+                                                </td>
+                                                <td className="py-3.5">
+                                                    <StatusBadge
+                                                        status={borrow.status}
+                                                    />
+                                                </td>
+                                            </motion.tr>
+                                        ))}
+                                    </motion.tbody>
+                                </table>
+                            ) : (
+                                <div className="flex flex-col items-center gap-1 py-10 text-center">
+                                    <p className="text-sm font-semibold text-foreground">
+                                        Nothing borrowed right now
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Browse available assets to make a
+                                        request
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {currentBorrows.data.length > 0 && (
+                            <PaginationBar
+                                currentPage={currentBorrows.current_page}
+                                lastPage={currentBorrows.last_page}
+                                total={currentBorrows.total}
+                                from={currentBorrows.from}
+                                to={currentBorrows.to}
+                                perPage={currentBorrows.per_page}
+                                itemLabel="borrows"
+                                onPageChange={handleCurrentBorrowsPageChange}
+                                onPerPageChange={
+                                    handleCurrentBorrowsPerPageChange
+                                }
+                            />
                         )}
                     </div>
-
-                    {currentBorrows.data.length > 0 && (
-                        <PaginationBar
-                            currentPage={currentBorrows.current_page}
-                            lastPage={currentBorrows.last_page}
-                            total={currentBorrows.total}
-                            from={currentBorrows.from}
-                            to={currentBorrows.to}
-                            perPage={currentBorrows.per_page}
-                            itemLabel="borrows"
-                            onPageChange={handleCurrentBorrowsPageChange}
-                            onPerPageChange={handleCurrentBorrowsPerPageChange}
-                        />
-                    )}
-                </div>
+                </SectionReveal>
 
                 {/* ── Recent activity ── */}
-                <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-                    <div className="border-b border-border px-6 py-4">
-                        <h2 className="text-sm font-bold text-foreground">
-                            Recent Activity
-                        </h2>
-                    </div>
+                <SectionReveal>
+                    <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                        <div className="border-b border-border px-6 py-4">
+                            <h2 className="text-sm font-bold text-foreground">
+                                Recent Activity
+                            </h2>
+                        </div>
 
-                    <div className="overflow-x-auto px-6 pb-2">
-                        {recentActivity.data.length > 0 ? (
-                            <table className="w-full min-w-[500px]">
-                                <thead>
-                                    <tr className="border-b border-border">
-                                        <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                            Asset
-                                        </th>
-                                        <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                            Requested
-                                        </th>
-                                        <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                            Status
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recentActivity.data.map((activity) => (
-                                        <tr
-                                            key={activity.id}
-                                            className="border-b border-border last:border-0"
-                                        >
-                                            <td className="py-3.5 pr-4">
-                                                <p className="text-sm font-medium text-foreground">
-                                                    {activity.asset.name}
-                                                </p>
-                                            </td>
-                                            <td className="py-3.5 pr-4 text-sm text-muted-foreground">
-                                                {new Date(
-                                                    activity.requested_at
-                                                ).toLocaleDateString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                })}
-                                            </td>
-                                            <td className="py-3.5">
-                                                <StatusBadge status={activity.status} />
-                                            </td>
+                        <div className="overflow-x-auto px-6 pb-2">
+                            {recentActivity.data.length > 0 ? (
+                                <table className="w-full min-w-[500px]">
+                                    <thead>
+                                        <tr className="border-b border-border">
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Asset
+                                            </th>
+                                            <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Requested
+                                            </th>
+                                            <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                                Status
+                                            </th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <div className="flex flex-col items-center gap-1 py-10 text-center">
-                                <p className="text-sm font-semibold text-foreground">
-                                    No activity yet
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    Your borrow history will show up here
-                                </p>
-                            </div>
+                                    </thead>
+                                    <motion.tbody
+                                        variants={tableVariants}
+                                        initial="hidden"
+                                        animate="show"
+                                    >
+                                        {recentActivity.data.map((activity) => (
+                                            <motion.tr
+                                                key={activity.id}
+                                                variants={rowVariants}
+                                                className="border-b border-border last:border-0"
+                                            >
+                                                <td className="py-3.5 pr-4">
+                                                    <p className="text-sm font-medium text-foreground">
+                                                        {activity.asset.name}
+                                                    </p>
+                                                </td>
+                                                <td className="py-3.5 pr-4 text-sm text-muted-foreground">
+                                                    {new Date(
+                                                        activity.requested_at,
+                                                    ).toLocaleDateString(
+                                                        'en-US',
+                                                        {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                        },
+                                                    )}
+                                                </td>
+                                                <td className="py-3.5">
+                                                    <StatusBadge
+                                                        status={activity.status}
+                                                    />
+                                                </td>
+                                            </motion.tr>
+                                        ))}
+                                    </motion.tbody>
+                                </table>
+                            ) : (
+                                <div className="flex flex-col items-center gap-1 py-10 text-center">
+                                    <p className="text-sm font-semibold text-foreground">
+                                        No activity yet
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Your borrow history will show up here
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {recentActivity.data.length > 0 && (
+                            <PaginationBar
+                                currentPage={recentActivity.current_page}
+                                lastPage={recentActivity.last_page}
+                                total={recentActivity.total}
+                                from={recentActivity.from}
+                                to={recentActivity.to}
+                                perPage={recentActivity.per_page}
+                                itemLabel="activity"
+                                onPageChange={handleActivityPageChange}
+                                onPerPageChange={handleActivityPerPageChange}
+                            />
                         )}
                     </div>
-
-                    {recentActivity.data.length > 0 && (
-                        <PaginationBar
-                            currentPage={recentActivity.current_page}
-                            lastPage={recentActivity.last_page}
-                            total={recentActivity.total}
-                            from={recentActivity.from}
-                            to={recentActivity.to}
-                            perPage={recentActivity.per_page}
-                            itemLabel="activity"
-                            onPageChange={handleActivityPageChange}
-                            onPerPageChange={handleActivityPerPageChange}
-                        />
-                    )}
-                </div>
+                </SectionReveal>
 
                 <ReturnRequestDialog
                     open={returnDialogOpen}
                     items={returnableBorrows}
                     onOpenChange={setReturnDialogOpen}
                 />
-            </div>
+            </motion.div>
         </>
     );
 }
