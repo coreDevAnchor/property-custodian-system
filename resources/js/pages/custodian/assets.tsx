@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import { dashboard } from '@/routes/custodian';
+import assetRoutes from '@/routes/custodian/assets';
 import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
 import { motion } from "framer-motion";
 import { rowVariants, tableVariants } from '@/components/assets/asset-table-animations';
@@ -272,7 +273,7 @@ export default function Assets({
 
     function fetchPage(page: number, overrides: Partial<AssetFilters> = {}) {
         router.get(
-            '/custodian/assets',
+            assetRoutes.index.url(),
             {
                 search: overrides.search ?? search,
                 category: overrides.category ?? categoryFilter,
@@ -314,7 +315,9 @@ export default function Assets({
     }
 
     function handlePageChange(page: number) {
-        fetchPage(page);
+        if (page >= 1 && page <= assets.last_page) {
+            fetchPage(page);
+        }
     }
 
     function openAddModal() {

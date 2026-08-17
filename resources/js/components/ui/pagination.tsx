@@ -202,7 +202,7 @@ function PaginationBar({
             <PaginationItem>
               <PaginationPrevious
                 onClick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage === 1}
+                disabled={currentPage <= 1}
               />
             </PaginationItem>
 
@@ -226,7 +226,7 @@ function PaginationBar({
             <PaginationItem>
               <PaginationNext
                 onClick={() => onPageChange(currentPage + 1)}
-                disabled={currentPage === lastPage}
+                disabled={currentPage >= lastPage}
               />
             </PaginationItem>
           </PaginationContent>

@@ -79,6 +79,15 @@ class AssetController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
+        // A page can become invalid when records are removed or a stale pagination
+        // request completes after the user has reached the last page. Send the user
+        // back to the final available page instead of rendering an empty dead end.
+        if ($assets->currentPage() > $assets->lastPage()) {
+            return redirect()->to(
+                $request->fullUrlWithQuery(['page' => $assets->lastPage()])
+            );
+        }
+
         return Inertia::render('custodian/assets', [
             'assets' => $assets,
             'categories' => Category::orderBy('name', 'asc')->get(['id', 'name']),

@@ -31,6 +31,15 @@ test('assets can be searched case-insensitively', function () {
         ->where('assets.data.0.id', $asset->id));
 });
 
+test('an out-of-range assets page redirects to the last available page', function () {
+    $user = User::factory()->custodian()->create();
+    Asset::factory()->count(10)->create();
+
+    $this->actingAs($user)
+        ->get(route('custodian.assets.index', ['page' => 2]))
+        ->assertRedirect(route('custodian.assets.index', ['page' => 1]));
+});
+
 test('available assets can be searched by asset type case-insensitively', function () {
     $user = User::factory()->employee()->create();
     $category = Category::create(['name' => 'Electronics', 'prefix' => 'ELEC']);
