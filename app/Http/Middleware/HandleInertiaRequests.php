@@ -2,8 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\BorrowRequest;
 use App\Models\BorrowRenewal;
+use App\Models\BorrowRequest;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
                 'type' => $request->session()->get('success')
                     ? 'success'
@@ -59,11 +59,9 @@ class HandleInertiaRequests extends Middleware
             ],
             'counts' => $request->user()?->role === 'custodian'
                 ? [
-                    'pendingBorrowRequests' =>
-                        BorrowRequest::where('status', 'pending')->count(),
+                    'pendingBorrowRequests' => BorrowRequest::where('status', 'pending')->count()
                         + BorrowRenewal::where('status', 'pending')->count(),
                     'awaitingReturns' => BorrowRequest::where('status', 'awaiting_check')->count(),
-                    'pendingRenewalRequests' => BorrowRenewal::where('status', 'pending')->count(),
                 ]
                 : null,
             'unreadNotificationCount' => fn () => $request->user()?->unreadNotifications()->count() ?? 0,

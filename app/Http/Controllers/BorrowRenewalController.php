@@ -6,6 +6,7 @@ use App\Models\ActivityLogs;
 use App\Models\BorrowRenewal;
 use App\Models\BorrowRequest;
 use App\Models\User;
+use App\Notifications\BorrowRenewalApprovedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,7 +29,7 @@ class BorrowRenewalController extends Controller
             abort(403);
         }
 
-        $borrow = BorrowRequest::with('asset')->findOrFail($borrowRenewal->borrow_id);
+        $borrow = BorrowRequest::with(['asset', 'borrower'])->findOrFail($borrowRenewal->borrow_id);
 
         $borrowRenewal->update([
             'status' => $validated['status'],
@@ -43,6 +44,16 @@ class BorrowRenewalController extends Controller
             $borrow->update([
                 'expected_return_date' => $borrowRenewal->requested_due_date,
             ]);
+
+            if ($borrow->borrower instanceof User) {
+                $borrow->borrower->notify(
+                    new BorrowRenewalApprovedNotification(
+                        $borrowRenewal,
+                        $borrow,
+                        $user->name,
+                    )
+                );
+            }
 
             ActivityLogs::record(
                 $asset,
