@@ -11,10 +11,17 @@ class NotificationController extends Controller
 {
     public function index(Request $request): Response
     {
+        $perPage = (int) $request->input('per_page', 20);
+        $perPage = in_array($perPage, [10, 12, 15, 20, 25, 50, 100], true)
+            ? $perPage
+            : 20;
+
         $notifications = $request->user()
             ->notifications()
-            ->latest()
-            ->paginate(20)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString()
             ->through(fn ($notification) => [
                 'id' => $notification->id,
                 'type' => $notification->data['type'] ?? 'reminder',

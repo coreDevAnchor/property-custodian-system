@@ -13,6 +13,7 @@ class BorrowRequestStatusNotification extends Notification
     public function __construct(
         public BorrowRequest $borrowRequest,
         public ?string $rejectionMessage = null,
+        public ?string $processedBy = null,
     ) {}
 
     public function via(object $notifiable): array
@@ -23,6 +24,9 @@ class BorrowRequestStatusNotification extends Notification
     public function toArray(object $notifiable): array
     {
         $approved = $this->borrowRequest->status === 'borrowed';
+        $custodianMessage = $this->processedBy
+            ? "\n\nProcessed by custodian: {$this->processedBy}"
+            : '';
 
         return [
             'title' => $approved
@@ -31,7 +35,9 @@ class BorrowRequestStatusNotification extends Notification
 
             'message' => $approved
                 ? "Your request to borrow {$this->borrowRequest->asset->name} has been approved."
+                    . $custodianMessage
                 : "Your request to borrow {$this->borrowRequest->asset->name} has been rejected."
+                    . $custodianMessage
                     . ($this->rejectionMessage
                         ? "\n\nReason provided by the custodian:\n{$this->rejectionMessage}"
                         : ""),
@@ -39,6 +45,7 @@ class BorrowRequestStatusNotification extends Notification
             'borrow_request_id' => $this->borrowRequest->id,
             'asset_id' => $this->borrowRequest->asset_id,
             'status' => $this->borrowRequest->status,
+            'processed_by' => $this->processedBy,
         ];
     }
 }

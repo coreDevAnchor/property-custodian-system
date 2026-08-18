@@ -184,6 +184,11 @@ class BorrowRequestController extends Controller
         $wasPending = $borrowRequest->status === 'pending';
         $asset = $borrowRequest->asset;
         $requesterName = $borrowRequest->borrower->name;
+        $custodian = Auth::user();
+
+        if (!$custodian instanceof User) {
+            abort(403);
+        }
 
         if (
             $validated['status'] === 'borrowed' &&
@@ -203,7 +208,7 @@ class BorrowRequestController extends Controller
         ];
 
         if ($validated['status'] === 'borrowed') {
-            $updateData['approved_by'] = Auth::id();
+            $updateData['approved_by'] = $custodian->id;
             $updateData['approved_at'] = now();
             if (!empty($validated['expected_return_date'])) {
                 $updateData['expected_return_date'] = $validated['expected_return_date'];
@@ -224,6 +229,7 @@ class BorrowRequestController extends Controller
                 new BorrowRequestStatusNotification(
                     $borrowRequest,
                     $validated['rejection_message'] ?? null,
+                    $custodian->name,
                 )
             );
         }

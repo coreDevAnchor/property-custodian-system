@@ -128,7 +128,7 @@ function PaginationEllipsis({
 
 // ─── PaginationBar — composed widget used by Assets/Employees/Custodians ──
 
-const PAGE_SIZE_OPTIONS = [10, 15, 25, 50, 100, 'All'];
+const PAGE_SIZE_OPTIONS = [10, 12, 15, 20, 25, 50, 100];
 
 interface PaginationBarProps {
   currentPage: number;
