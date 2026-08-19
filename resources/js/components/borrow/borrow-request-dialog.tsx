@@ -56,6 +56,8 @@ const conditionStyles: Record<number, string> = {
     4: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 };
 
+const MIN_REMARKS_LENGTH = 10;
+
 function ConditionBadge({ condition }: { condition?: number | null }) {
     if (!condition || !conditionLabels[condition]) {
         return <span className="text-sm text-muted-foreground">—</span>;
@@ -110,16 +112,38 @@ function formatDate(value?: string | null) {
 export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
     const [remarks, setRemarks] = useState('');
     const [expectedReturnDate, setExpectedReturnDate] = useState('');
+    const [touched, setTouched] = useState(false);
+
+    const trimmedLength = remarks.trim().length;
+    const isRemarksTooShort = trimmedLength > 0 && trimmedLength < MIN_REMARKS_LENGTH;
+
+    const remarksError = touched && trimmedLength === 0
+        ? 'Please provide a reason.'
+        : touched && isRemarksTooShort
+            ? `Please enter at least ${MIN_REMARKS_LENGTH} characters (currently ${trimmedLength}).`
+            : null;
+
+    const canSubmit = expectedReturnDate && trimmedLength >= MIN_REMARKS_LENGTH;
 
     useEffect(() => {
         setRemarks('');
         setExpectedReturnDate('');
+        setTouched(false);
     }, [asset]);
+
+    function handleOpenChange(value: boolean) {
+        if (!value) {
+            setRemarks('');
+            setExpectedReturnDate('');
+            setTouched(false);
+        }
+        onOpenChange(value);
+    }
 
     if (!asset) return null;
 
     return (
-        <Dialog open={!!asset} onOpenChange={onOpenChange}>
+        <Dialog open={!!asset} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Request to Borrow</DialogTitle>
@@ -231,7 +255,7 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">
-                        Reason / Remarks (optional)
+                        Reason / Remarks
                     </label>
 
                     <Textarea
@@ -239,20 +263,44 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
                         placeholder="What will you use this for?"
                         value={remarks}
                         onChange={(e) => setRemarks(e.target.value)}
+                        onBlur={() => setTouched(true)}
+                        aria-invalid={!!remarksError}
+                        className={remarksError
+                            ? 'border-red-400 focus-visible:border-red-500 focus-visible:ring-red-500/50'
+                            : ''
+                        }
                     />
+
+                    <div className="flex items-start justify-between gap-3">
+                        <p className={`text-xs ${remarksError
+                                ? 'font-medium text-red-600 dark:text-red-400'
+                                : 'text-muted-foreground'
+                            }`}
+                        >
+                            {remarksError ??
+                                `Please enter at least ${MIN_REMARKS_LENGTH} characters explaining your purpose.`}
+                        </p>
+
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                            {remarks.length}/1000
+                        </span>
+                    </div>
                 </div>
 
                 <DialogFooter>
                     <Button
                         className='cursor-pointer'
-                        variant="outline" onClick={() => onOpenChange(false)}>
+                        variant="outline" onClick={() => handleOpenChange(false)}>
                         Cancel
                     </Button>
                     <Button
                         className='cursor-pointer'
-                        onClick={() =>
-                                onSubmit(asset.id, expectedReturnDate, remarks)
-                            }
+                        disabled={!canSubmit}
+                        onClick={() => {
+                            setTouched(true);
+                            if (!canSubmit) return;
+                            onSubmit(asset.id, expectedReturnDate, remarks.trim());
+                        }}
                         >
                         Submit Request
                     </Button>
