@@ -70,15 +70,6 @@ function BorrowRow({ item }: { item: BorrowItem }) {
             <td className="py-3.5 pr-4">
                 <StatusBadge status={item.status} />
             </td>
-            <td className="py-3.5">
-                {item.remarks ? (
-                    <p className="max-w-[240px] truncate text-xs text-muted-foreground">
-                        {item.remarks}
-                    </p>
-                ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                )}
-            </td>
         </motion.tr>
     );
 }
@@ -227,9 +218,6 @@ export default function MyBorrows({ borrows }: Props) {
                                     </th>
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Status
-                                    </th>
-                                    <th className="py-3 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                        Remarks
                                     </th>
                                 </tr>
                             </thead>
