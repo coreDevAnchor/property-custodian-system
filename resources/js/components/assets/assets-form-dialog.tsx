@@ -219,7 +219,7 @@ export function AssetFormDialog({
             return null;
         });
         setPhotoError(null);
-    }, [asset, mode]);
+    }, [open, asset, mode]);
 
     // Clean up the object URL on unmount.
     useEffect(() => {
@@ -308,6 +308,7 @@ export function AssetFormDialog({
         } else {
             router.put(`/custodian/assets/${asset?.id}`, payload, {
                 forceFormData: true,
+                preserveState: true,
                 onSuccess: () => {
                     onOpenChange(false);
                 },
@@ -549,6 +550,9 @@ export function AssetFormDialog({
                                                     </SelectItem>
                                                     <SelectItem value="disposed">
                                                         Disposed
+                                                    </SelectItem>
+                                                    <SelectItem value="lost">
+                                                        Lost
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>

@@ -33,6 +33,9 @@ class AssetController extends Controller
                 'status',
                 'condition',
                 'photo',
+                'acquisition_date',
+                'acquisition_cost',
+                'depreciation_rate',
             ])
             ->with([
                 'category:id,name',
