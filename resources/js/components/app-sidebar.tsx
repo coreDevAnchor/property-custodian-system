@@ -1,6 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     BarChart3,
+    BookOpen,
     Box,
     ClipboardList,
     LayoutDashboard,
@@ -101,6 +102,11 @@ export function AppSidebar() {
     ];
 
     const bottomNavItems: NavItem[] = [
+        {
+            title: 'Documentation',
+            href: '/documentation',
+            icon: BookOpen,
+        },
     ];
 
     const handleLogout = () => {

@@ -32,6 +32,10 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'verified'])
     ->group(function () {
+        Route::get('/documentation', function () {
+            return Inertia::render('documentations/documentation');
+        })->name('documentation');
+
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
@@ -112,5 +116,10 @@ Route::middleware(['auth', 'verified'])
         Route::post('/returns', [EmployeeReturnController::class, 'store'])
             ->name('returns.store');
     });
+
+// Load test CSRF token endpoint
+Route::get('/loadtest/token', function () {
+    return response()->json(['token' => session()->token()]);
+});
 
 require __DIR__ . '/settings.php';

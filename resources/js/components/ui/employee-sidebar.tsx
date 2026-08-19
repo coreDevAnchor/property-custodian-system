@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { LogOut, PackageSearch, Undo2, LayoutDashboard, BoxSelect } from 'lucide-react';
+import { BookOpen, LogOut, PackageSearch, Undo2, LayoutDashboard, BoxSelect } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -46,6 +46,14 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
+const bottomNavItems: NavItem[] = [
+    {
+        title: 'Documentation',
+        href: '/documentation',
+        icon: BookOpen,
+    },
+];
+
 export function EmployeeSidebar() {
     const handleLogout = () => {
         router.post(logout.url());
@@ -73,6 +81,7 @@ export function EmployeeSidebar() {
 
             <SidebarFooter>
                 <SidebarSeparator />
+                <NavMain items={bottomNavItems} />
 
                 {/* Log Out */}
                 <SidebarMenu>
