@@ -234,19 +234,19 @@ class BorrowRequestController extends Controller
             );
         }
 
+        if ($validated['status'] === 'returned') {
+        $borrowRequest->borrower->notify(
+            new ReturnConfirmedNotification(
+                $borrowRequest->asset->name,
+                $borrowRequest->return_condition ?? 'ok',
+            )
+        );
+    }
+
         if ($validated['status'] === 'borrowed') {
             $asset->update([
                 'status' => 'borrowed',
             ]);
-        }
-
-        if ($validated['status'] === 'returned') {
-            $newAssetStatus = match ($validated['return_condition'] ?? 'ok') {
-                'lost' => 'lost',
-                'defective' => 'under_repair',
-                default => 'available',
-            };
-            $asset->update(['status' => $newAssetStatus]);
         }
 
         $message = match (true) {

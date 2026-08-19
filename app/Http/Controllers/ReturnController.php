@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\Asset;
 use Illuminate\Support\Facades\DB;
+use App\Notifications\ReturnConfirmedNotification;
 
 class ReturnController extends Controller
 {
@@ -122,7 +123,7 @@ class ReturnController extends Controller
                 ],
             ]);
             $user = Auth::user();
-            $borrow = BorrowRequest::with('asset')
+            $borrow = BorrowRequest::with(['asset', 'borrower'])
                 ->where('id', $validated['borrow_id'])
                 ->where('borrower_id', $user->id)
                 ->where('status', 'borrowed')
@@ -283,6 +284,13 @@ class ReturnController extends Controller
                 );
             }
         });
+
+        $borrow->borrower->notify(
+            new ReturnConfirmedNotification(
+                $borrow->asset->name,
+                $validated['return_condition'],
+            )
+        );
 
         return back()->with(
             'success',
