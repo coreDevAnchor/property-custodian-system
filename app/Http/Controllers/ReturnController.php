@@ -254,7 +254,7 @@ class ReturnController extends Controller
 
             if ($condition === 'defective') {
                 $borrow->asset->update([
-                    'status' => 'defective',
+                    'status' => 'under_repair',
                 ]);
 
                 ActivityLogs::record(
@@ -289,6 +289,7 @@ class ReturnController extends Controller
             new ReturnConfirmedNotification(
                 $borrow->asset->name,
                 $validated['return_condition'],
+                $custodian->name,
             )
         );
 
