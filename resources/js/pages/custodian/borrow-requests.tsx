@@ -302,7 +302,14 @@ export default function BorrowRequests({
                 {/* ── Filters + table ── */}
                 <Tabs value={view} onValueChange={(value) => setView(value as 'borrows' | 'renewals')}>
                     <TabsList>
-                        <TabsTrigger value="borrows" className="cursor-pointer">Borrow Requests</TabsTrigger>
+                        <TabsTrigger value="borrows" className="cursor-pointer">
+                            Borrow Requests
+                            {pendingCount > 0 && (
+                                <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                    {pendingCount}
+                                </span>
+                            )}
+                        </TabsTrigger>
                         <TabsTrigger value="renewals" className="cursor-pointer">
                             Renewal Requests
                             {pendingRenewalCount > 0 && (
