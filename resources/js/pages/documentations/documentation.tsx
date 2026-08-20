@@ -74,7 +74,6 @@ const installationSections: DocSection[] = [
                 code: 'php artisan serve\nnpm run dev',
             },
         ],
-        gifPlaceholder: true,
     },
     {
         id: 'system-overview',
@@ -82,7 +81,6 @@ const installationSections: DocSection[] = [
         icon: Box,
         description:
             'The Property Custodian System is a web application for managing organizational assets. It tracks equipment, handles borrow requests, and generates reports. Built with Laravel 13, React 19, and Inertia.js v3.',
-        gifPlaceholder: true,
     },
 ];
 
@@ -100,7 +98,7 @@ const employeeSections: DocSection[] = [
             'See your current active borrows',
             'Track recent activity and return status',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/employee-dashboard.gif',
     },
     {
         id: 'available-assets',
@@ -114,7 +112,7 @@ const employeeSections: DocSection[] = [
             'View asset details including condition and location',
             'Submit a borrow request for any available asset',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/employee-available-assets.gif',
     },
     {
         id: 'borrow-request',
@@ -128,7 +126,7 @@ const employeeSections: DocSection[] = [
             'Submit request for custodian approval',
             'Track request status from your dashboard',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/borrow-assets.gif',
     },
     {
         id: 'current-borrows',
@@ -142,7 +140,7 @@ const employeeSections: DocSection[] = [
             'Request a borrow renewal if you need more time',
             'Initiate a return when ready',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/employee-current-borrows.gif',
     },
     {
         id: 'borrow-renewal',
@@ -154,9 +152,8 @@ const employeeSections: DocSection[] = [
             'Select an active borrow to renew',
             'Provide a new expected return date',
             'Submit renewal for custodian approval',
-            'Track renewal status',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/request-renewal.gif',
     },
     {
         id: 'borrow-history',
@@ -169,7 +166,7 @@ const employeeSections: DocSection[] = [
             'Filter by status (returned, overdue, etc.)',
             'Check return dates and condition notes',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/employee-borrow-history.gif',
     },
     {
         id: 'return-asset',
@@ -182,7 +179,7 @@ const employeeSections: DocSection[] = [
             'Confirm the return request',
             'Asset condition will be recorded by custodian',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/employee-return-request.gif',
     },
 ];
 
