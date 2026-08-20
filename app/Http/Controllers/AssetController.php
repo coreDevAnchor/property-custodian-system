@@ -33,6 +33,7 @@ class AssetController extends Controller
                 'status',
                 'condition',
                 'photo',
+                'amount',
                 'acquisition_date',
                 'acquisition_cost',
                 'depreciation_rate',
@@ -128,6 +129,7 @@ class AssetController extends Controller
             'remarks' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'asset_type_id' => ['required', 'exists:asset_types,id'],
+            'amount' => ['nullable', 'integer', 'min:1'],
         ], [
             'name.required' => 'Asset name is required.',
             'category_id.required' => 'Category is required.',
@@ -203,6 +205,7 @@ class AssetController extends Controller
             'remarks' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'asset_type_id' => ['required', 'exists:asset_types,id'],
+            'amount' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $previousStatus = $asset->status;

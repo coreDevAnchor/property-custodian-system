@@ -230,7 +230,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                             {asset.category?.name === 'Office Supplies' && (
                                 <DetailRow
                                     label="Amount"
-                                    value={`${asset.amount ?? 1} units`}
+                                    value={asset.amount ?? 1}
                                 />
                             )}
                         </div>

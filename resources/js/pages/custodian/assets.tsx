@@ -159,7 +159,7 @@ function AssetRow({
             </td>
             <td className="py-3.5 pr-4">
                 <span className="text-sm text-foreground">
-                    {asset.category?.name === 'Office Supplies' ? `${asset.amount ?? 1} units` : '—'}
+                    {asset.category?.name === 'Office Supplies' ? (asset.amount ?? 1) : '—'}
                 </span>
             </td>
             <td className="py-3.5 pr-4">

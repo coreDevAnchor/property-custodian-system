@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ImagePlus, X, CalendarDays, Plus } from 'lucide-react';
 import type { FormDataConvertible } from '@inertiajs/core';
+import { AddCategoryDialog } from '@/components/assets/add-category-dialog';
+import { AddAssetTypeDialog } from '@/components/assets/add-asset-type-dialog';
 
 import {
     Dialog,
@@ -156,21 +158,9 @@ export function AssetFormDialog({
     const [existingPhoto, setExistingPhoto] = useState<string | null>(null);
     const [photoError, setPhotoError] = useState<string | null>(null);
 
-    // ── Inline category creation ──
-    const [showCategoryForm, setShowCategoryForm] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState('');
-    const [newCategoryPrefix, setNewCategoryPrefix] = useState('');
-    const [newCategoryDescription, setNewCategoryDescription] = useState('');
-    const [categoryError, setCategoryError] = useState<string | null>(null);
-    const [creatingCategory, setCreatingCategory] = useState(false);
-
-    // ── Inline asset type creation ──
-    const [showAssetTypeForm, setShowAssetTypeForm] = useState(false);
-    const [newAssetTypeName, setNewAssetTypeName] = useState('');
-    const [newAssetTypePrefix, setNewAssetTypePrefix] = useState('');
-    const [newAssetTypeDescription, setNewAssetTypeDescription] = useState('');
-    const [assetTypeError, setAssetTypeError] = useState<string | null>(null);
-    const [creatingAssetType, setCreatingAssetType] = useState(false);
+    // ── Category/AssetType dialog state ──
+    const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
+    const [showAddAssetTypeDialog, setShowAddAssetTypeDialog] = useState(false);
 
     // ── Local state for dynamically added categories/asset types ──
     const [localCategories, setLocalCategories] = useState<Category[]>([]);
@@ -296,105 +286,6 @@ export function AssetFormDialog({
             if (prev) URL.revokeObjectURL(prev.url);
             return null;
         });
-    }
-
-    async function handleCreateCategory() {
-        if (!newCategoryName.trim() || !newCategoryPrefix.trim()) {
-            setCategoryError('Name and prefix are required.');
-            return;
-        }
-
-        setCreatingCategory(true);
-        setCategoryError(null);
-
-        try {
-            const response = await fetch('/custodian/categories', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-XSRF-TOKEN': decodeURIComponent(
-                        document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''
-                    ),
-                },
-                body: JSON.stringify({
-                    name: newCategoryName.trim(),
-                    prefix: newCategoryPrefix.trim(),
-                    description: newCategoryDescription.trim() || null,
-                }),
-            });
-
-            if (!response.ok) {
-                const errors = await response.json();
-                throw new Error(errors.message || 'Failed to create category.');
-            }
-
-            const category = await response.json();
-            setLocalCategories((prev) => [...prev, category]);
-            form.setValue('category_id', category.id);
-
-            setShowCategoryForm(false);
-            setNewCategoryName('');
-            setNewCategoryPrefix('');
-            setNewCategoryDescription('');
-        } catch (err: any) {
-            setCategoryError(err.message || 'Failed to create category.');
-        } finally {
-            setCreatingCategory(false);
-        }
-    }
-
-    async function handleCreateAssetType() {
-        const categoryId = form.getValues('category_id');
-        if (!categoryId) {
-            setAssetTypeError('Please select a category first.');
-            return;
-        }
-
-        if (!newAssetTypeName.trim() || !newAssetTypePrefix.trim()) {
-            setAssetTypeError('Name and prefix are required.');
-            return;
-        }
-
-        setCreatingAssetType(true);
-        setAssetTypeError(null);
-
-        try {
-            const response = await fetch('/custodian/asset-types', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-XSRF-TOKEN': decodeURIComponent(
-                        document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''
-                    ),
-                },
-                body: JSON.stringify({
-                    name: newAssetTypeName.trim(),
-                    prefix: newAssetTypePrefix.trim(),
-                    category_id: categoryId,
-                    description: newAssetTypeDescription.trim() || null,
-                }),
-            });
-
-            if (!response.ok) {
-                const errors = await response.json();
-                throw new Error(errors.message || 'Failed to create asset type.');
-            }
-
-            const assetType = await response.json();
-            setLocalAssetTypes((prev) => [...prev, assetType]);
-            form.setValue('asset_type_id', assetType.id);
-
-            setShowAssetTypeForm(false);
-            setNewAssetTypeName('');
-            setNewAssetTypePrefix('');
-            setNewAssetTypeDescription('');
-        } catch (err: any) {
-            setAssetTypeError(err.message || 'Failed to create asset type.');
-        } finally {
-            setCreatingAssetType(false);
-        }
     }
 
     const submit = (data: FormValues) => {
@@ -539,12 +430,14 @@ export function AssetFormDialog({
                                                 <FormLabel>Category</FormLabel>
 
                                                 <Select
-                                                    value={field.value?.toString()}
-                                                    onValueChange={(value) =>
-                                                        field.onChange(
-                                                            Number(value),
-                                                        )
-                                                    }
+                                                    value={field.value?.toString() ?? ''}
+                                                    onValueChange={(value) => {
+                                                        if (value === '__add_new_category__') {
+                                                            setShowAddCategoryDialog(true);
+                                                            return;
+                                                        }
+                                                        field.onChange(Number(value));
+                                                    }}
                                                 >
                                                     <FormControl className="cursor-pointer">
                                                         <SelectTrigger>
@@ -565,17 +458,13 @@ export function AssetFormDialog({
                                                                 </SelectItem>
                                                             ),
                                                         )}
-                                                        <div
-                                                            className="flex cursor-pointer items-center gap-2 border-t border-border px-2 py-2 text-sm font-medium text-orange-600 hover:bg-muted/50"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                setShowCategoryForm(true);
-                                                            }}
+                                                        <SelectItem
+                                                            value="__add_new_category__"
+                                                            className="text-orange-600 font-medium"
                                                         >
-                                                            <Plus className="size-4" />
+                                                            <Plus className="size-4 inline mr-1" />
                                                             Add New Category
-                                                        </div>
+                                                        </SelectItem>
                                                     </SelectContent>
                                                 </Select>
 
@@ -583,55 +472,6 @@ export function AssetFormDialog({
                                             </FormItem>
                                         )}
                                     />
-                                    {showCategoryForm && (
-                                        <div className="rounded-lg border border-border p-3 space-y-2">
-                                            <p className="text-xs font-semibold text-foreground">New Category</p>
-                                            <Input
-                                                placeholder="Name"
-                                                value={newCategoryName}
-                                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                                className="h-8 text-xs"
-                                            />
-                                            <Input
-                                                placeholder="Prefix (e.g. OFF)"
-                                                value={newCategoryPrefix}
-                                                onChange={(e) => setNewCategoryPrefix(e.target.value.toUpperCase())}
-                                                className="h-8 text-xs"
-                                            />
-                                            <Input
-                                                placeholder="Description (optional)"
-                                                value={newCategoryDescription}
-                                                onChange={(e) => setNewCategoryDescription(e.target.value)}
-                                                className="h-8 text-xs"
-                                            />
-                                            {categoryError && (
-                                                <p className="text-xs text-red-500">{categoryError}</p>
-                                            )}
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    className="h-7 text-xs cursor-pointer"
-                                                    disabled={creatingCategory}
-                                                    onClick={handleCreateCategory}
-                                                >
-                                                    {creatingCategory ? 'Creating...' : 'Create'}
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="h-7 text-xs cursor-pointer"
-                                                    onClick={() => {
-                                                        setShowCategoryForm(false);
-                                                        setCategoryError(null);
-                                                    }}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <FormField
@@ -642,12 +482,14 @@ export function AssetFormDialog({
                                                 <FormLabel>Asset Type</FormLabel>
 
                                                 <Select
-                                                    value={field.value?.toString()}
-                                                    onValueChange={(value) =>
-                                                        field.onChange(
-                                                            Number(value),
-                                                        )
-                                                    }
+                                                    value={field.value?.toString() ?? ''}
+                                                    onValueChange={(value) => {
+                                                        if (value === '__add_new_asset_type__') {
+                                                            setShowAddAssetTypeDialog(true);
+                                                            return;
+                                                        }
+                                                        field.onChange(Number(value));
+                                                    }}
                                                 >
                                                     <FormControl className="cursor-pointer">
                                                         <SelectTrigger>
@@ -668,17 +510,13 @@ export function AssetFormDialog({
                                                                 </SelectItem>
                                                             ),
                                                         )}
-                                                        <div
-                                                            className="flex cursor-pointer items-center gap-2 border-t border-border px-2 py-2 text-sm font-medium text-orange-600 hover:bg-muted/50"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                setShowAssetTypeForm(true);
-                                                            }}
+                                                        <SelectItem
+                                                            value="__add_new_asset_type__"
+                                                            className="text-orange-600 font-medium"
                                                         >
-                                                            <Plus className="size-4" />
+                                                            <Plus className="size-4 inline mr-1" />
                                                             Add New Asset Type
-                                                        </div>
+                                                        </SelectItem>
                                                     </SelectContent>
                                                 </Select>
 
@@ -686,55 +524,6 @@ export function AssetFormDialog({
                                             </FormItem>
                                         )}
                                     />
-                                    {showAssetTypeForm && (
-                                        <div className="rounded-lg border border-border p-3 space-y-2">
-                                            <p className="text-xs font-semibold text-foreground">New Asset Type</p>
-                                            <Input
-                                                placeholder="Name"
-                                                value={newAssetTypeName}
-                                                onChange={(e) => setNewAssetTypeName(e.target.value)}
-                                                className="h-8 text-xs"
-                                            />
-                                            <Input
-                                                placeholder="Prefix (e.g. PEN)"
-                                                value={newAssetTypePrefix}
-                                                onChange={(e) => setNewAssetTypePrefix(e.target.value.toUpperCase())}
-                                                className="h-8 text-xs"
-                                            />
-                                            <Input
-                                                placeholder="Description (optional)"
-                                                value={newAssetTypeDescription}
-                                                onChange={(e) => setNewAssetTypeDescription(e.target.value)}
-                                                className="h-8 text-xs"
-                                            />
-                                            {assetTypeError && (
-                                                <p className="text-xs text-red-500">{assetTypeError}</p>
-                                            )}
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    className="h-7 text-xs cursor-pointer"
-                                                    disabled={creatingAssetType}
-                                                    onClick={handleCreateAssetType}
-                                                >
-                                                    {creatingAssetType ? 'Creating...' : 'Create'}
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="h-7 text-xs cursor-pointer"
-                                                    onClick={() => {
-                                                        setShowAssetTypeForm(false);
-                                                        setAssetTypeError(null);
-                                                    }}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                                 <FormField
                                     control={form.control}
@@ -1123,6 +912,24 @@ export function AssetFormDialog({
                     </form>
                 </Form>
             </DialogContent>
+            <AddCategoryDialog
+                open={showAddCategoryDialog}
+                onOpenChange={setShowAddCategoryDialog}
+                onCreated={(category) => {
+                    setLocalCategories((prev) => [...prev, category]);
+                    form.setValue('category_id', category.id);
+                }}
+            />
+
+            <AddAssetTypeDialog
+                open={showAddAssetTypeDialog}
+                onOpenChange={setShowAddAssetTypeDialog}
+                categoryId={selectedCategoryId ?? 0}
+                onCreated={(assetType) => {
+                    setLocalAssetTypes((prev) => [...prev, assetType]);
+                    form.setValue('asset_type_id', assetType.id);
+                }}
+            />
         </Dialog>
     );
 }
