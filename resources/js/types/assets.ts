@@ -42,6 +42,7 @@ export interface Asset {
     location?: Location | null;
 
     borrows?: Borrow[];
+    current_borrow?: Borrow;
 }
 
 export interface AssetFilters {

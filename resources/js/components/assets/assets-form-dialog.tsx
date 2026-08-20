@@ -542,9 +542,6 @@ export function AssetFormDialog({
                                                     <SelectItem value="available">
                                                         Available
                                                     </SelectItem>
-                                                    <SelectItem value="borrowed">
-                                                        Borrowed
-                                                    </SelectItem>
                                                     <SelectItem value="under_repair">
                                                         Under Repair
                                                     </SelectItem>

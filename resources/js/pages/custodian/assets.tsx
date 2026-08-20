@@ -177,44 +177,24 @@ function AssetRow({
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="space-y-3">
-                                <h4 className="font-semibold">Borrow History</h4>
+                                <h4 className="font-semibold">Current Status</h4>
 
-                                {(asset.borrows ?? []).length > 0 ? (
-                                    (asset.borrows ?? []).map((borrow) => (
-                                        <div
-                                            key={borrow.id}
-                                            className="border-b border-border pb-2 last:border-0"
-                                        >
-                                            <div className="font-medium">
-                                                {borrow.borrower?.name ?? 'Unknown borrower'}
-                                            </div>
+                                <p className="text-sm text-muted-foreground">
+                                    {asset.status === 'available' && 'This asset is currently available.'}
 
-                                            <div className="text-xs text-muted-foreground">
-                                                Requested:{' '}
-                                                {new Date(
-                                                    borrow.requested_at
-                                                ).toLocaleDateString()}
-                                            </div>
+                                    {asset.status === 'borrowed' && (
+                                        <>
+                                            Currently borrowed by:{' '}
+                                            <span className="font-medium text-foreground">
+                                                {asset.current_borrow?.borrower?.name ?? 'Unknown borrower'}
+                                            </span>
+                                        </>
+                                    )}
 
-                                            <div className="text-xs text-muted-foreground">
-                                                Status: {borrow.status}
-                                            </div>
-
-                                            {borrow.returned_at && (
-                                                <div className="text-xs text-muted-foreground">
-                                                    Returned:{' '}
-                                                    {new Date(
-                                                        borrow.returned_at
-                                                    ).toLocaleDateString()}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        No borrowing history.
-                                    </p>
-                                )}
+                                    {asset.status === 'under_repair' && 'This asset is currently under repair.'}
+                                    {asset.status === 'disposed' && 'This asset has been disposed.'}
+                                    {asset.status === 'lost' && 'This asset has been reported as lost.'}
+                                </p>
                             </div>
                         </HoverCardContent>
                     </HoverCard>

@@ -240,48 +240,23 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                             </div>
                         )}
 
-                        {/* ── Borrow history ── */}
+                        {/* ── Current Status ── */}
                         <div>
                             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Borrow History
+                                Current Status
                             </span>
 
-                            <div className="mt-2 space-y-2 rounded-lg border border-border p-3">
-                                {asset.borrows?.length ? (
-                                    asset.borrows.map((borrow) => (
-                                        <div
-                                            key={borrow.id}
-                                            className="border-b border-border pb-2 last:border-0 last:pb-0"
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm font-semibold text-foreground">
-                                                    {borrow.borrower.name}
-                                                </span>
-                                                <span className="text-xs capitalize text-muted-foreground">
-                                                    {borrow.status}
-                                                </span>
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                Requested:{" "}
-                                                {new Date(
-                                                    borrow.requested_at
-                                                ).toLocaleDateString()}
-                                            </div>
-                                            {borrow.returned_at && (
-                                                <div className="text-xs text-muted-foreground">
-                                                    Returned:{" "}
-                                                    {new Date(
-                                                        borrow.returned_at
-                                                    ).toLocaleDateString()}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        No borrowing history.
-                                    </p>
-                                )}
+                            <div className="mt-2 rounded-lg border border-border p-3">
+                                <div className="flex items-center gap-2">
+                                    <StatusBadge status={asset.status} />
+                                    <span className="text-sm text-muted-foreground">
+                                        {asset.status === 'available' && 'This asset is currently available.'}
+                                        {asset.status === 'borrowed' && 'This asset is currently borrowed.'}
+                                        {asset.status === 'under_repair' && 'This asset is currently under repair.'}
+                                        {asset.status === 'disposed' && 'This asset has been disposed.'}
+                                        {asset.status === 'lost' && 'This asset has been reported as lost.'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
