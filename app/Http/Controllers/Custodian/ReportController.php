@@ -328,7 +328,7 @@ class ReportController extends Controller
                     $grouped[$bucket]['lost'] += $row->count;
                 } elseif ($row->status === 'under_repair') {
                     $grouped[$bucket]['defective'] += $row->count;
-                } elseif ((int) $row->condition === 3) {
+                } elseif (in_array((int) $row->condition, [3, 4], true)) {
                     $grouped[$bucket]['good'] += $row->count;
                 }
             }

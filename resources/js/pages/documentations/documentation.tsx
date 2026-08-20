@@ -31,7 +31,7 @@ interface DocSection {
     description?: string;
     steps?: string[];
     codeBlocks?: { label: string; code: string }[];
-    gifPlaceholder?: boolean;
+    gif?: string;
     actions?: string[];
 }
 
@@ -201,7 +201,7 @@ const custodianSections: DocSection[] = [
             'Review recent activity feed',
             'Quick-access pending borrow requests for approval',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/dashboard.gif',
     },
     {
         id: 'asset-management',
@@ -216,7 +216,7 @@ const custodianSections: DocSection[] = [
             'Search and filter assets by name, category, or status',
             'View asset details and borrow history',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/assets.gif',
     },
     {
         id: 'borrow-requests',
@@ -230,7 +230,7 @@ const custodianSections: DocSection[] = [
             'Send overdue reminder notifications',
             'Track request status and history',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/borrow-request.gif',
     },
     {
         id: 'returns-management',
@@ -244,7 +244,7 @@ const custodianSections: DocSection[] = [
             'Update asset status after return',
             'View return history',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/return-requests.gif',
     },
     {
         id: 'employee-management',
@@ -258,7 +258,7 @@ const custodianSections: DocSection[] = [
             'Edit employee details',
             'Deactivate employee accounts',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/employee-management.gif',
     },
     {
         id: 'custodian-management',
@@ -271,7 +271,7 @@ const custodianSections: DocSection[] = [
             'Add new custodian accounts',
             'Edit custodian details',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/custodian-management.gif',
     },
     {
         id: 'audit-trail',
@@ -284,7 +284,7 @@ const custodianSections: DocSection[] = [
             'Filter by action type or user',
             'See details of asset changes, borrow actions, and returns',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/audit-trail.gif',
     },
     {
         id: 'reports',
@@ -297,7 +297,7 @@ const custodianSections: DocSection[] = [
             'Export data as CSV or PDF',
             'View borrowing statistics and trends',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/reports.gif',
     },
     {
         id: 'notifications',
@@ -311,7 +311,7 @@ const custodianSections: DocSection[] = [
             'Clear old notifications',
             'Badge count shows unread notifications',
         ],
-        gifPlaceholder: true,
+        gif: '/documentation/notifications.gif',
     },
 ];
 
@@ -345,16 +345,14 @@ function useScrollSpy(ids: string[]) {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function GifPlaceholder() {
+function GifPlaceholder({ src }: { src: string }) {
     return (
-        <div className="my-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 p-12">
-            <Film className="size-12 text-muted-foreground/40" />
-            <p className="mt-3 text-sm font-medium text-muted-foreground">
-                Demo GIF coming soon
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground/70">
-                Video walkthrough will be added here
-            </p>
+        <div className="my-6 overflow-hidden rounded-xl border border-border bg-muted/30">
+            <img
+                src={src}
+                alt="Documentation walkthrough"
+                className="w-full"
+            />
         </div>
     );
 }
@@ -472,7 +470,7 @@ function DocSectionBlock({ section }: { section: DocSection }) {
                     />
                 ))}
 
-            {section.gifPlaceholder && <GifPlaceholder />}
+            {section.gif && <GifPlaceholder src={section.gif} />}
 
             {section.actions && (
                 <ul className="mt-4 space-y-2">

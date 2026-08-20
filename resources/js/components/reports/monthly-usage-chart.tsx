@@ -41,8 +41,7 @@ const metricCopy: Record<
 
     assets_added: {
         title: 'Monthly Assets Added',
-        subtitle:
-            'Assets added to inventory over the last 12 months by current condition',
+        subtitle: 'Assets added by current condition',
         totalLabel: 'total assets',
         emptyText:
             'No assets have been added in this period yet.',
@@ -192,7 +191,21 @@ export function MonthlyUsageChart({
             <CardHeader className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <CardTitle className="text-xl font-semibold">
-                        {copy.title}
+                        {metric === 'assets_added'
+                            ? period === 'today'
+                                ? 'Assets Added Today'
+                                : period === 'week'
+                                    ? 'Assets Added This Week'
+                                    : period === 'month'
+                                        ? 'Assets Added This Month'
+                                        : 'Assets Added This Year'
+                            : period === 'today'
+                                ? 'Borrow Requests Today'
+                                : period === 'week'
+                                    ? 'Borrow Requests This Week'
+                                    : period === 'month'
+                                        ? 'Borrow Requests This Month'
+                                        : 'Borrow Requests This Year'}
                     </CardTitle>
 
                     <p className="mt-1 text-sm text-muted-foreground">
