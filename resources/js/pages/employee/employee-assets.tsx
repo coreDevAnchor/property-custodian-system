@@ -182,6 +182,7 @@ export default function AvailableAssets({
         assetId: number,
         expectedReturnDate: string,
         remarks: string,
+        borrowAmount?: number,
     ) {
         router.post(
             '/employee/borrow-requests',
@@ -189,6 +190,7 @@ export default function AvailableAssets({
                 asset_id: assetId,
                 expected_return_date: expectedReturnDate,
                 remarks,
+                borrow_amount: borrowAmount,
             },
             {
                 preserveScroll: true,

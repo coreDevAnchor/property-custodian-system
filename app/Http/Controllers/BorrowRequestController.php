@@ -93,6 +93,7 @@ class BorrowRequestController extends Controller
             'asset_id' => ['required', 'exists:assets,id'],
             'expected_return_date' => ['required', 'date', 'after_or_equal:today'],
             'remarks' => ['nullable', 'string'],
+            'borrow_amount' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $asset = Asset::query()->find((int) $validated['asset_id']);
@@ -101,8 +102,17 @@ class BorrowRequestController extends Controller
             abort(404);
         }
 
-        if ($asset->status !== 'available') {
-            return back()->with('error', 'This asset is not available for borrowing.');
+        $isOfficeSupplies = $asset->category?->name === 'Office Supplies';
+        $borrowQty = $isOfficeSupplies ? ($validated['borrow_amount'] ?? 1) : 1;
+
+        if ($isOfficeSupplies) {
+            if ($asset->amount < $borrowQty) {
+                return back()->with('error', "Only {$asset->amount} units available.");
+            }
+        } else {
+            if ($asset->status !== 'available') {
+                return back()->with('error', 'This asset is not available for borrowing.');
+            }
         }
 
         $user = Auth::user();
@@ -111,13 +121,15 @@ class BorrowRequestController extends Controller
             abort(403);
         }
 
-        $hasDuplicate = BorrowRequest::where('asset_id', $asset->id)
-            ->where('borrower_id', $user->id)
-            ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
-            ->exists();
+        if (!$isOfficeSupplies) {
+            $hasDuplicate = BorrowRequest::where('asset_id', $asset->id)
+                ->where('borrower_id', $user->id)
+                ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
+                ->exists();
 
-        if ($hasDuplicate) {
-            return back()->with('error', "You can't duplicate a borrow request.");
+            if ($hasDuplicate) {
+                return back()->with('error', "You can't duplicate a borrow request.");
+            }
         }
 
         BorrowRequest::create([
@@ -128,12 +140,13 @@ class BorrowRequestController extends Controller
             'requested_at' => now(),
             'expected_return_date' => $validated['expected_return_date'],
             'remarks' => $validated['remarks'] ?? null,
+            'borrow_amount' => $borrowQty,
         ]);
 
         ActivityLogs::record(
             $asset,
             'borrow_requested',
-            "{$user->name} requested to borrow {$asset->name}."
+            "{$user->name} requested to borrow {$asset->name}" . ($isOfficeSupplies ? " (x{$borrowQty})." : ".")
         );
 
         return redirect()
@@ -192,13 +205,26 @@ class BorrowRequestController extends Controller
 
         if (
             $validated['status'] === 'borrowed' &&
-            $wasPending &&
-            $asset->status !== 'available'
+            $wasPending
         ) {
-            return back()->with(
-                'error',
-                'This asset has already been borrowed by another employee.'
-            );
+            $isOfficeSupplies = $asset->category?->name === 'Office Supplies';
+            $borrowQty = $borrowRequest->borrow_amount ?? 1;
+
+            if ($isOfficeSupplies) {
+                if ($asset->amount < $borrowQty) {
+                    return back()->with(
+                        'error',
+                        "Insufficient stock. Only {$asset->amount} units available."
+                    );
+                }
+            } else {
+                if ($asset->status !== 'available') {
+                    return back()->with(
+                        'error',
+                        'This asset has already been borrowed by another employee.'
+                    );
+                }
+            }
         }
 
         $updateData = [
@@ -244,9 +270,33 @@ class BorrowRequestController extends Controller
     }
 
         if ($validated['status'] === 'borrowed') {
-            $asset->update([
-                'status' => 'borrowed',
-            ]);
+            $isOfficeSupplies = $asset->category?->name === 'Office Supplies';
+            $borrowQty = $borrowRequest->borrow_amount ?? 1;
+
+            if ($isOfficeSupplies) {
+                $newAmount = max(0, $asset->amount - $borrowQty);
+                $asset->update([
+                    'amount' => $newAmount,
+                    'status' => $newAmount === 0 ? 'borrowed' : $asset->status,
+                ]);
+            } else {
+                $asset->update([
+                    'status' => 'borrowed',
+                ]);
+            }
+        }
+
+        if ($validated['status'] === 'returned') {
+            $isOfficeSupplies = $asset->category?->name === 'Office Supplies';
+            $borrowQty = $borrowRequest->borrow_amount ?? 1;
+
+            if ($isOfficeSupplies) {
+                $newAmount = $asset->amount + $borrowQty;
+                $asset->update([
+                    'amount' => $newAmount,
+                    'status' => 'available',
+                ]);
+            }
         }
 
         $message = match (true) {

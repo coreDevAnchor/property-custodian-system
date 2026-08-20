@@ -34,6 +34,7 @@ class Asset extends Model
         'photo',
         'location_id',
         'remarks',
+        'amount',
     ];
 
     public function category(): BelongsTo

@@ -227,6 +227,12 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                                 label="Condition"
                                 value={<ConditionBadge condition={asset.condition} />}
                             />
+                            {asset.category?.name === 'Office Supplies' && (
+                                <DetailRow
+                                    label="Amount"
+                                    value={`${asset.amount ?? 1} units`}
+                                />
+                            )}
                         </div>
 
                         {asset.remarks && !readOnly && (

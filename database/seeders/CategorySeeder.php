@@ -29,5 +29,11 @@ class CategorySeeder extends Seeder
             'prefix' => 'OFF',
             'description' => 'Office machines and equipment',
         ]);
+
+        Category::create([
+            'name' => 'Office Supplies',
+            'prefix' => 'OFFSUP',
+            'description' => 'Consumable office supplies and materials',
+        ]);
     }
 }

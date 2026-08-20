@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ImagePlus, X, CalendarDays } from 'lucide-react';
+import { ImagePlus, X, CalendarDays, Plus } from 'lucide-react';
 import type { FormDataConvertible } from '@inertiajs/core';
 
 import {
@@ -134,6 +134,8 @@ const defaultValues: FormValues = {
     depreciation_rate: 0,
 
     status: 'available',
+
+    amount: 1,
 };
 
 export function AssetFormDialog({
@@ -153,6 +155,26 @@ export function AssetFormDialog({
     const [image, setImage] = useState<StagedImage | null>(null);
     const [existingPhoto, setExistingPhoto] = useState<string | null>(null);
     const [photoError, setPhotoError] = useState<string | null>(null);
+
+    // ── Inline category creation ──
+    const [showCategoryForm, setShowCategoryForm] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [newCategoryPrefix, setNewCategoryPrefix] = useState('');
+    const [newCategoryDescription, setNewCategoryDescription] = useState('');
+    const [categoryError, setCategoryError] = useState<string | null>(null);
+    const [creatingCategory, setCreatingCategory] = useState(false);
+
+    // ── Inline asset type creation ──
+    const [showAssetTypeForm, setShowAssetTypeForm] = useState(false);
+    const [newAssetTypeName, setNewAssetTypeName] = useState('');
+    const [newAssetTypePrefix, setNewAssetTypePrefix] = useState('');
+    const [newAssetTypeDescription, setNewAssetTypeDescription] = useState('');
+    const [assetTypeError, setAssetTypeError] = useState<string | null>(null);
+    const [creatingAssetType, setCreatingAssetType] = useState(false);
+
+    // ── Local state for dynamically added categories/asset types ──
+    const [localCategories, setLocalCategories] = useState<Category[]>([]);
+    const [localAssetTypes, setLocalAssetTypes] = useState<AssetType[]>([]);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(assetSchema),
@@ -191,6 +213,8 @@ export function AssetFormDialog({
                 depreciation_rate: Number(asset.depreciation_rate ?? 0),
 
                 status: asset.status,
+
+                amount: asset.amount ?? 1,
             });
             setExistingPhoto(asset.photo ?? null);
         }
@@ -212,6 +236,8 @@ export function AssetFormDialog({
                 depreciation_rate: 0,
 
                 status: 'available',
+
+                amount: 1,
             });
             setExistingPhoto(null);
         }
@@ -272,6 +298,105 @@ export function AssetFormDialog({
         });
     }
 
+    async function handleCreateCategory() {
+        if (!newCategoryName.trim() || !newCategoryPrefix.trim()) {
+            setCategoryError('Name and prefix are required.');
+            return;
+        }
+
+        setCreatingCategory(true);
+        setCategoryError(null);
+
+        try {
+            const response = await fetch('/custodian/categories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': decodeURIComponent(
+                        document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''
+                    ),
+                },
+                body: JSON.stringify({
+                    name: newCategoryName.trim(),
+                    prefix: newCategoryPrefix.trim(),
+                    description: newCategoryDescription.trim() || null,
+                }),
+            });
+
+            if (!response.ok) {
+                const errors = await response.json();
+                throw new Error(errors.message || 'Failed to create category.');
+            }
+
+            const category = await response.json();
+            setLocalCategories((prev) => [...prev, category]);
+            form.setValue('category_id', category.id);
+
+            setShowCategoryForm(false);
+            setNewCategoryName('');
+            setNewCategoryPrefix('');
+            setNewCategoryDescription('');
+        } catch (err: any) {
+            setCategoryError(err.message || 'Failed to create category.');
+        } finally {
+            setCreatingCategory(false);
+        }
+    }
+
+    async function handleCreateAssetType() {
+        const categoryId = form.getValues('category_id');
+        if (!categoryId) {
+            setAssetTypeError('Please select a category first.');
+            return;
+        }
+
+        if (!newAssetTypeName.trim() || !newAssetTypePrefix.trim()) {
+            setAssetTypeError('Name and prefix are required.');
+            return;
+        }
+
+        setCreatingAssetType(true);
+        setAssetTypeError(null);
+
+        try {
+            const response = await fetch('/custodian/asset-types', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': decodeURIComponent(
+                        document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''
+                    ),
+                },
+                body: JSON.stringify({
+                    name: newAssetTypeName.trim(),
+                    prefix: newAssetTypePrefix.trim(),
+                    category_id: categoryId,
+                    description: newAssetTypeDescription.trim() || null,
+                }),
+            });
+
+            if (!response.ok) {
+                const errors = await response.json();
+                throw new Error(errors.message || 'Failed to create asset type.');
+            }
+
+            const assetType = await response.json();
+            setLocalAssetTypes((prev) => [...prev, assetType]);
+            form.setValue('asset_type_id', assetType.id);
+
+            setShowAssetTypeForm(false);
+            setNewAssetTypeName('');
+            setNewAssetTypePrefix('');
+            setNewAssetTypeDescription('');
+        } catch (err: any) {
+            setAssetTypeError(err.message || 'Failed to create asset type.');
+        } finally {
+            setCreatingAssetType(false);
+        }
+    }
+
     const submit = (data: FormValues) => {
         const payload: Record<string, FormDataConvertible> = { ...data };
         if (image) {
@@ -322,7 +447,15 @@ export function AssetFormDialog({
 
     const selectedCategoryId = form.watch('category_id');
 
-    const filteredAssetTypes = (assetTypes ?? []).filter(
+    const allCategories = [...(categories ?? []), ...localCategories];
+    const selectedCategory = allCategories.find(
+        (c) => c.id === selectedCategoryId,
+    );
+
+    const isOfficeSupplies = selectedCategory?.name === 'Office Supplies';
+
+    const allAssetTypes = [...(assetTypes ?? []), ...localAssetTypes];
+    const filteredAssetTypes = allAssetTypes.filter(
         (assetType) =>
             !selectedCategoryId ||
             assetType.category?.id === selectedCategoryId,
@@ -397,88 +530,212 @@ export function AssetFormDialog({
                             />
 
                             <div className="grid gap-4 md:grid-cols-3">
-                                <FormField
-                                    control={form.control}
-                                    name="category_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Category</FormLabel>
+                                <div className="space-y-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="category_id"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Category</FormLabel>
 
-                                            <Select
-                                                value={field.value?.toString()}
-                                                onValueChange={(value) =>
-                                                    field.onChange(
-                                                        Number(value),
-                                                    )
-                                                }
-                                            >
-                                                <FormControl className="cursor-pointer">
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select category" />
-                                                    </SelectTrigger>
-                                                </FormControl>
+                                                <Select
+                                                    value={field.value?.toString()}
+                                                    onValueChange={(value) =>
+                                                        field.onChange(
+                                                            Number(value),
+                                                        )
+                                                    }
+                                                >
+                                                    <FormControl className="cursor-pointer">
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select category" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
 
-                                                <SelectContent>
-                                                    {(categories ?? []).map(
-                                                        (category) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    category.id
-                                                                }
-                                                                value={category.id.toString()}
-                                                            >
-                                                                {category.name}
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
+                                                    <SelectContent>
+                                                        {allCategories.map(
+                                                            (category) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        category.id
+                                                                    }
+                                                                    value={category.id.toString()}
+                                                                >
+                                                                    {category.name}
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
+                                                        <div
+                                                            className="flex cursor-pointer items-center gap-2 border-t border-border px-2 py-2 text-sm font-medium text-orange-600 hover:bg-muted/50"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                setShowCategoryForm(true);
+                                                            }}
+                                                        >
+                                                            <Plus className="size-4" />
+                                                            Add New Category
+                                                        </div>
+                                                    </SelectContent>
+                                                </Select>
 
-                                            <FormMessage />
-                                        </FormItem>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    {showCategoryForm && (
+                                        <div className="rounded-lg border border-border p-3 space-y-2">
+                                            <p className="text-xs font-semibold text-foreground">New Category</p>
+                                            <Input
+                                                placeholder="Name"
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                className="h-8 text-xs"
+                                            />
+                                            <Input
+                                                placeholder="Prefix (e.g. OFF)"
+                                                value={newCategoryPrefix}
+                                                onChange={(e) => setNewCategoryPrefix(e.target.value.toUpperCase())}
+                                                className="h-8 text-xs"
+                                            />
+                                            <Input
+                                                placeholder="Description (optional)"
+                                                value={newCategoryDescription}
+                                                onChange={(e) => setNewCategoryDescription(e.target.value)}
+                                                className="h-8 text-xs"
+                                            />
+                                            {categoryError && (
+                                                <p className="text-xs text-red-500">{categoryError}</p>
+                                            )}
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="h-7 text-xs cursor-pointer"
+                                                    disabled={creatingCategory}
+                                                    onClick={handleCreateCategory}
+                                                >
+                                                    {creatingCategory ? 'Creating...' : 'Create'}
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-7 text-xs cursor-pointer"
+                                                    onClick={() => {
+                                                        setShowCategoryForm(false);
+                                                        setCategoryError(null);
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </div>
+                                        </div>
                                     )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="asset_type_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Asset Type</FormLabel>
+                                </div>
+                                <div className="space-y-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="asset_type_id"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Asset Type</FormLabel>
 
-                                            <Select
-                                                value={field.value?.toString()}
-                                                onValueChange={(value) =>
-                                                    field.onChange(
-                                                        Number(value),
-                                                    )
-                                                }
-                                            >
-                                                <FormControl className="cursor-pointer">
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select asset type" />
-                                                    </SelectTrigger>
-                                                </FormControl>
+                                                <Select
+                                                    value={field.value?.toString()}
+                                                    onValueChange={(value) =>
+                                                        field.onChange(
+                                                            Number(value),
+                                                        )
+                                                    }
+                                                >
+                                                    <FormControl className="cursor-pointer">
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select asset type" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
 
-                                                <SelectContent>
-                                                    {filteredAssetTypes.map(
-                                                        (assetType) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    assetType.id
-                                                                }
-                                                                value={assetType.id.toString()}
-                                                            >
-                                                                {assetType.name}
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
+                                                    <SelectContent>
+                                                        {filteredAssetTypes.map(
+                                                            (assetType) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        assetType.id
+                                                                    }
+                                                                    value={assetType.id.toString()}
+                                                                >
+                                                                    {assetType.name}
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
+                                                        <div
+                                                            className="flex cursor-pointer items-center gap-2 border-t border-border px-2 py-2 text-sm font-medium text-orange-600 hover:bg-muted/50"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                setShowAssetTypeForm(true);
+                                                            }}
+                                                        >
+                                                            <Plus className="size-4" />
+                                                            Add New Asset Type
+                                                        </div>
+                                                    </SelectContent>
+                                                </Select>
 
-                                            <FormMessage />
-                                        </FormItem>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    {showAssetTypeForm && (
+                                        <div className="rounded-lg border border-border p-3 space-y-2">
+                                            <p className="text-xs font-semibold text-foreground">New Asset Type</p>
+                                            <Input
+                                                placeholder="Name"
+                                                value={newAssetTypeName}
+                                                onChange={(e) => setNewAssetTypeName(e.target.value)}
+                                                className="h-8 text-xs"
+                                            />
+                                            <Input
+                                                placeholder="Prefix (e.g. PEN)"
+                                                value={newAssetTypePrefix}
+                                                onChange={(e) => setNewAssetTypePrefix(e.target.value.toUpperCase())}
+                                                className="h-8 text-xs"
+                                            />
+                                            <Input
+                                                placeholder="Description (optional)"
+                                                value={newAssetTypeDescription}
+                                                onChange={(e) => setNewAssetTypeDescription(e.target.value)}
+                                                className="h-8 text-xs"
+                                            />
+                                            {assetTypeError && (
+                                                <p className="text-xs text-red-500">{assetTypeError}</p>
+                                            )}
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="h-7 text-xs cursor-pointer"
+                                                    disabled={creatingAssetType}
+                                                    onClick={handleCreateAssetType}
+                                                >
+                                                    {creatingAssetType ? 'Creating...' : 'Create'}
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-7 text-xs cursor-pointer"
+                                                    onClick={() => {
+                                                        setShowAssetTypeForm(false);
+                                                        setAssetTypeError(null);
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </div>
+                                        </div>
                                     )}
-                                />
+                                </div>
                                 <FormField
                                     control={form.control}
                                     name="location_id"
@@ -585,6 +842,33 @@ export function AssetFormDialog({
                                     )}
                                 />
                             </div>
+
+                            {isOfficeSupplies && (
+                                <FormField
+                                    control={form.control}
+                                    name="amount"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Amount (Units)</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    min="1"
+                                                    step="1"
+                                                    placeholder="1"
+                                                    value={field.value ?? 1}
+                                                    onChange={(e) =>
+                                                        field.onChange(
+                                                            Number(e.target.value),
+                                                        )
+                                                    }
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
 
                             <div className="grid gap-4 md:grid-cols-2">
                                 <FormField

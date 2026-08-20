@@ -25,6 +25,11 @@ interface Asset {
     photo?: string | null;
     acquisition_date?: string | null;
     condition?: number | null;
+    amount?: number;
+    category?: {
+        id: number;
+        name: string;
+    } | null;
 
     location?: {
         id: number;
@@ -38,7 +43,8 @@ interface Props {
     onSubmit: (
         assetId: number,
         expectedReturnDate: string,
-        remarks: string
+        remarks: string,
+        borrowAmount?: number,
     ) => void;
 }
 
@@ -112,7 +118,10 @@ function formatDate(value?: string | null) {
 export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
     const [remarks, setRemarks] = useState('');
     const [expectedReturnDate, setExpectedReturnDate] = useState('');
+    const [borrowAmount, setBorrowAmount] = useState(1);
     const [touched, setTouched] = useState(false);
+
+    const isOfficeSupplies = asset?.category?.name === 'Office Supplies';
 
     const trimmedLength = remarks.trim().length;
     const isRemarksTooShort = trimmedLength > 0 && trimmedLength < MIN_REMARKS_LENGTH;
@@ -123,11 +132,13 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
             ? `Please enter at least ${MIN_REMARKS_LENGTH} characters (currently ${trimmedLength}).`
             : null;
 
-    const canSubmit = expectedReturnDate && trimmedLength >= MIN_REMARKS_LENGTH;
+    const canSubmit = expectedReturnDate && trimmedLength >= MIN_REMARKS_LENGTH
+        && (!isOfficeSupplies || (borrowAmount >= 1 && borrowAmount <= (asset?.amount ?? 1)));
 
     useEffect(() => {
         setRemarks('');
         setExpectedReturnDate('');
+        setBorrowAmount(1);
         setTouched(false);
     }, [asset]);
 
@@ -135,6 +146,7 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
         if (!value) {
             setRemarks('');
             setExpectedReturnDate('');
+            setBorrowAmount(1);
             setTouched(false);
         }
         onOpenChange(value);
@@ -194,6 +206,25 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
                         value={asset.location?.name}
                     />
                 </div>
+
+                {isOfficeSupplies && (
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">
+                            Quantity to Borrow
+                        </label>
+                        <input
+                            type="number"
+                            min="1"
+                            max={asset.amount ?? 1}
+                            value={borrowAmount}
+                            onChange={(e) => setBorrowAmount(Number(e.target.value))}
+                            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            {asset.amount ?? 0} units available
+                        </p>
+                    </div>
+                )}
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">
@@ -299,7 +330,12 @@ export function BorrowRequestDialog({ asset, onOpenChange, onSubmit }: Props) {
                         onClick={() => {
                             setTouched(true);
                             if (!canSubmit) return;
-                            onSubmit(asset.id, expectedReturnDate, remarks.trim());
+                            onSubmit(
+                                asset.id,
+                                expectedReturnDate,
+                                remarks.trim(),
+                                isOfficeSupplies ? borrowAmount : undefined,
+                            );
                         }}
                         >
                         Submit Request

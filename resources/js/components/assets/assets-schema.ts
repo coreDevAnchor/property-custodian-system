@@ -46,4 +46,6 @@ export const assetSchema = z.object({
     serial_number: z.string().optional(),
 
     status: z.string(),
+
+    amount: z.number().min(1, "Amount must be at least 1.").optional(),
 });

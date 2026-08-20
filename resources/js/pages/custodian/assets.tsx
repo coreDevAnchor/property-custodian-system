@@ -6,6 +6,7 @@ import {
     Car,
     FlaskConical,
     Laptop,
+    Package,
     Pencil,
     Plus,
     Search,
@@ -57,6 +58,7 @@ const emptyForm: AssetFormValues = {
     acquisition_date: new Date().toISOString().slice(0, 10),
     description: '',
     serial_number: '',
+    amount: 1,
 };
 
 const statusLabels: Record<AssetStatus, string> = {
@@ -71,6 +73,7 @@ const categoryIcon: Record<string, typeof Laptop> = {
     Electronics: Laptop,
     Furniture: Armchair,
     'Office Equipment': Video,
+    'Office Supplies': Package,
 };
 
 const statusStyles: Record<string, string> = {
@@ -133,13 +136,19 @@ function AssetRow({
                 </div>
             </td>
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-foreground">{asset.category.name}</span>
+                <span className="max-w-[150px] truncate text-sm text-foreground block" title={asset.category.name}>
+                    {asset.category.name}
+                </span>
             </td>
             <td className="py-3.5 pr-4">
                 <StatusBadge status={asset.status} />
             </td>
             <td className="py-3.5 pr-4">
-                <span className="text-sm text-muted-foreground">
+                <span className="max-w-[120px] truncate text-sm text-muted-foreground block" title={
+                    asset.status === 'borrowed'
+                        ? (asset.borrows?.find((b) => b.status === 'borrowed')?.borrower?.name ?? 'Borrowed')
+                        : (asset.location?.name ?? '—')
+                }>
                     {asset.status === 'borrowed'
                         ? (asset.borrows?.find((b) => b.status === 'borrowed')?.borrower?.name ?? 'Borrowed')
                         : (asset.location?.name ?? '—')}
@@ -147,6 +156,16 @@ function AssetRow({
             </td>
             <td className="py-3.5 pr-4">
                 <span className="text-sm text-muted-foreground">{asset.acquisition_date}</span>
+            </td>
+            <td className="py-3.5 pr-4">
+                <span className="text-sm text-foreground">
+                    {asset.category?.name === 'Office Supplies' ? `${asset.amount ?? 1} units` : '—'}
+                </span>
+            </td>
+            <td className="py-3.5 pr-4">
+                <span className="max-w-[120px] truncate text-sm text-muted-foreground block" title="—">
+                    —
+                </span>
             </td>
             <td className="py-3.5">
                 <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
@@ -415,6 +434,12 @@ export default function Assets({
                                     </th>
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                         Date Added
+                                    </th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Amount
+                                    </th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Ownership
                                     </th>
                                     <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground text-center">
                                         Actions

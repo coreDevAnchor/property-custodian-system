@@ -61,6 +61,7 @@ export interface BorrowRequest {
     id: number;
     status: BorrowStatus;
     remarks?: string | null;
+    borrow_amount: number;
     requested_at: string;
     approved_at?: string | null;
     returned_at?: string | null;

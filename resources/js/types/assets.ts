@@ -35,6 +35,8 @@ export interface Asset {
     depreciation_rate: number | string | null;
     total_depreciation?: number | string | null;
 
+    amount: number;
+
     asset_type?: AssetType | null;
 
     category: Category;
@@ -69,4 +71,5 @@ export interface AssetFormValues {
     acquisition_date: string;
     description?: string;
     serial_number?: string;
+    amount?: number;
 }

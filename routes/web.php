@@ -19,6 +19,8 @@ use App\Http\Controllers\Custodian\ReportController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\BorrowRenewalController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\AssetTypeController;
 
 Route::redirect('/', '/login')->name('home');
 
@@ -53,6 +55,9 @@ Route::middleware(['auth', 'verified'])
             ->name('dashboard');
 
         Route::resource('assets', AssetController::class);
+
+        Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::post('asset-types', [AssetTypeController::class, 'store'])->name('asset-types.store');
 
         Route::resource('borrow-requests', BorrowRequestController::class);
 
