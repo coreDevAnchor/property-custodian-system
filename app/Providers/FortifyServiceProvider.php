@@ -15,6 +15,9 @@ use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use App\Http\Responses\LoginResponse;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -34,6 +37,22 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = User::where('email', $request->email)->first();
+
+            if ($user && Hash::check($request->password, $user->password)) {
+                if ($user->role === 'employee' && !$user->employee?->is_active) {
+                    throw ValidationException::withMessages([
+                        'email' => 'This account is inactive.',
+                    ]);
+                }
+
+                return $user;
+            }
+
+            return null;
+        });
+        
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
