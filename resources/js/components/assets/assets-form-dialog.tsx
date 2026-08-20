@@ -151,6 +151,7 @@ export function AssetFormDialog({
     // Single photo only: the asset can have exactly one image, so this is
     // one nullable slot rather than an array with "add more" support.
     const [image, setImage] = useState<StagedImage | null>(null);
+    const [existingPhoto, setExistingPhoto] = useState<string | null>(null);
     const [photoError, setPhotoError] = useState<string | null>(null);
 
     const form = useForm<FormValues>({
@@ -191,6 +192,7 @@ export function AssetFormDialog({
 
                 status: asset.status,
             });
+            setExistingPhoto(asset.photo ?? null);
         }
 
         if (mode === 'create') {
@@ -211,6 +213,7 @@ export function AssetFormDialog({
 
                 status: 'available',
             });
+            setExistingPhoto(null);
         }
 
         // Reset image staging whenever the dialog switches asset/mode.
@@ -775,6 +778,12 @@ export function AssetFormDialog({
                                             </span>
                                         </div>
                                     </>
+                                ) : existingPhoto ? (
+                                    <img
+                                        src={`/storage/${existingPhoto}`}
+                                        alt="Asset photo"
+                                        className="h-full w-full object-cover"
+                                    />
                                 ) : (
                                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                         <ImagePlus className="size-8" />
