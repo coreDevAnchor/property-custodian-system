@@ -114,17 +114,7 @@ function EmployeeRow({
                     >
                         <Pencil className="size-4" />
                     </button>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(employee);
-                        }}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer"
-                        aria-label={`Remove ${employee.user.name}`}
-                    >
-                        <Trash2 className="size-4" />
-                    </button>
-
+                    
                     <HoverCard>
                         <HoverCardTrigger asChild>
                             <button
