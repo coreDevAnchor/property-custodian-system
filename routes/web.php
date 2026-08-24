@@ -56,6 +56,9 @@ Route::middleware(['auth', 'verified'])
 
         Route::resource('assets', AssetController::class);
 
+        Route::get('assets/import/template', [AssetController::class, 'downloadTemplate'])
+            ->name('assets.import.template');
+
         Route::post('assets/import', [AssetController::class, 'import'])
             ->name('assets.import');
 

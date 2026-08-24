@@ -14,6 +14,9 @@ use App\Models\AssetType;
 use App\Models\ActivityLogs;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
+use OpenSpout\Writer\CSV\Writer as CsvWriter;
+use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
+use OpenSpout\Common\Entity\Row;
 
 
 class AssetController extends Controller
@@ -337,6 +340,42 @@ class AssetController extends Controller
         return redirect()
             ->route('custodian.assets.index')
             ->with('success', 'Asset updated successfully.');
+    }
+
+    public function downloadTemplate(Request $request)
+    {
+        $format = strtolower($request->query('format', 'xlsx'));
+
+        if (! in_array($format, ['xlsx', 'csv'], true)) {
+            $format = 'xlsx';
+        }
+
+        $headerRow = [
+            'Name',
+            'Asset-Tag',
+            'Category',
+            'Asset Type',
+            'Acquisition Cost',
+            'Total Depreciation',
+            'Amount',
+            'Owner',
+        ];
+
+        $tempPath = sys_get_temp_dir()
+            . DIRECTORY_SEPARATOR
+            . 'asset-import-template-'
+            . uniqid()
+            . '.'
+            . $format;
+
+        $writer = $format === 'csv' ? new CsvWriter() : new XlsxWriter();
+        $writer->openToFile($tempPath);
+        $writer->addRow(Row::fromValues($headerRow));
+        $writer->close();
+
+        return response()
+            ->download($tempPath, "asset-import-template.{$format}")
+            ->deleteFileAfterSend(true);
     }
 
     public function import(Request $request)
