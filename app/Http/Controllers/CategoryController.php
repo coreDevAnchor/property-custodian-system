@@ -14,6 +14,7 @@ class CategoryController extends Controller
             'name' => ['required', 'string', 'max:255', 'unique:categories,name'],
             'prefix' => ['required', 'string', 'max:50', 'unique:categories,prefix'],
             'description' => ['nullable', 'string'],
+            'unit_type' => ['required', 'in:single,multi'],
         ]);
 
         $category = Category::create($validated);

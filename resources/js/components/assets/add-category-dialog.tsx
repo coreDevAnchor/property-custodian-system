@@ -21,7 +21,7 @@ interface Props {
 export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
     const [name, setName] = useState('');
     const [prefix, setPrefix] = useState('');
-    const [description, setDescription] = useState('');
+    const [unitType, setUnitType] = useState<'single' | 'multi'>('single');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -29,7 +29,7 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
     function reset() {
         setName('');
         setPrefix('');
-        setDescription('');
+        setUnitType('single');
         setError(null);
         setLoading(false);
         setConfirmOpen(false);
@@ -62,7 +62,7 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
                 body: JSON.stringify({
                     name: name.trim(),
                     prefix: prefix.trim().toUpperCase(),
-                    description: description.trim() || null,
+                    unit_type: unitType,
                 }),
             });
 
@@ -103,11 +103,37 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
                             value={prefix}
                             onChange={(e) => setPrefix(e.target.value.toUpperCase())}
                         />
-                        <Input
-                            placeholder="Description (optional)"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                        />
+                        <div className="space-y-1.5">
+                            <p className="text-xs font-medium text-foreground">
+                                Unit Type
+                            </p>
+                            <div className="flex w-full overflow-hidden rounded-lg border border-border">
+                                {([
+                                    { value: 'single', label: 'Single-Unit' },
+                                    { value: 'multi', label: 'Multi-Unit' },
+                                ] as const).map((option, index) => {
+                                    const isActive = unitType === option.value;
+
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            onClick={() => setUnitType(option.value)}
+                                            className={`flex-1 cursor-pointer border-border px-3 py-2 text-sm font-semibold transition-colors ${index !== 0 ? 'border-l' : ''} ${
+                                                isActive
+                                                    ? 'bg-orange-500 text-white border-orange-500'
+                                                    : 'bg-background text-muted-foreground hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Multi-unit categories track stock quantity (e.g. consumable supplies).
+                            </p>
+                        </div>
                         {error && (
                             <p className="text-xs text-red-500">{error}</p>
                         )}

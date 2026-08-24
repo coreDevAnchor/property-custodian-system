@@ -39,7 +39,7 @@ class AssetController extends Controller
                 'depreciation_rate',
             ])
             ->with([
-                'category:id,name',
+                'category:id,name,unit_type',
                 'assetType:id,name,prefix',
                 'location:id,name',
 
@@ -94,7 +94,7 @@ class AssetController extends Controller
 
         return Inertia::render('custodian/assets', [
             'assets' => $assets,
-            'categories' => Category::orderBy('name', 'asc')->get(['id', 'name']),
+            'categories' => Category::orderBy('name', 'asc')->get(['id', 'name', 'unit_type']),
             'assetTypes' => AssetType::with('category:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'prefix', 'category_id']),

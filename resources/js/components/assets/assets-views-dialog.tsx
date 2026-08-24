@@ -19,7 +19,7 @@ const statusLabels: Record<AssetStatus, string> = {
     available: 'Available',
     borrowed: 'Borrowed',
     under_repair: 'Under Repair',
-    disposed: 'Disposed',
+    disposed: 'Pull out',
     lost: 'Lost',
 };
 
@@ -227,7 +227,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                                 label="Condition"
                                 value={<ConditionBadge condition={asset.condition} />}
                             />
-                            {asset.category?.name === 'Office Supplies' && (
+                            {asset.category?.unit_type === 'multi' && (
                                 <DetailRow
                                     label="Amount"
                                     value={asset.amount ?? 1}
@@ -259,7 +259,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                                         {asset.status === 'available' && 'This asset is currently available.'}
                                         {asset.status === 'borrowed' && 'This asset is currently borrowed.'}
                                         {asset.status === 'under_repair' && 'This asset is currently under repair.'}
-                                        {asset.status === 'disposed' && 'This asset has been disposed.'}
+                                        {asset.status === 'disposed' && 'This asset has been pulled out.'}
                                         {asset.status === 'lost' && 'This asset has been reported as lost.'}
                                     </span>
                                 </div>

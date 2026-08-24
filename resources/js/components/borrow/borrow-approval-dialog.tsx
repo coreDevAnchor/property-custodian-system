@@ -21,6 +21,7 @@ interface BorrowRequest {
     requested_at: string;
     remarks?: string | null;
     expected_return_date?: string | null;
+    borrow_amount?: number | null;
 
     asset: {
         id: number;
@@ -70,6 +71,9 @@ export function BorrowApprovalDialog({ request, onClose, onConfirm }: Props) {
 
     if (!request) return null;
 
+    const borrowAmount = request.borrow_amount ?? 1;
+    const isMultiUnit = borrowAmount > 1;
+
     return (
         <Dialog open={!!request} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -84,11 +88,17 @@ export function BorrowApprovalDialog({ request, onClose, onConfirm }: Props) {
 
                 <div className="space-y-5 py-2">
                     {/* ── Asset Card ── */}
-                    <div className="rounded-xl border border-border bg-muted/30 p-4 flex gap-3.5">
+                    <div className="relative rounded-xl border border-border bg-muted/30 p-4 flex gap-3.5">
+                        {isMultiUnit && (
+                            <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
+                                <Package className="size-3" />
+                                ×{borrowAmount}
+                            </span>
+                        )}
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20">
                             <Package className="size-6" />
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 pr-14">
                             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                 Asset Information
                             </p>

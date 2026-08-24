@@ -35,6 +35,7 @@ interface Asset {
     category?: {
         id: number;
         name: string;
+        unit_type?: 'single' | 'multi';
     } | null;
 
     location?: {
@@ -150,8 +151,8 @@ export function BorrowRequestDialog({
     const [borrowAmount, setBorrowAmount] = useState(1);
     const [touched, setTouched] = useState(false);
 
-    const isOfficeSupplies =
-        asset?.category?.name === 'Office Supplies';
+    const isMultiUnit =
+        asset?.category?.unit_type === 'multi';
 
     const trimmedLength = remarks.trim().length;
 
@@ -169,7 +170,7 @@ export function BorrowRequestDialog({
     const canSubmit =
         !!expectedReturnDate &&
         trimmedLength >= MIN_REMARKS_LENGTH &&
-        (!isOfficeSupplies ||
+        (!isMultiUnit ||
             (borrowAmount >= 1 &&
                 borrowAmount <= (asset?.amount ?? 1)));
 
@@ -270,7 +271,7 @@ export function BorrowRequestDialog({
                     </div>
 
                     {/* ── Quantity ── */}
-                    {isOfficeSupplies && (
+                    {isMultiUnit && (
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">
                                 Quantity to Borrow
@@ -446,7 +447,7 @@ export function BorrowRequestDialog({
                                 asset.id,
                                 expectedReturnDate,
                                 remarks.trim(),
-                                isOfficeSupplies
+                                isMultiUnit
                                     ? borrowAmount
                                     : undefined,
                             );

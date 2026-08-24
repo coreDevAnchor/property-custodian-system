@@ -143,6 +143,8 @@ function BorrowCard({ item }: { item: BorrowItem }) {
     const { label, color, dot } =
         statusConfig[item.status as ActiveBorrowStatus];
     const canReturn = item.status === 'borrowed';
+    const borrowAmount = item.borrow_amount ?? 1;
+    const isMultiUnit = borrowAmount > 1;
     const hasPendingRenewal = item.renewals?.some((r) => r.status === 'pending') ?? false;
     const [openReturnDialog, setOpenReturnDialog] = useState(false);
     const [openRenewalDialog, setOpenRenewalDialog] = useState(false);
@@ -283,6 +285,16 @@ function BorrowCard({ item }: { item: BorrowItem }) {
                             </p>
                             <p className="font-medium text-foreground">
                                 {fmtDate(item.approved_at)}
+                            </p>
+                        </div>
+                    )}
+                    {isMultiUnit && (
+                        <div>
+                            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                                Units
+                            </p>
+                            <p className="font-medium text-foreground">
+                                {borrowAmount} units
                             </p>
                         </div>
                     )}

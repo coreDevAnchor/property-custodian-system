@@ -343,7 +343,7 @@ export function AssetFormDialog({
         (c) => c.id === selectedCategoryId,
     );
 
-    const isOfficeSupplies = selectedCategory?.name === 'Office Supplies';
+    const isMultiUnit = selectedCategory?.unit_type === 'multi';
 
     const allAssetTypes = [...(assetTypes ?? []), ...localAssetTypes];
     const filteredAssetTypes = allAssetTypes.filter(
@@ -595,7 +595,7 @@ export function AssetFormDialog({
                                                         Under Repair
                                                     </SelectItem>
                                                     <SelectItem value="disposed">
-                                                        Disposed
+                                                        Pull out
                                                     </SelectItem>
                                                     <SelectItem value="lost">
                                                         Lost
@@ -632,7 +632,7 @@ export function AssetFormDialog({
                                 />
                             </div>
 
-                            {isOfficeSupplies && (
+                            {isMultiUnit && (
                                 <FormField
                                     control={form.control}
                                     name="amount"

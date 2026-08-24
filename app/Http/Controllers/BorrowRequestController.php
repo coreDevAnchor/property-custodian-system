@@ -102,10 +102,10 @@ class BorrowRequestController extends Controller
             abort(404);
         }
 
-        $isOfficeSupplies = $asset->category?->name === 'Office Supplies';
-        $borrowQty = $isOfficeSupplies ? ($validated['borrow_amount'] ?? 1) : 1;
+        $isMultiUnit = $asset->category?->unit_type === 'multi';
+        $borrowQty = $isMultiUnit ? ($validated['borrow_amount'] ?? 1) : 1;
 
-        if ($isOfficeSupplies) {
+        if ($isMultiUnit) {
             if ($asset->amount < $borrowQty) {
                 return back()->with('error', "Only {$asset->amount} units available.");
             }
@@ -121,7 +121,7 @@ class BorrowRequestController extends Controller
             abort(403);
         }
 
-        if (!$isOfficeSupplies) {
+        if (!$isMultiUnit) {
             $hasDuplicate = BorrowRequest::where('asset_id', $asset->id)
                 ->where('borrower_id', $user->id)
                 ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
@@ -146,7 +146,7 @@ class BorrowRequestController extends Controller
         ActivityLogs::record(
             $asset,
             'borrow_requested',
-            "{$user->name} requested to borrow {$asset->name}" . ($isOfficeSupplies ? " (x{$borrowQty})." : ".")
+            "{$user->name} requested to borrow {$asset->name}" . ($isMultiUnit ? " (x{$borrowQty})." : ".")
         );
 
         return redirect()
@@ -207,10 +207,10 @@ class BorrowRequestController extends Controller
             $validated['status'] === 'borrowed' &&
             $wasPending
         ) {
-            $isOfficeSupplies = $asset->category?->name === 'Office Supplies';
+            $isMultiUnit = $asset->category?->unit_type === 'multi';
             $borrowQty = $borrowRequest->borrow_amount ?? 1;
 
-            if ($isOfficeSupplies) {
+            if ($isMultiUnit) {
                 if ($asset->amount < $borrowQty) {
                     return back()->with(
                         'error',
@@ -270,10 +270,10 @@ class BorrowRequestController extends Controller
     }
 
         if ($validated['status'] === 'borrowed') {
-            $isOfficeSupplies = $asset->category?->name === 'Office Supplies';
+            $isMultiUnit = $asset->category?->unit_type === 'multi';
             $borrowQty = $borrowRequest->borrow_amount ?? 1;
 
-            if ($isOfficeSupplies) {
+            if ($isMultiUnit) {
                 $newAmount = max(0, $asset->amount - $borrowQty);
                 $asset->update([
                     'amount' => $newAmount,
@@ -287,10 +287,10 @@ class BorrowRequestController extends Controller
         }
 
         if ($validated['status'] === 'returned') {
-            $isOfficeSupplies = $asset->category?->name === 'Office Supplies';
+            $isMultiUnit = $asset->category?->unit_type === 'multi';
             $borrowQty = $borrowRequest->borrow_amount ?? 1;
 
-            if ($isOfficeSupplies) {
+            if ($isMultiUnit) {
                 $newAmount = $asset->amount + $borrowQty;
                 $asset->update([
                     'amount' => $newAmount,

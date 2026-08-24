@@ -65,7 +65,7 @@ const statusLabels: Record<AssetStatus, string> = {
     available: 'Available',
     borrowed: 'Borrowed',
     under_repair: 'Under Repair',
-    disposed: 'Disposed',
+    disposed: 'Pull out',
     lost: 'Lost',
 };
 
@@ -113,7 +113,7 @@ function AssetRow({
     onEdit: (asset: Asset) => void;
     onView: (asset: Asset) => void;
 }) {
-    const Icon = categoryIcon[asset.category.name];
+    const Icon = categoryIcon[asset.category.name] ?? Package;
 
     return (
         <motion.tr
@@ -159,7 +159,7 @@ function AssetRow({
             </td>
             <td className="py-3.5 pr-4">
                 <span className="text-sm text-foreground">
-                    {asset.category?.name === 'Office Supplies' ? (asset.amount ?? 1) : '—'}
+                    {asset.category?.unit_type === 'multi' ? (asset.amount ?? 1) : '—'}
                 </span>
             </td>
             <td className="py-3.5 pr-4">
@@ -211,7 +211,7 @@ function AssetRow({
                                     )}
 
                                     {asset.status === 'under_repair' && 'This asset is currently under repair.'}
-                                    {asset.status === 'disposed' && 'This asset has been disposed.'}
+                                    {asset.status === 'disposed' && 'This asset has been pulled out.'}
                                     {asset.status === 'lost' && 'This asset has been reported as lost.'}
                                 </p>
                             </div>

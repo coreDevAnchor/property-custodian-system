@@ -3,4 +3,5 @@ export interface Category {
     name: string;
     prefix?: string;
     description?: string | null;
+    unit_type?: 'single' | 'multi';
 }

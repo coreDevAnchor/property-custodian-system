@@ -46,6 +46,7 @@ export interface BorrowItem {
     approved_at?: string | null;
     returned_at?: string | null;
     expected_return_date?: string | null;
+    borrow_amount?: number | null;
 
     asset: AssetSummary;
 

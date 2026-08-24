@@ -34,6 +34,7 @@ class CategorySeeder extends Seeder
             'name' => 'Office Supplies',
             'prefix' => 'OFFSUP',
             'description' => 'Consumable office supplies and materials',
+            'unit_type' => Category::UNIT_MULTI,
         ]);
     }
 }
