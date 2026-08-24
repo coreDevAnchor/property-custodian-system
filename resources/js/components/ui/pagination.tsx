@@ -139,7 +139,7 @@ interface PaginationBarProps {
   perPage: number;
   itemLabel: string;
   onPageChange: (page: number) => void;
-  onPerPageChange: (perPage: number) => void;
+  onPerPageChange?: (perPage: number) => void;
 }
 
 function buildPageList(currentPage: number, lastPage: number): (number | 'ellipsis')[] {
@@ -179,21 +179,23 @@ function PaginationBar({
             : `Showing ${from}–${to} of ${total} ${itemLabel}`}
         </p>
 
-        <Select
-          value={perPage.toString()}
-          onValueChange={(value) => onPerPageChange(Number(value))}
-        >
-          <SelectTrigger className="h-8 w-[110px] cursor-pointer text-xs">
-            <SelectValue placeholder="Per page" />
-          </SelectTrigger>
-          <SelectContent>
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <SelectItem key={size} value={size.toString()}>
-                {size} / page
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {onPerPageChange && (
+          <Select
+            value={perPage.toString()}
+            onValueChange={(value) => onPerPageChange(Number(value))}
+          >
+            <SelectTrigger className="h-8 w-[110px] cursor-pointer text-xs">
+              <SelectValue placeholder="Per page" />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <SelectItem key={size} value={size.toString()}>
+                  {size} / page
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {lastPage > 1 && (

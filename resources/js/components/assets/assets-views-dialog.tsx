@@ -10,8 +10,11 @@ import { Button } from "@/components/ui/button";
 import { ImageOff, Pencil, UserRound } from "lucide-react";
 
 import type { Asset, AssetStatus } from "@/types/assets";
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityFeed } from '@/components/activity/activity-feed';
+import { PaginationBar } from '@/components/ui/pagination';
+import type { ActivityItem } from '@/types/activities';
+import type { Paginated } from '@/types/pagination';
 
 type ViewableAsset = Asset;
 
@@ -121,23 +124,54 @@ function formatDate(value?: string | null) {
     });
 }
 
+const ACTIVITY_PER_PAGE = 5;
+
 export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = false }: Props) {
     // Hooks must run unconditionally on every render — moved above the
     // early return below (previously this threw "Rendered fewer hooks
     // than expected" whenever `asset` was undefined on a given render).
-    const [logs, setLogs] = useState<any[]>([]);
+    const [fullAsset, setFullAsset] = useState<ViewableAsset | null>(null);
+    const [activity, setActivity] = useState<Paginated<ActivityItem> | null>(null);
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        setPage(1);
+        setFullAsset(null);
+        setActivity(null);
+    }, [open, asset?.id]);
 
     useEffect(() => {
         if (!open || !asset || readOnly) return;
 
-        fetch(`/custodian/assets/${asset.id}`, {
+        let cancelled = false;
+
+        fetch(`/custodian/assets/${asset.id}?page=${page}&per_page=${ACTIVITY_PER_PAGE}`, {
             headers: { Accept: 'application/json' },
         })
             .then((res) => res.json())
-            .then((data) => setLogs(data.activity_logs ?? []));
-    }, [open, asset?.id, readOnly]);
+            .then((data) => {
+                if (cancelled) return;
 
-    if (!asset) return null;
+                const { activity_logs, ...assetData } = data;
+                setFullAsset(assetData as ViewableAsset);
+                setActivity(activity_logs ?? null);
+            })
+            .catch(() => {
+                // Keep showing row-prop data if the refresh fails.
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [open, asset, readOnly, page]);
+
+    const handleActivityPageChange = useCallback((nextPage: number) => {
+        setPage(nextPage);
+    }, []);
+
+    const display = fullAsset ?? asset;
+
+    if (!display) return null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,27 +179,27 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                 <DialogHeader>
                     <div className="flex items-start justify-between gap-4 pr-8">
                         <div>
-                            <DialogTitle>{asset.name}</DialogTitle>
+                            <DialogTitle>{display.name}</DialogTitle>
 
                             <DialogDescription>
-                                {asset.asset_tag}
+                                {display.asset_tag}
                             </DialogDescription>
 
                             <div className="mt-1.5 flex items-center gap-1.5 text-sm">
                                 <UserRound className="size-3.5 text-muted-foreground" />
 
-                                {asset.owner?.user?.name ? (
+                                {display.owner?.user?.name ? (
                                     <span className="font-medium text-foreground">
-                                        {asset.owner.user.name}
+                                        {display.owner.user.name}
                                     </span>
                                 ) : (
                                     <span className="text-muted-foreground">
-                                        No original owner assigned
+                                        coreDev (no employee assigned)
                                     </span>
                                 )}
                             </div>
                         </div>
-                        <StatusBadge status={asset.status} />
+                        <StatusBadge status={display.status} />
                     </div>
                 </DialogHeader>
 
@@ -173,10 +207,10 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                     {/* ── Left: photo (1/3) ── */}
                     <div className="lg:col-span-1">
                         <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/30">
-                            {asset.photo ? (
+                            {display.photo ? (
                                 <img
-                                    src={`/storage/${asset.photo}`}
-                                    alt={asset.name}
+                                    src={`/storage/${display.photo}`}
+                                    alt={display.name}
                                     className="h-full w-full object-cover"
                                 />
                             ) : (
@@ -197,7 +231,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                                 Description
                             </span>
                             <p className="mt-1 text-sm text-foreground">
-                                {asset.description || (
+                                {display.description || (
                                     <span className="text-muted-foreground">
                                         No description provided.
                                     </span>
@@ -206,57 +240,57 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                            <DetailRow label="Category" value={asset.category?.name} />
+                            <DetailRow label="Category" value={display.category?.name} />
                             <DetailRow
                                 label="Asset Type"
-                                value={asset.asset_type?.name}
+                                value={display.asset_type?.name}
                             />
-                            <DetailRow label="Location" value={asset.location?.name} />
+                            <DetailRow label="Location" value={display.location?.name} />
                             {!readOnly && (
                                 <DetailRow
                                     label="Serial Number"
-                                    value={asset.serial_number}
+                                    value={display.serial_number}
                                 />
                             )}
                             <DetailRow
                                 label="Acquisition Date"
-                                value={formatDate(asset.acquisition_date)}
+                                value={formatDate(display.acquisition_date)}
                             />
                             {!readOnly && (
                                 <DetailRow
                                     label="Acquisition Cost"
-                                    value={formatCurrency(asset.acquisition_cost)}
+                                    value={formatCurrency(display.acquisition_cost)}
                                 />
                             )}
                             {!readOnly && (
                                 <DetailRow
                                     label="Depreciation Rate"
                                     value={
-                                        asset.depreciation_rate !== undefined
-                                            ? `${asset.depreciation_rate}%`
+                                            display.depreciation_rate !== undefined
+                                            ? `${display.depreciation_rate}%`
                                             : undefined
                                     }
                                 />
                             )}
                             <DetailRow
                                 label="Condition"
-                                value={<ConditionBadge condition={asset.condition} />}
+                                value={<ConditionBadge condition={display.condition} />}
                             />
-                            {asset.category?.unit_type === 'multi' && (
+                            {display.category?.unit_type === 'multi' && (
                                 <DetailRow
                                     label="Amount"
-                                    value={asset.amount ?? 1}
+                                    value={display.amount ?? 1}
                                 />
                             )}
                         </div>
 
-                        {asset.remarks && !readOnly && (
+                        {display.remarks && !readOnly && (
                             <div>
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                     Remarks
                                 </span>
                                 <p className="mt-1 text-sm text-foreground">
-                                    {asset.remarks}
+                                    {display.remarks}
                                 </p>
                             </div>
                         )}
@@ -269,13 +303,13 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
 
                             <div className="mt-2 rounded-lg border border-border p-3">
                                 <div className="flex items-center gap-2">
-                                    <StatusBadge status={asset.status} />
+                                    <StatusBadge status={display.status} />
                                     <span className="text-sm text-muted-foreground">
-                                        {asset.status === 'available' && 'This asset is currently available.'}
-                                        {asset.status === 'borrowed' && 'This asset is currently borrowed.'}
-                                        {asset.status === 'under_repair' && 'This asset is currently under repair.'}
-                                        {asset.status === 'disposed' && 'This asset has been pulled out.'}
-                                        {asset.status === 'lost' && 'This asset has been reported as lost.'}
+                                        {display.status === 'available' && 'This asset is currently available.'}
+                                        {display.status === 'borrowed' && 'This asset is currently borrowed.'}
+                                        {display.status === 'under_repair' && 'This asset is currently under repair.'}
+                                        {display.status === 'disposed' && 'This asset has been pulled out.'}
+                                        {display.status === 'lost' && 'This asset has been reported as lost.'}
                                     </span>
                                 </div>
                             </div>
@@ -287,7 +321,22 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                                     Activity Timeline
                                 </span>
                                 <div className="mt-2 rounded-lg border border-border p-3">
-                                    <ActivityFeed items={logs} />
+                                    <ActivityFeed items={activity?.data ?? []} />
+
+                                    {activity && activity.total > 0 && (
+                                        <div className="-mx-6 -mb-3.5 mt-2 border-t border-border">
+                                            <PaginationBar
+                                                currentPage={activity.current_page}
+                                                lastPage={activity.last_page}
+                                                total={activity.total}
+                                                from={activity.from}
+                                                to={activity.to}
+                                                perPage={ACTIVITY_PER_PAGE}
+                                                itemLabel="activities"
+                                                onPageChange={handleActivityPageChange}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -304,7 +353,7 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                             className="cursor-pointer"
                             onClick={() => {
                                 onOpenChange(false);
-                                onEdit(asset);
+                                onEdit(display);
                             }}
                         >
                             <Pencil className="size-4" />

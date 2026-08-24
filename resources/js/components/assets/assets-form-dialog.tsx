@@ -425,6 +425,12 @@ export function AssetFormDialog({
                                                 />
                                             </FormControl>
 
+                                            <p className="text-xs text-muted-foreground">
+                                                If no employee is selected, this
+                                                asset is automatically owned by
+                                                coreDev.
+                                            </p>
+
                                             <FormMessage />
                                         </FormItem>
                                     )}

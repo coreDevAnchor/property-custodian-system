@@ -151,8 +151,9 @@ class ReportController extends Controller
         }
 
         $query = Asset::with([
-            'category:id,name',
+            'category:id,name,unit_type',
             'assetType:id,name',
+            'owner.user:id,name',
         ]);
 
         if ($selectedCategory !== 'all') {
@@ -788,20 +789,20 @@ class ReportController extends Controller
             $query->where('category_id', $selectedCategory);
         }
 
-        match ($sort) {
-            'oldest' => $query->oldest(),
-            'name_asc' => $query->orderBy('name'),
-            'name_desc' => $query->orderByDesc('name'),
-            'cost_high' => $query->orderByDesc('acquisition_cost'),
-            'cost_low' => $query->orderBy('acquisition_cost'),
-            default => $query->latest(),
-        };
+            match ($sort) {
+                'oldest' => $query->oldest(),
+                'name_asc' => $query->orderBy('name'),
+                'name_desc' => $query->orderByDesc('name'),
+                'cost_high' => $query->orderByDesc('acquisition_cost'),
+                'cost_low' => $query->orderBy('acquisition_cost'),
+                default => $query->latest(),
+            };
 
         $assets = $query->get();
 
         return response()->streamDownload(function () use ($assets) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['ID', 'Name', 'Asset Tag', 'Category', 'Asset Type', 'Acquisition Cost', 'Depreciation Rate', 'Total Depreciation', 'Created At']);
+            fputcsv($handle, ['ID', 'Name', 'Asset Tag', 'Category', 'Asset Type', 'Acquisition Cost', 'Depreciation Rate', 'Total Depreciation', 'Unit Amount', 'Ownership', 'Created At']);
 
             foreach ($assets as $asset) {
                 fputcsv($handle, [
@@ -815,6 +816,8 @@ class ReportController extends Controller
                     $asset->depreciation_rate
                     ? $asset->acquisition_cost * ($asset->depreciation_rate / 100)
                     : 0,
+                    $asset->category?->unit_type === 'multi' ? ($asset->amount ?? 1) : 1,
+                    $asset->owner?->user?->name ?? 'coreDev',
                     $asset->created_at?->format('Y-m-d H:i:s'),
                 ]);
             }

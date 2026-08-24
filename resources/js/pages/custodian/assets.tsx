@@ -4,6 +4,7 @@ import {
     AlertTriangle,
     Armchair,
     Car,
+    FileUp,
     FlaskConical,
     Laptop,
     Package,
@@ -30,6 +31,7 @@ import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
 import { dashboard } from '@/routes/custodian';
 import assetRoutes from '@/routes/custodian/assets';
 import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
+import { ImportAssetsDialog } from "@/components/assets/import-assets-dialog";
 import { motion } from "framer-motion";
 import { rowVariants, tableVariants } from '@/components/assets/asset-table-animations';
 import { PaginationBar } from '@/components/ui/pagination';
@@ -256,6 +258,7 @@ export default function Assets({
     const categoryOptions = categories ?? [];
 
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState<Asset | undefined>();
 
     const animationKey = useMemo(() => {
@@ -351,13 +354,23 @@ export default function Assets({
                         </p>
                     </div>
 
-                    <button
-                        onClick={openAddModal}
-                        className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
-                    >
-                        <Plus className="size-4" />
-                        Add New Asset
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setImportOpen(true)}
+                            className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm transition-all hover:bg-muted/60 active:scale-[0.98] cursor-pointer"
+                        >
+                            <FileUp className="size-4" />
+                            Upload Excel
+                        </button>
+
+                        <button
+                            onClick={openAddModal}
+                            className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
+                        >
+                            <Plus className="size-4" />
+                            Add New Asset
+                        </button>
+                    </div>
                 </div>
 
                 {/* ── Filters + table ── */}
@@ -503,6 +516,11 @@ export default function Assets({
                 assetTypes={assetTypes}
                 employees={employees}
                 onOpenChange={setDialogOpen}
+            />
+
+            <ImportAssetsDialog
+                open={importOpen}
+                onOpenChange={setImportOpen}
             />
 
             <AssetViewDialog

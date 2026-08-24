@@ -7,10 +7,13 @@ use App\Models\Category;
 use App\Models\Location;
 use App\Models\Employee;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use App\Models\AssetType;
 use App\Models\ActivityLogs;
+use OpenSpout\Reader\CSV\Reader as CsvReader;
+use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 
 
 class AssetController extends Controller
@@ -28,6 +31,9 @@ class AssetController extends Controller
                 'id',
                 'name',
                 'asset_tag',
+                'description',
+                'serial_number',
+                'remarks',
                 'category_id',
                 'asset_type_id',
                 'location_id',
@@ -183,19 +189,29 @@ class AssetController extends Controller
             ->with('success', 'Asset created successfully.');
     }
 
-    public function show(Asset $asset)
+    public function show(Request $request, Asset $asset)
     {
-        return response()->json(
-            $asset->load([
-                'category',
-                'assetType',
-                'location',
-                'owner.user:id,name',
-                'currentBorrow',
-                'activityLogs.actor',
-                'borrows.borrower'
-            ])
+        $perPage = max(1, (int) $request->query('per_page', 5));
+
+        $asset->load([
+            'category',
+            'assetType',
+            'location',
+            'owner.user:id,name',
+            'currentBorrow',
+            'borrows.borrower',
+        ]);
+
+        $asset->setRelation(
+            'activityLogs',
+            $asset->activityLogs()
+                ->with('actor:id,name')
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->paginate($perPage)
         );
+
+        return response()->json($asset);
     }
 
     public function edit(Asset $asset)
@@ -323,9 +339,356 @@ class AssetController extends Controller
             ->with('success', 'Asset updated successfully.');
     }
 
-    public function destroy(Asset $asset)
+    public function import(Request $request)
     {
-        ActivityLogs::record($asset, 'asset_deleted', "{$asset->name} ({$asset->asset_tag}) was removed from inventory.");
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:5120'],
+        ], [
+            'file.required' => 'Please choose an Excel (.xlsx) or CSV file to upload.',
+            'file.mimes' => 'The file must be a .xlsx or .csv spreadsheet.',
+            'file.max' => 'The file must not exceed 5MB.',
+        ]);
+
+        $extension = strtolower($request->file('file')->getClientOriginalExtension());
+
+        try {
+            [$headerRow, $dataRows] = $this->parseSpreadsheet(
+                $request->file('file')->getRealPath(),
+                $extension,
+            );
+        } catch (\Throwable) {
+            return back()->withErrors([
+                'file' => 'Could not read the file. Please make sure it is a valid .xlsx or .csv spreadsheet.',
+            ]);
+        }
+
+        if ($headerRow === null) {
+            return back()->withErrors([
+                'file' => 'The file is empty. It must start with a header row.',
+            ]);
+        }
+
+        // ── Strict header validation ──
+        // The upload is rejected unless the header row contains every required
+        // column and nothing outside the allowed set.
+        $normalizeHeader = fn ($header) => preg_replace('/[\s_\-]+/', '', strtolower(trim((string) $header)));
+
+        $requiredHeaders = ['name', 'assettag', 'category', 'assettype', 'acquisitioncost', 'totaldepreciation'];
+        $optionalHeaders = ['amount', 'owner'];
+
+        $headerLabels = [
+            'name' => 'Name',
+            'assettag' => 'Asset-Tag',
+            'category' => 'Category',
+            'assettype' => 'Asset Type',
+            'acquisitioncost' => 'Acquisition Cost',
+            'totaldepreciation' => 'Total Depreciation',
+            'amount' => 'Amount',
+            'owner' => 'Owner',
+        ];
+
+        $normalizedHeaders = array_map($normalizeHeader, $headerRow);
+
+        $missing = array_values(array_diff($requiredHeaders, $normalizedHeaders));
+        $allowedHeaders = array_merge($requiredHeaders, $optionalHeaders);
+
+        $unexpectedOriginal = [];
+        foreach ($headerRow as $index => $original) {
+            $normalized = $normalizedHeaders[$index];
+
+            if ($normalized === '' || in_array($normalized, $allowedHeaders, true)) {
+                continue;
+            }
+
+            $unexpectedOriginal[] = trim((string) $original);
+        }
+
+        if ($missing || $unexpectedOriginal) {
+            $problems = ['Upload rejected — the spreadsheet columns do not match the required template.'];
+
+            if ($missing) {
+                $problems[] = 'Missing column(s): ' . implode(', ', array_map(
+                    fn ($key) => $headerLabels[$key],
+                    $missing,
+                )) . '.';
+            }
+
+            if ($unexpectedOriginal) {
+                $problems[] = 'Unexpected column(s): ' . implode(', ', $unexpectedOriginal) . '.';
+            }
+
+            $problems[] = 'Expected columns: Name, Asset-Tag, Category, Asset Type, Acquisition Cost, Total Depreciation'
+                . ' (optional: Amount, Owner).';
+
+            return back()->withErrors(['file' => implode("\n", $problems)]);
+        }
+
+        // ── Lookup caches ──
+        $categoriesByName = Category::all()->keyBy(fn ($category) => mb_strtolower(trim($category->name)));
+
+        $assetTypesByKey = AssetType::all()
+            ->keyBy(fn ($type) => $type->category_id . '|' . mb_strtolower(trim($type->name)));
+
+        $employeesByName = Employee::query()
+            ->where('is_active', true)
+            ->with('user:id,name')
+            ->get()
+            ->keyBy(fn ($employee) => mb_strtolower(trim(optional($employee->user)->name ?? '')));
+
+        $errors = [];
+        $records = [];
+
+        foreach ($dataRows as $index => $cells) {
+            $rowNumber = $index + 2; // account for the header row
+
+            $valueByHeader = [];
+            foreach ($normalizedHeaders as $columnIndex => $normalizedHeader) {
+                $valueByHeader[$normalizedHeader] = $cells[$columnIndex] ?? null;
+            }
+
+            $getName = fn (string $key) => isset($valueByHeader[$key]) && $valueByHeader[$key] !== null
+                ? trim((string) $valueByHeader[$key])
+                : '';
+
+            $name = $getName('name');
+            $categoryName = $getName('category');
+            $assetTypeName = $getName('assettype');
+            $costRaw = $getName('acquisitioncost');
+            $depreciationRaw = $getName('totaldepreciation');
+            $amountRaw = $getName('amount');
+            $ownerName = $getName('owner');
+
+            $rowErrors = [];
+
+            if ($name === '') {
+                $rowErrors[] = 'Name is required.';
+            } elseif (mb_strlen($name) > 255) {
+                $rowErrors[] = 'Name must not exceed 255 characters.';
+            }
+
+            if ($categoryName === '') {
+                $rowErrors[] = 'Category is required.';
+            }
+
+            if ($assetTypeName === '') {
+                $rowErrors[] = 'Asset Type is required.';
+            }
+
+            if (!is_numeric($costRaw)) {
+                $rowErrors[] = 'Acquisition Cost must be a number.';
+            } elseif ((float) $costRaw < 0) {
+                $rowErrors[] = 'Acquisition Cost cannot be negative.';
+            }
+
+            if (!is_numeric($depreciationRaw)) {
+                $rowErrors[] = 'Total Depreciation must be a number.';
+            } elseif ((float) $depreciationRaw < 0) {
+                $rowErrors[] = 'Total Depreciation cannot be negative.';
+            } elseif (is_numeric($costRaw) && (float) $costRaw >= 0 && (float) $depreciationRaw > (float) $costRaw) {
+                $rowErrors[] = 'Total Depreciation cannot exceed the Acquisition Cost.';
+            }
+
+            $amount = 1;
+
+            if ($amountRaw !== '') {
+                $amountDigits = ltrim($amountRaw, '+');
+
+                if (!ctype_digit($amountDigits) || (int) $amountDigits < 1) {
+                    $rowErrors[] = 'Amount must be a whole number of at least 1.';
+                } else {
+                    $amount = (int) $amountDigits;
+                }
+            }
+
+            $ownerId = null;
+
+            if ($ownerName !== '') {
+                $employee = $employeesByName->get(mb_strtolower($ownerName));
+
+                if (!$employee) {
+                    $rowErrors[] = "Owner \"{$ownerName}\" does not match any active employee.";
+                } else {
+                    $ownerId = $employee->id;
+                }
+            }
+
+            if ($rowErrors) {
+                $errors[] = "Row {$rowNumber}: " . implode(' ', $rowErrors);
+
+                continue;
+            }
+
+            // ── Resolve (or create) category ──
+            $category = $categoriesByName->get(mb_strtolower($categoryName));
+
+            if (!$category) {
+                $category = Category::create([
+                    'name' => $categoryName,
+                    'prefix' => $this->generateUniquePrefix($categoryName),
+                    'unit_type' => Category::UNIT_SINGLE,
+                ]);
+
+                $categoriesByName->put(mb_strtolower($categoryName), $category);
+            }
+
+            // ── Resolve (or create) asset type within that category ──
+            $typeKey = $category->id . '|' . mb_strtolower($assetTypeName);
+            $assetType = $assetTypesByKey->get($typeKey);
+
+            if (!$assetType) {
+                $assetType = AssetType::create([
+                    'category_id' => $category->id,
+                    'name' => $assetTypeName,
+                    'prefix' => $this->generateUniquePrefix($assetTypeName),
+                ]);
+
+                $assetTypesByKey->put($typeKey, $assetType);
+            }
+
+            $acquisitionCost = round((float) $costRaw, 2);
+            $totalDepreciation = round((float) $depreciationRaw, 2);
+
+            $records[] = [
+                'name' => $name,
+                'description' => null,
+                'category_id' => $category->id,
+                'asset_type_id' => $assetType->id,
+                'serial_number' => null,
+                'remarks' => 'Imported via Excel upload.',
+                'acquisition_date' => now()->toDateString(),
+                'acquisition_cost' => $acquisitionCost,
+                'depreciation_rate' => $acquisitionCost > 0
+                    ? min(100, round(($totalDepreciation / $acquisitionCost) * 100, 2))
+                    : 0,
+                'condition' => 4,
+                'status' => 'available',
+                'photo' => null,
+                'location_id' => null,
+                'owner_id' => $ownerId,
+                'amount' => $amount,
+            ];
+        }
+
+        if ($errors) {
+            $rowCount = count($errors);
+
+            array_unshift(
+                $errors,
+                "Import aborted — {$rowCount} " . ($rowCount === 1 ? 'row has' : 'rows have')
+                . ' problems. Fix them and upload again. Nothing has been saved.'
+            );
+
+            return back()->withErrors(['file' => implode("\n", $errors)]);
+        }
+
+        if (empty($records)) {
+            return back()->withErrors([
+                'file' => 'No data rows found. Add at least one asset below the header row.',
+            ]);
+        }
+
+        $importedCount = DB::transaction(function () use ($records) {
+            $count = 0;
+
+            foreach ($records as $record) {
+                $record['asset_tag'] = $this->generateAssetTag($record['asset_type_id']);
+
+                $asset = Asset::create($record);
+
+                ActivityLogs::record(
+                    $asset,
+                    'asset_created',
+                    "{$asset->name} ({$asset->asset_tag}) was added to inventory via Excel import.",
+                );
+
+                $count++;
+            }
+
+            return $count;
+        });
+
+        return redirect()
+            ->route('custodian.assets.index')
+            ->with('success', "Imported {$importedCount} " . ($importedCount === 1 ? 'asset' : 'assets') . " from Excel.");
+    }
+
+    /**
+     * Builds a short uppercase prefix from a name (word initials), keeping it
+     * unique against existing records by appending an incrementing suffix.
+     */
+    private function generateUniquePrefix(string $name): string
+    {
+        preg_match_all('/[A-Za-z0-9]+/', $name, $words);
+
+        $base = '';
+
+        foreach ($words[0] as $word) {
+            $base .= strtoupper(substr($word, 0, 1));
+        }
+
+        if ($base === '') {
+            $base = 'GEN';
+        }
+
+        $base = substr($base, 0, 4);
+
+        $candidate = $base;
+        $suffix = 1;
+
+        while (
+            Category::where('prefix', $candidate)->exists() ||
+            AssetType::where('prefix', $candidate)->exists()
+        ) {
+            $candidate = $base . str_pad((string) ++$suffix, 2, '0', STR_PAD_LEFT);
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * @return array{0: list<mixed>|null, 1: list<list<mixed>>}
+     */
+    private function parseSpreadsheet(string $path, string $extension): array
+    {
+        $reader = $extension === 'csv' ? new CsvReader() : new XlsxReader();
+
+        $reader->open($path);
+
+        $headerRow = null;
+        $rows = [];
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            foreach ($sheet->getRowIterator() as $row) {
+                $cells = $row->toArray();
+
+                if ($headerRow === null) {
+                    $headerRow = $cells;
+
+                    continue;
+                }
+
+                if ($row->isEmpty()) {
+                    $hasContent = collect($cells)
+                        ->contains(fn ($value) => $value !== null && trim((string) $value) !== '');
+
+                    if (!$hasContent) {
+                        continue;
+                    }
+                }
+
+                $rows[] = $cells;
+            }
+
+            break; // only read the first sheet
+        }
+
+        $reader->close();
+
+        return [$headerRow, $rows];
+    }
+
+    public function destroy(Asset $asset)
+    {        ActivityLogs::record($asset, 'asset_deleted', "{$asset->name} ({$asset->asset_tag}) was removed from inventory.");
 
         if ($asset->photo) {
             Storage::disk('public')->delete($asset->photo);

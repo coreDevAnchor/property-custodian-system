@@ -56,6 +56,9 @@ Route::middleware(['auth', 'verified'])
 
         Route::resource('assets', AssetController::class);
 
+        Route::post('assets/import', [AssetController::class, 'import'])
+            ->name('assets.import');
+
         Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
         Route::post('asset-types', [AssetTypeController::class, 'store'])->name('asset-types.store');
 
