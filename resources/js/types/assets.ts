@@ -18,6 +18,13 @@ export const statusOptions: AssetStatus[] = [
     'lost',
 ];
 
+export interface OwnerCandidate {
+    id: number;
+    employee_id?: string | null;
+    department?: string | null;
+    user?: { id: number; name: string };
+}
+
 export interface Asset {
     id: number;
     asset_tag: string;
@@ -42,6 +49,8 @@ export interface Asset {
     category: Category;
 
     location?: Location | null;
+
+    owner?: OwnerCandidate | null;
 
     borrows?: Borrow[];
     current_borrow?: Borrow;
@@ -72,4 +81,5 @@ export interface AssetFormValues {
     description?: string;
     serial_number?: string;
     amount?: number;
+    owner_id?: number;
 }

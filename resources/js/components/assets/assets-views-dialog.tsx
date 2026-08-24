@@ -7,7 +7,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ImageOff, Pencil } from "lucide-react";
+import { ImageOff, Pencil, UserRound } from "lucide-react";
 
 import type { Asset, AssetStatus } from "@/types/assets";
 import { useEffect, useState } from 'react';
@@ -146,9 +146,24 @@ export function AssetViewDialog({ open, asset, onOpenChange, onEdit, readOnly = 
                     <div className="flex items-start justify-between gap-4 pr-8">
                         <div>
                             <DialogTitle>{asset.name}</DialogTitle>
+
                             <DialogDescription>
                                 {asset.asset_tag}
                             </DialogDescription>
+
+                            <div className="mt-1.5 flex items-center gap-1.5 text-sm">
+                                <UserRound className="size-3.5 text-muted-foreground" />
+
+                                {asset.owner?.user?.name ? (
+                                    <span className="font-medium text-foreground">
+                                        {asset.owner.user.name}
+                                    </span>
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        No original owner assigned
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         <StatusBadge status={asset.status} />
                     </div>

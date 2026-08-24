@@ -47,8 +47,9 @@ import {
 import { Button } from '@/components/ui/button';
 
 import { assetSchema } from '@/components/assets/assets-schema';
+import { EmployeeCombobox } from '@/components/assets/employee-combobox';
 import type { z } from 'zod';
-import type { Asset, AssetType } from '@/types/assets';
+import type { Asset, AssetType, OwnerCandidate } from '@/types/assets';
 import type { Category } from '@/types/categories';
 import type { Location } from '@/types/location';
 import type { StagedImage } from '@/types/images';
@@ -65,6 +66,7 @@ interface Props {
     categories: Category[];
     locations: Location[];
     assetTypes: AssetType[];
+    employees?: OwnerCandidate[];
 
     onOpenChange: (open: boolean) => void;
 }
@@ -138,6 +140,8 @@ const defaultValues: FormValues = {
     status: 'available',
 
     amount: 1,
+
+    owner_id: undefined,
 };
 
 export function AssetFormDialog({
@@ -147,6 +151,7 @@ export function AssetFormDialog({
     categories,
     locations,
     assetTypes,
+    employees,
     onOpenChange,
 }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -205,6 +210,8 @@ export function AssetFormDialog({
                 status: asset.status,
 
                 amount: asset.amount ?? 1,
+
+                owner_id: asset.owner?.id ?? undefined,
             });
             setExistingPhoto(asset.photo ?? null);
         }
@@ -228,6 +235,8 @@ export function AssetFormDialog({
                 status: 'available',
 
                 amount: 1,
+
+                owner_id: undefined,
             });
             setExistingPhoto(null);
         }
@@ -381,24 +390,46 @@ export function AssetFormDialog({
                     >
                         {/* ── Left: form fields (2/3 width) ── */}
                         <div className="space-y-6 lg:col-span-2">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Asset Name</FormLabel>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Asset Name</FormLabel>
 
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Dell Latitude 7440"
-                                                {...field}
-                                            />
-                                        </FormControl>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Dell Latitude 7440"
+                                                    {...field}
+                                                />
+                                            </FormControl>
 
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="owner_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Original Owner</FormLabel>
+
+                                            <FormControl>
+                                                <EmployeeCombobox
+                                                    employees={employees ?? []}
+                                                    value={field.value}
+                                                    onChange={field.onChange}
+                                                />
+                                            </FormControl>
+
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
                             <FormField
                                 control={form.control}

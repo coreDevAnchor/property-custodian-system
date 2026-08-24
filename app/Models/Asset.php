@@ -33,6 +33,7 @@ class Asset extends Model
         'status',
         'photo',
         'location_id',
+        'owner_id',
         'remarks',
         'amount',
     ];
@@ -45,6 +46,11 @@ class Asset extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'owner_id');
     }
 
     public function borrows(): HasMany

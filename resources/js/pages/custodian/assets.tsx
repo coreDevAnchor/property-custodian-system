@@ -38,6 +38,7 @@ import {
     AssetStatus,
     AssetType,
     AssetFormValues,
+    OwnerCandidate,
     statusOptions,
     Asset,
     AssetFilters,
@@ -163,8 +164,11 @@ function AssetRow({
                 </span>
             </td>
             <td className="py-3.5 pr-4">
-                <span className="max-w-[120px] truncate text-sm text-muted-foreground block" title="—">
-                    —
+                <span
+                    className="max-w-[120px] truncate text-sm text-muted-foreground block"
+                    title={asset.owner?.user?.name ?? 'coreDev'}
+                >
+                    {asset.owner?.user?.name ?? 'coreDev'}
                 </span>
             </td>
             <td className="py-3.5">
@@ -230,6 +234,7 @@ interface Props {
     assetTypes: AssetType[];
     categories: Category[];
     locations: Location[];
+    employees: OwnerCandidate[];
     filters: AssetFilters;
 }
 
@@ -238,6 +243,7 @@ export default function Assets({
     assetTypes,
     categories,
     locations,
+    employees,
     filters = { search: '', category: 'All', status: 'All', per_page: 10 },
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -495,6 +501,7 @@ export default function Assets({
                 categories={categories}
                 locations={locations}
                 assetTypes={assetTypes}
+                employees={employees}
                 onOpenChange={setDialogOpen}
             />
 

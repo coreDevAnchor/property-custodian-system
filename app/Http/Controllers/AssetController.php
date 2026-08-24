@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Asset;
 use App\Models\Category;
 use App\Models\Location;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -30,6 +31,7 @@ class AssetController extends Controller
                 'category_id',
                 'asset_type_id',
                 'location_id',
+                'owner_id',
                 'status',
                 'condition',
                 'photo',
@@ -42,6 +44,7 @@ class AssetController extends Controller
                 'category:id,name,unit_type',
                 'assetType:id,name,prefix',
                 'location:id,name',
+                'owner.user:id,name',
 
                 'currentBorrow',
 
@@ -99,6 +102,13 @@ class AssetController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name', 'prefix', 'category_id']),
             'locations' => Location::orderBy('name', 'asc')->get(['id', 'name']),
+            'employees' => Employee::query()
+                ->where('is_active', true)
+                ->with('user:id,name')
+                ->orderBy('employee_id')
+                ->get(['id', 'user_id', 'department', 'employee_id'])
+                ->sortBy(fn ($employee) => $employee->user?->name ?? '')
+                ->values(),
             'filters' => [
                 'search' => $search,
                 'category' => $category,
@@ -130,6 +140,7 @@ class AssetController extends Controller
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'asset_type_id' => ['required', 'exists:asset_types,id'],
             'amount' => ['nullable', 'integer', 'min:1'],
+            'owner_id' => ['nullable', 'exists:employees,id'],
         ], [
             'name.required' => 'Asset name is required.',
             'category_id.required' => 'Category is required.',
@@ -153,10 +164,18 @@ class AssetController extends Controller
 
         $asset = Asset::create($validated);
 
+        $ownerDescription = '';
+
+        if ($asset->owner_id) {
+            $asset->load('owner.user:id,name');
+
+            $ownerDescription = " Assigned to {$asset->owner->user->name}.";
+        }
+
         ActivityLogs::record(
             $asset,
             'asset_created',
-            "{$asset->name} ({$asset->asset_tag}) was added to inventory."
+            "{$asset->name} ({$asset->asset_tag}) was added to inventory.{$ownerDescription}"
         );
 
         return redirect()
@@ -171,6 +190,7 @@ class AssetController extends Controller
                 'category',
                 'assetType',
                 'location',
+                'owner.user:id,name',
                 'currentBorrow',
                 'activityLogs.actor',
                 'borrows.borrower'
@@ -185,6 +205,7 @@ class AssetController extends Controller
                 'category',
                 'assetType',
                 'location',
+                'owner.user:id,name',
             ])
         );
     }
@@ -206,9 +227,12 @@ class AssetController extends Controller
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'asset_type_id' => ['required', 'exists:asset_types,id'],
             'amount' => ['nullable', 'integer', 'min:1'],
+            'owner_id' => ['nullable', 'exists:employees,id'],
         ]);
 
         $previousStatus = $asset->status;
+        $previousOwnerId = $asset->owner_id;
+        $previousOwnerName = $asset->load('owner.user:id,name')->owner?->user?->name;
 
         if (
             $asset->status === 'borrowed' &&
@@ -245,6 +269,8 @@ class AssetController extends Controller
 
         $asset->update($validated);
 
+        $ownerChanged = ($validated['owner_id'] ?? null) != $previousOwnerId;
+
         if ($previousStatus !== $asset->status) {
             $action = match ($asset->status) {
                 'disposed' => 'asset_disposed',
@@ -264,6 +290,30 @@ class AssetController extends Controller
                 'from' => $previousStatus,
                 'to' => $asset->status,
             ]);
+        } elseif ($ownerChanged) {
+            if ($validated['owner_id']) {
+                $asset->load('owner.user:id,name');
+
+                ActivityLogs::record(
+                    $asset,
+                    'asset_updated',
+                    "{$asset->name} ownership assigned to {$asset->owner->user->name}.",
+                    [
+                        'from' => $previousOwnerName,
+                        'to' => $asset->owner?->user?->name,
+                    ]
+                );
+            } else {
+                ActivityLogs::record(
+                    $asset,
+                    'asset_updated',
+                    "{$asset->name} ownership removed.",
+                    [
+                        'from' => $previousOwnerName,
+                        'to' => null,
+                    ]
+                );
+            }
         } else {
             ActivityLogs::record($asset, 'asset_updated', "{$asset->name} details were updated.");
         }
