@@ -32,7 +32,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('password.force.update');
 });
 
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth'])
     ->group(function () {
         Route::get('/documentation', function () {
             return Inertia::render('documentations/documentation');

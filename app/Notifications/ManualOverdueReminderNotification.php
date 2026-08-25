@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\BorrowRequest;
 use App\Models\User;
+use App\Notifications\Concerns\SkipsEmailForUnverifiedUsers;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -11,6 +12,7 @@ use Illuminate\Notifications\Notification;
 class ManualOverdueReminderNotification extends Notification
 {
     use Queueable;
+    use SkipsEmailForUnverifiedUsers;
 
     public function __construct(
         protected BorrowRequest $borrow,
@@ -19,7 +21,7 @@ class ManualOverdueReminderNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $this->viaChannels($notifiable);
     }
 
     public function toArray(object $notifiable): array

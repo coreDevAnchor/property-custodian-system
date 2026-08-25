@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Notifications\BorrowRequestStatusNotification;
@@ -346,16 +347,63 @@ class BorrowRequestController extends Controller
             return back()->with('error', 'This borrow request is no longer active.');
         }
 
-        $borrowRequest->borrower->notify(
-            new ManualOverdueReminderNotification(
-                $borrowRequest,
-                Auth::user(),
-            )
+        $borrower = $borrowRequest->borrower;
+        $assetName = $borrowRequest->asset?->name ?? 'the asset';
+
+        if (! $borrower || trim((string) $borrower->email) === '') {
+            return back()->with(
+                'error',
+                "Cannot send reminder — the borrower of \"{$assetName}\" has no email address on record.",
+            );
+        }
+
+        $email = trim($borrower->email);
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return back()->with(
+                'error',
+                "Cannot send reminder to {$borrower->name} — \"{$email}\" is not a valid email address.",
+            );
+        }
+
+        if ($borrower->email_verified_at === null) {
+            return back()->with(
+                'error',
+                "{$borrower->name} hasn't validated their email yet. They can validate it in Settings → Profile, then try again.",
+            );
+        }
+
+        $dnsCheck = Validator::make(
+            ['email' => $email],
+            ['email' => ['email:dns']],
         );
+
+        if ($dnsCheck->fails()) {
+            return back()->with(
+                'error',
+                "Cannot send reminder to {$borrower->name} — \"{$email}\" uses a domain that cannot receive email.",
+            );
+        }
+
+        try {
+            $borrower->notify(
+                new ManualOverdueReminderNotification(
+                    $borrowRequest,
+                    Auth::user(),
+                )
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with(
+                'error',
+                "In-app reminder was delivered to {$borrower->name}, but the email to {$email} could not be sent. Please try again later.",
+            );
+        }
 
         return back()->with(
             'success',
-            'Reminder sent successfully.'
+            "Reminder sent — in-app notification delivered and email sent to {$email}.",
         );
     }
 

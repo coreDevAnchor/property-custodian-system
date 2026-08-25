@@ -1,6 +1,5 @@
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { Link } from '@inertiajs/react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
@@ -15,18 +14,17 @@ import type { Auth } from '@/types';
 
 type PageProps = {
     auth: Auth;
+    errors?: Record<string, string>;
 };
 
 export default function Profile({
-    mustVerifyEmail,
     status,
 }: {
-    mustVerifyEmail: boolean;
     status?: string;
 }) {
-    const { auth } = usePage<PageProps>().props;
-    console.log(auth.user);
+    const { auth, errors: validationErrors } = usePage<PageProps>().props;
     const [preview, setPreview] = useState<string | null>(null);
+    const [sending, setSending] = useState(false);
 
     return (
         <>
@@ -155,31 +153,6 @@ export default function Profile({
                                 </div>
                             </div>
 
-                            {mustVerifyEmail &&
-                                auth.user.email_verified_at === null && (
-                                    <div>
-                                        <p className="-mt-4 text-sm text-muted-foreground">
-                                            Your email address is unverified.{' '}
-                                            <Link
-                                                href={send()}
-                                                as="button"
-                                                className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                            >
-                                                Click here to re-send the
-                                                verification email.
-                                            </Link>
-                                        </p>
-
-                                        {status ===
-                                            'verification-link-sent' && (
-                                            <div className="mt-2 text-sm font-medium text-green-600">
-                                                A new verification link has been
-                                                sent to your email address.
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
                             <div className="flex items-center gap-4">
                                 <Button
                                     disabled={processing}
@@ -191,6 +164,60 @@ export default function Profile({
                         </>
                     )}
                 </Form>
+            </div>
+
+            {/* Validate Email */}
+            <div className="space-y-4">
+                <Heading
+                    variant="small"
+                    title="Validate Email"
+                    description="Confirm your email address to receive email notifications."
+                />
+
+                <div className="flex items-end gap-4">
+                    <div className="max-w-md flex-1">
+                        <Label htmlFor="validate_email">Email address</Label>
+                        <Input
+                            id="validate_email"
+                            readOnly
+                            value={auth.user.email}
+                            className="mt-1 block w-full bg-muted cursor-not-allowed"
+                        />
+                    </div>
+
+                    {auth.user.email_verified_at !== null ? (
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            Validated
+                        </span>
+                    ) : (
+                        <Button
+                            onClick={() => {
+                                setSending(true);
+                                router.post(send(), {}, {
+                                    preserveScroll: true,
+                                    onFinish: () => setSending(false),
+                                });
+                            }}
+                            disabled={sending}
+                            variant="secondary"
+                            data-test="validate-email-button"
+                        >
+                            {sending ? 'Sending...' : 'Validate'}
+                        </Button>
+                    )}
+                </div>
+
+                {validationErrors?.email && (
+                    <InputError className="mt-1" message={validationErrors.email} />
+                )}
+
+                {status === 'verification-link-sent' && (
+                    <p className="text-sm text-muted-foreground">
+                        A validation link has been sent to{' '}
+                        <span className="font-medium">{auth.user.email}</span>.
+                        Open your inbox and click the link to confirm your email address.
+                    </p>
+                )}
             </div>
 
             <DeleteUser />

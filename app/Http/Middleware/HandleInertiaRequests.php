@@ -51,11 +51,14 @@ class HandleInertiaRequests extends Middleware
                         ? 'error'
                         : ($request->session()->get('warning')
                             ? 'warning'
-                            : ($request->session()->get('info') ? 'info' : null))),
+                            : ($request->session()->get('info')
+                                ? 'info'
+                                : ($request->boolean('verified') ? 'success' : null)))),
                 'message' => $request->session()->get('success')
                     ?? $request->session()->get('error')
                     ?? $request->session()->get('warning')
-                    ?? $request->session()->get('info'),
+                    ?? $request->session()->get('info')
+                    ?? ($request->boolean('verified') ? 'Your email has been validated.' : null),
             ],
             'counts' => $request->user()?->role === 'custodian'
                 ? [

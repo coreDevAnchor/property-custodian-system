@@ -43,7 +43,6 @@ export function ImportAssetsDialog({ open, onOpenChange }: Props) {
 
     const { errors } = usePage<PageProps>().props;
 
-    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (!open) {
 return;
@@ -63,7 +62,6 @@ inputRef.current.value = '';
 }
         }
     }, [open]);
-    /* eslint-enable react-hooks/set-state-in-effect */
 
     function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
