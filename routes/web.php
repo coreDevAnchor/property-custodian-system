@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\Auth\OtpResetController;
 use App\Http\Controllers\BorrowRequestController;
 use App\Http\Controllers\ReturnController;
 use App\Http\Controllers\EmployeeController;
@@ -23,6 +24,14 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\AssetTypeController;
 
 Route::redirect('/', '/login')->name('home');
+
+Route::post('/forgot-password/otp', [OtpResetController::class, 'sendOtp'])
+    ->middleware('throttle:5,1')
+    ->name('password.otp.send');
+
+Route::post('/forgot-password/otp/reset', [OtpResetController::class, 'reset'])
+    ->middleware('throttle:10,1')
+    ->name('password.otp.reset');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/force-change-password', [ForcePasswordChangeController::class, 'edit'])

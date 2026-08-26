@@ -136,17 +136,6 @@ export default function AuditTrail({
                             key={`${activity.current_page}-${category}-${range}`}
                             items={activity.data}
                         />
-
-                        {activity.data.length === 0 && (
-                            <div className="flex flex-col items-center gap-1 py-12 text-center">
-                                <p className="text-sm font-semibold text-foreground">
-                                    No activity found
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    Try adjusting your filters
-                                </p>
-                            </div>
-                        )}
                     </div>
 
                     <PaginationBar

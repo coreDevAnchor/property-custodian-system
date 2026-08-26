@@ -5,11 +5,10 @@ import {
     Box,
     CheckCircle,
     ClipboardList,
-    Camera,
     Clock,
     Copy,
+    FileSpreadsheet,
     FileText,
-    Film,
     History,
     PackageSearch,
     RefreshCcw,
@@ -17,9 +16,9 @@ import {
     Undo2,
     Users,
 } from 'lucide-react';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { SectionReveal } from '@/components/ui/section-reveal';
+import { useEffect, useState } from 'react';
 import { pageStaggerVariants } from '@/components/assets/asset-table-animations';
+import { SectionReveal } from '@/components/ui/section-reveal';
 import type { SharedData } from '@/types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -98,7 +97,7 @@ const employeeSections: DocSection[] = [
             'See your current active borrows',
             'Track recent activity and return status',
         ],
-        gif: '/documentation/employee-dashboard.gif',
+        gif: '/docs/employee-dashboard.gif',
     },
     {
         id: 'available-assets',
@@ -112,7 +111,7 @@ const employeeSections: DocSection[] = [
             'View asset details including condition and location',
             'Submit a borrow request for any available asset',
         ],
-        gif: '/documentation/employee-available-assets.gif',
+        gif: '/docs/employee-available-assets.gif',
     },
     {
         id: 'borrow-request',
@@ -123,10 +122,11 @@ const employeeSections: DocSection[] = [
         actions: [
             'Select an asset from the Available Assets page',
             'Provide a reason and expected return date',
+            'Specify the quantity when borrowing assets from multi-unit categories',
             'Submit request for custodian approval',
             'Track request status from your dashboard',
         ],
-        gif: '/documentation/borrow-assets.gif',
+        gif: '/docs/borrow-assets.gif',
     },
     {
         id: 'current-borrows',
@@ -140,7 +140,7 @@ const employeeSections: DocSection[] = [
             'Request a borrow renewal if you need more time',
             'Initiate a return when ready',
         ],
-        gif: '/documentation/employee-current-borrows.gif',
+        gif: '/docs/employee-current-borrows.gif',
     },
     {
         id: 'borrow-renewal',
@@ -153,7 +153,7 @@ const employeeSections: DocSection[] = [
             'Provide a new expected return date',
             'Submit renewal for custodian approval',
         ],
-        gif: '/documentation/request-renewal.gif',
+        gif: '/docs/request-renewal.gif',
     },
     {
         id: 'borrow-history',
@@ -166,7 +166,7 @@ const employeeSections: DocSection[] = [
             'Filter by status (returned, overdue, etc.)',
             'Check return dates and condition notes',
         ],
-        gif: '/documentation/employee-borrow-history.gif',
+        gif: '/docs/employee-borrow-history.gif',
     },
     {
         id: 'return-asset',
@@ -179,7 +179,7 @@ const employeeSections: DocSection[] = [
             'Confirm the return request',
             'Asset condition will be recorded by custodian',
         ],
-        gif: '/documentation/employee-return-request.gif',
+        gif: '/docs/employee-return-request.gif',
     },
 ];
 
@@ -198,7 +198,7 @@ const custodianSections: DocSection[] = [
             'Review recent activity feed',
             'Quick-access pending borrow requests for approval',
         ],
-        gif: '/documentation/dashboard.gif',
+        gif: '/docs/dashboard.gif',
     },
     {
         id: 'asset-management',
@@ -212,8 +212,27 @@ const custodianSections: DocSection[] = [
             'Delete assets no longer in the system',
             'Search and filter assets by name, category, or status',
             'View asset details and borrow history',
+            'Assign an owner to each asset via a searchable employee combobox — unassigned assets belong to coreDev',
+            'Create new categories and asset types inline from the Add Asset dialog (prefixes are auto-generated)',
+            'Track quantity with the Amount field for multi-unit categories',
+            'View enhanced asset details showing owner, amount, unit type, and the complete activity log',
         ],
-        gif: '/documentation/assets.gif',
+        gif: '/docs/assets.gif',
+    },
+    {
+        id: 'import-assets',
+        title: 'Import Assets',
+        icon: FileSpreadsheet,
+        description:
+            'Bulk-import assets from an Excel (XLSX) or CSV spreadsheet instead of creating them one by one.',
+        steps: [
+            'Click Import on the Assets page and download the XLSX or CSV template',
+            'Fill in the required columns: Name, Category, Asset Type, Acquisition Cost, and Total Depreciation (Amount and Owner are optional)',
+            'Upload the file — max 5 MB; missing or unknown categories and asset types are created automatically',
+            'Fix any reported row errors and re-upload — imports are all-or-nothing, so nothing is saved until every row is valid',
+            'Each imported asset gets an auto-generated tag, status Available, condition Excellent, and today\'s acquisition date',
+        ],
+        gif: '/docs/import-assets.gif',
     },
     {
         id: 'borrow-requests',
@@ -227,7 +246,7 @@ const custodianSections: DocSection[] = [
             'Send overdue reminder notifications',
             'Track request status and history',
         ],
-        gif: '/documentation/borrow-request.gif',
+        gif: '/docs/borrow-request.gif',
     },
     {
         id: 'returns-management',
@@ -241,7 +260,7 @@ const custodianSections: DocSection[] = [
             'Update asset status after return',
             'View return history',
         ],
-        gif: '/documentation/return-requests.gif',
+        gif: '/docs/return-requests.gif',
     },
     {
         id: 'employee-management',
@@ -255,7 +274,7 @@ const custodianSections: DocSection[] = [
             'Edit employee details',
             'Deactivate employee accounts',
         ],
-        gif: '/documentation/employee-management.gif',
+        gif: '/docs/employee-management.gif',
     },
     {
         id: 'custodian-management',
@@ -268,7 +287,7 @@ const custodianSections: DocSection[] = [
             'Add new custodian accounts',
             'Edit custodian details',
         ],
-        gif: '/documentation/custodian-management.gif',
+        gif: '/docs/custodian-management.gif',
     },
     {
         id: 'audit-trail',
@@ -281,7 +300,7 @@ const custodianSections: DocSection[] = [
             'Filter by action type or user',
             'See details of asset changes, borrow actions, and returns',
         ],
-        gif: '/documentation/audit-trail.gif',
+        gif: '/docs/audit-trail.gif',
     },
     {
         id: 'reports',
@@ -291,24 +310,25 @@ const custodianSections: DocSection[] = [
             'Generate and export reports for asset management and borrowing activity.',
         actions: [
             'Generate asset summary reports',
-            'Export data as CSV or PDF',
+            'Export data as CSV or PDF — CSV includes Unit Amount and Ownership columns',
             'View borrowing statistics and trends',
         ],
-        gif: '/documentation/reports.gif',
+        gif: '/docs/reports.gif',
     },
     {
         id: 'notifications',
         title: 'Notifications',
         icon: FileText,
         description:
-            'Stay informed about important events in the system.',
+            'Stay informed about important events in the system. Notifications are delivered in-app, and automated return reminders are also sent via email.',
         actions: [
             'View unread and read notifications',
             'Mark notifications as read or unread',
             'Clear old notifications',
             'Badge count shows unread notifications',
+            'Receive 3-day, deadline, and overdue return reminders by email at your registered address (skipped for unverified accounts)',
         ],
-        gif: '/documentation/notifications.gif',
+        gif: '/docs/notifications.gif',
     },
 ];
 
@@ -331,7 +351,10 @@ function useScrollSpy(ids: string[]) {
 
         for (const id of ids) {
             const el = document.getElementById(id);
-            if (el) observer.observe(el);
+
+            if (el) {
+observer.observe(el);
+}
         }
 
         return () => observer.disconnect();
@@ -393,6 +416,7 @@ function TableOfContents({
 }) {
     function scrollTo(id: string) {
         const el = document.getElementById(id);
+
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }

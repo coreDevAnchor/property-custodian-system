@@ -4,9 +4,9 @@ import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileCo
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
@@ -103,12 +103,7 @@ export default function Profile({
                                         >
                                             <Avatar className="h-52 w-52 border-2 border-border transition-all duration-200 group-hover:brightness-75">
                                                 <AvatarImage
-                                                    src={
-                                                        preview ??
-                                                        (auth.user.profile_photo_path
-                                                            ? `/storage/${auth.user.profile_photo_path}`
-                                                            : "")
-                                                    }
+                                                    src={preview ?? auth.user.avatar ?? ''}
                                                     alt={auth.user.name}
                                                 />
 

@@ -1,5 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import { Moon, Sun } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -8,6 +9,35 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useAppearance } from '@/hooks/use-appearance';
 import { store } from '@/routes/login';
+import otpRoutes from '@/routes/password/otp';
+
+async function postJson(url: string, data: Record<string, string>) {
+    const csrf = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('XSRF-TOKEN='))
+        ?.split('=')[1];
+
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-XSRF-TOKEN': csrf ? decodeURIComponent(csrf) : '',
+        },
+        body: JSON.stringify(data),
+    });
+
+    const body = await res.json().catch(() => ({}));
+
+    return { ok: res.ok, body };
+}
+
+function formatMmss(totalSeconds: number) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+
+    return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 function ThemeToggle() {
     const { resolvedAppearance, updateAppearance } = useAppearance();
@@ -31,6 +61,117 @@ type Props = {
 };
 
 export default function Login({ status }: Props) {
+    const [mode, setMode] = useState<'login' | 'reset'>('login');
+    const [email, setEmail] = useState('');
+    const [otp, setOtp] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const [sendingOtp, setSendingOtp] = useState(false);
+    const [resetting, setResetting] = useState(false);
+    const [otpInfo, setOtpInfo] = useState<string | null>(null);
+    const [otpError, setOtpError] = useState<string | null>(null);
+    const [resetMessage, setResetMessage] = useState<string | null>(null);
+    const [expiresAt, setExpiresAt] = useState<number | null>(null);
+    const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+    const [now, setNow] = useState(() => Date.now());
+
+    const isTicking = expiresAt !== null || cooldownUntil !== null;
+
+    useEffect(() => {
+        if (!isTicking) {
+            return;
+        }
+
+        const id = window.setInterval(() => setNow(Date.now()), 1000);
+
+        return () => window.clearInterval(id);
+    }, [isTicking]);
+
+    const secondsLeft = expiresAt
+        ? Math.max(0, Math.ceil((expiresAt - now) / 1000))
+        : 0;
+    const cooldownLeft = cooldownUntil
+        ? Math.max(0, Math.ceil((cooldownUntil - now) / 1000))
+        : 0;
+
+    function switchMode(next: 'login' | 'reset') {
+        setMode(next);
+        setOtpError(null);
+        setOtpInfo(null);
+        setOtpSent(false);
+        setOtp('');
+        setNewPassword('');
+        setExpiresAt(null);
+        setCooldownUntil(null);
+    }
+
+    async function handleSendOtp() {
+        setOtpError(null);
+        setOtpInfo(null);
+
+        if (!email.trim()) {
+            setOtpError('Enter your email first.');
+
+            return;
+        }
+
+        setSendingOtp(true);
+
+        try {
+            const res = await postJson(otpRoutes.send.url(), {
+                email: email.trim(),
+            });
+
+            if (res.ok) {
+                setOtpInfo(res.body.message);
+                setOtpSent(true);
+                setExpiresAt(Date.now() + (res.body.expires_in ?? 180) * 1000);
+                setCooldownUntil(Date.now() + 60 * 1000);
+                setNow(Date.now());
+            } else {
+                setOtpError(res.body.message ?? 'Failed to send the code.');
+
+                if (res.body.resend_in) {
+                    setCooldownUntil(Date.now() + res.body.resend_in * 1000);
+                    setNow(Date.now());
+                }
+            }
+        } catch {
+            setOtpError('Something went wrong. Please try again.');
+        } finally {
+            setSendingOtp(false);
+        }
+    }
+
+    async function handleResetPassword(e: React.FormEvent) {
+        e.preventDefault();
+        setOtpError(null);
+
+        setResetting(true);
+
+        try {
+            const res = await postJson(otpRoutes.reset.url(), {
+                email: email.trim(),
+                otp: otp.trim(),
+                password: newPassword,
+            });
+
+            if (res.ok) {
+                setResetMessage(res.body.message);
+                switchMode('login');
+            } else {
+                setOtpError(res.body.message ?? 'Failed to reset the password.');
+            }
+        } catch {
+            setOtpError('Something went wrong. Please try again.');
+        } finally {
+            setResetting(false);
+        }
+    }
+
+    const inputClassName =
+        'h-11 rounded-lg border-gray-300 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus-visible:border-[#e8720c] focus-visible:ring-[#e8720c]/20 dark:border-gray-700 dark:bg-[#18181a] dark:text-white dark:placeholder:text-gray-500 dark:focus-visible:ring-[#e8720c]/30';
+
     return (
         <>
             <Head title="Log in" />
@@ -57,43 +198,22 @@ export default function Login({ status }: Props) {
                     />
 
                     {/* top brand mark */}
-                    <div className="relative z-10 flex items-center gap-3 px-12 pt-10">
+                    {/* <div className="relative z-10 flex items-center gap-3 px-12 pt-10">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#f7941d] to-[#d9530c] shadow-[0_0_20px_rgba(232,114,12,0.4)]">
                             <AppLogoIcon className="h-5 w-5 fill-current text-[#0f0f10]" />
                         </div>
                         <span className="text-sm font-semibold tracking-[0.2em] text-gray-700 dark:text-gray-300">
                             CORE DEV
                         </span>
-                    </div>
+                    </div> */}
 
-                    {/* centerpiece gear illustration */}
+                    {/* centerpiece logo illustration */}
                     <div className="relative z-10 flex flex-1 items-center justify-center">
-                        <svg viewBox="0 0 200 200" className="h-64 w-64 opacity-90">
-                            <defs>
-                                <linearGradient id="gearGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stopColor="#f7941d" />
-                                    <stop offset="100%" stopColor="#c2410c" />
-                                </linearGradient>
-                            </defs>
-                            <circle cx="100" cy="100" r="70" fill="none" stroke="url(#gearGrad)" strokeWidth="3" opacity="0.5" />
-                            <circle cx="100" cy="100" r="46" fill="none" stroke="url(#gearGrad)" strokeWidth="10" />
-                            <circle cx="100" cy="100" r="46" fill="none" className="stroke-[#fbeee0] dark:stroke-[#0f0f10]" strokeWidth="10" strokeDasharray="1 71" strokeDashoffset="0" />
-                            {Array.from({ length: 8 }).map((_, i) => {
-                                const angle = (i * 360) / 8;
-                                return (
-                                    <rect
-                                        key={i}
-                                        x="94"
-                                        y="18"
-                                        width="12"
-                                        height="26"
-                                        rx="2"
-                                        className="fill-gray-400 dark:fill-[#2a2a2a]"
-                                        transform={`rotate(${angle} 100 100)`}
-                                    />
-                                );
-                            })}
-                        </svg>
+                        <img
+                            src="/images/coreDevlogo-CUQ-ORnY.png_2K_202608261338-removebg-preview.png"
+                            alt="coreDev logo"
+                            className="h-64 w-64 animate-float rounded-2xl object-contain opacity-90"
+                        />
                     </div>
 
                     {/* bottom copy */}
@@ -121,94 +241,266 @@ export default function Login({ status }: Props) {
                             </span>
                         </div>
 
-                        <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                            Welcome back
-                        </h2>
-                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                            Enter your credentials to access the Property Custodian System.
-                        </p>
+                        {mode === 'reset' ? (
+                            <>
+                                <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                                    Reset password
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                    Enter your email, request a 6-digit code, and set a new
+                                    password. The code expires in 3 minutes.
+                                </p>
 
-                        {status && (
-                            <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-400">
-                                {status}
-                            </div>
-                        )}
-
-                        <Form
-                            action={store().url}
-                            method="post"
-                            resetOnSuccess={['password']}
-                            className="mt-8 flex flex-col gap-5"
-                        >
-                            {({ processing, errors }) => (
-                                <>
+                                <form
+                                    onSubmit={handleResetPassword}
+                                    className="mt-8 flex flex-col gap-5"
+                                >
                                     <div className="grid gap-4">
-                                        {/* Username field */}
+                                        {/* Email field */}
                                         <div className="grid gap-1.5">
                                             <Label
-                                                htmlFor="email"
+                                                htmlFor="reset-email"
                                                 className="text-sm font-semibold text-gray-700 dark:text-gray-300"
                                             >
-                                                Username
+                                                Email
                                             </Label>
                                             <Input
-                                                id="email"
+                                                id="reset-email"
                                                 type="email"
                                                 name="email"
                                                 required
                                                 autoFocus
                                                 tabIndex={1}
                                                 autoComplete="email"
-                                                placeholder="Enter your username"
-                                                className="h-11 rounded-lg border-gray-300 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus-visible:border-[#e8720c] focus-visible:ring-[#e8720c]/20 dark:border-gray-700 dark:bg-[#18181a] dark:text-white dark:placeholder:text-gray-500 dark:focus-visible:ring-[#e8720c]/30"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                placeholder="Enter your email"
+                                                className={inputClassName}
                                             />
-                                            <InputError message={errors.email} />
                                         </div>
 
-                                        {/* Password field */}
+                                        {/* OTP field + Send OTP button */}
                                         <div className="grid gap-1.5">
-                                            <div className="flex items-center justify-between">
-                                                <Label
-                                                    htmlFor="password"
-                                                    className="text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                            <Label
+                                                htmlFor="otp"
+                                                className="text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                            >
+                                                Verification code
+                                            </Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    id="otp"
+                                                    type="text"
+                                                    name="otp"
+                                                    required
+                                                    tabIndex={2}
+                                                    inputMode="numeric"
+                                                    autoComplete="one-time-code"
+                                                    maxLength={6}
+                                                    value={otp}
+                                                    onChange={(e) =>
+                                                        setOtp(
+                                                            e.target.value.replace(/\D/g, ''),
+                                                        )
+                                                    }
+                                                    placeholder="6-digit code"
+                                                    className={`flex-1 ${inputClassName}`}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    tabIndex={3}
+                                                    onClick={handleSendOtp}
+                                                    disabled={sendingOtp || cooldownLeft > 0}
+                                                    className="flex h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-[#18181a] dark:text-gray-200 dark:hover:bg-[#1f1f21]"
                                                 >
-                                                    Password
-                                                </Label>
+                                                    {sendingOtp && <Spinner />}
+                                                    {sendingOtp
+                                                        ? 'Sending...'
+                                                        : cooldownLeft > 0
+                                                            ? `Resend (${formatMmss(cooldownLeft)})`
+                                                            : otpSent
+                                                                ? 'Resend OTP'
+                                                                : 'Send OTP'}
+                                                </button>
                                             </div>
+
+                                            {otpInfo && (
+                                                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                                    {otpInfo}
+                                                </p>
+                                            )}
+
+                                            {otpSent &&
+                                                (secondsLeft > 0 ? (
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        Code expires in{' '}
+                                                        <span className="font-semibold text-gray-700 dark:text-gray-200">
+                                                            {formatMmss(secondsLeft)}
+                                                        </span>
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-xs font-medium text-red-600 dark:text-red-400">
+                                                        Code expired — request a new one.
+                                                    </p>
+                                                ))}
+
+                                            <InputError message={otpError ?? undefined} />
+                                        </div>
+
+                                        {/* New password field */}
+                                        <div className="grid gap-1.5">
+                                            <Label
+                                                htmlFor="new-password"
+                                                className="text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                            >
+                                                New password
+                                            </Label>
                                             <PasswordInput
-                                                id="password"
+                                                id="new-password"
                                                 name="password"
                                                 required
-                                                tabIndex={2}
-                                                autoComplete="current-password"
-                                                placeholder="Enter your password"
-                                                className="h-11 rounded-lg border-gray-300 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus-visible:border-[#e8720c] focus-visible:ring-[#e8720c]/20 dark:border-gray-700 dark:bg-[#18181a] dark:text-white dark:placeholder:text-gray-500 dark:focus-visible:ring-[#e8720c]/30"
+                                                tabIndex={4}
+                                                autoComplete="new-password"
+                                                value={newPassword}
+                                                onChange={(e) =>
+                                                    setNewPassword(e.target.value)
+                                                }
+                                                placeholder="Enter a new password"
+                                                className={inputClassName}
                                             />
-                                            <InputError message={errors.password} />
                                         </div>
                                     </div>
 
-                                    {/* Sign in button */}
+                                    {/* Change password button */}
                                     <div className="mt-2">
                                         <button
                                             type="submit"
-                                            tabIndex={3}
-                                            disabled={processing}
-                                            data-test="login-button"
+                                            tabIndex={5}
+                                            disabled={resetting}
                                             className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#f7941d] to-[#d9530c] text-sm font-bold text-[#0f0f10] shadow-[0_4px_16px_rgba(217,83,12,0.35)] transition-all duration-150 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
-                                            {processing && <Spinner />}
-                                            {processing ? 'Signing in...' : 'Sign In'}
+                                            {resetting && <Spinner />}
+                                            {resetting ? 'Changing password...' : 'Change Password'}
                                         </button>
                                     </div>
 
-                                    {/* Role hint */}
                                     <p className="text-center text-sm text-gray-500 dark:text-gray-500">
-                                        Enter your credentials to continue.
+                                        Remembered it?{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => switchMode('login')}
+                                            className="cursor-pointer font-semibold text-gray-700 underline-offset-2 hover:underline dark:text-gray-200"
+                                        >
+                                            Back to sign in
+                                        </button>
                                     </p>
-                                </>
-                            )}
-                        </Form>
+                                </form>
+                            </>
+                        ) : (
+                            <>
+                                <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                                    Welcome back
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                    Enter your credentials to access the Property Custodian
+                                    System.
+                                </p>
+
+                                {(status || resetMessage) && (
+                                    <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-400">
+                                        {status ?? resetMessage}
+                                    </div>
+                                )}
+
+                                <Form
+                                    action={store().url}
+                                    method="post"
+                                    resetOnSuccess={['password']}
+                                    className="mt-8 flex flex-col gap-5"
+                                >
+                                    {({ processing, errors }) => (
+                                        <>
+                                            <div className="grid gap-4">
+                                                {/* Username field */}
+                                                <div className="grid gap-1.5">
+                                                    <Label
+                                                        htmlFor="email"
+                                                        className="text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                                    >
+                                                        Username
+                                                    </Label>
+                                                    <Input
+                                                        id="email"
+                                                        type="email"
+                                                        name="email"
+                                                        required
+                                                        autoFocus
+                                                        tabIndex={1}
+                                                        autoComplete="email"
+                                                        placeholder="Enter your username"
+                                                        className={inputClassName}
+                                                    />
+                                                    <InputError message={errors.email} />
+                                                </div>
+
+                                                {/* Password field */}
+                                                <div className="grid gap-1.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label
+                                                            htmlFor="password"
+                                                            className="text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                                        >
+                                                            Password
+                                                        </Label>
+                                                    </div>
+                                                    <PasswordInput
+                                                        id="password"
+                                                        name="password"
+                                                        required
+                                                        tabIndex={2}
+                                                        autoComplete="current-password"
+                                                        placeholder="Enter your password"
+                                                        className={inputClassName}
+                                                    />
+                                                    <InputError message={errors.password} />
+                                                </div>
+                                            </div>
+
+                                            {/* Sign in button */}
+                                            <div className="mt-2">
+                                                <button
+                                                    type="submit"
+                                                    tabIndex={3}
+                                                    disabled={processing}
+                                                    data-test="login-button"
+                                                    className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#f7941d] to-[#d9530c] text-sm font-bold text-[#0f0f10] shadow-[0_4px_16px_rgba(217,83,12,0.35)] transition-all duration-150 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+                                                    {processing && <Spinner />}
+                                                    {processing ? 'Signing in...' : 'Sign In'}
+                                                </button>
+                                            </div>
+
+                                            {/* Forgot password */}
+                                            <p className="text-center text-sm text-gray-500 dark:text-gray-500">
+                                                Forgot your password?{' '}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => switchMode('reset')}
+                                                    className="cursor-pointer font-semibold text-gray-700 underline-offset-2 hover:underline dark:text-gray-200"
+                                                >
+                                                    Reset it here
+                                                </button>
+                                            </p>
+
+                                            {/* Role hint */}
+                                            <p className="text-center text-sm text-gray-500 dark:text-gray-500">
+                                                Enter your credentials to continue.
+                                            </p>
+                                        </>
+                                    )}
+                                </Form>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
