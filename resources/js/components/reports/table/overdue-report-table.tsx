@@ -123,6 +123,7 @@ export function OverdueReportTable({ overdueItems, animationKey, handlePageChang
                                     <td className="py-3.5">
                                         <Button
                                             size="sm"
+                                            className="cursor-pointer"
                                             variant="outline"
                                             onClick={() => {
                                                 router.post(

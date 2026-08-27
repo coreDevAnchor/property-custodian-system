@@ -300,7 +300,6 @@ const custodianSections: DocSection[] = [
             'Fix any reported row errors and re-upload — imports are all-or-nothing, so nothing is saved until every row is valid',
             'Each imported asset gets an auto-generated tag, status Available, condition Excellent, and today\'s acquisition date',
         ],
-        gif: '/docs/import-assets.gif',
     },
     {
         id: 'borrow-requests',
@@ -421,8 +420,8 @@ function useScrollSpy(ids: string[]) {
             const el = document.getElementById(id);
 
             if (el) {
-observer.observe(el);
-}
+                observer.observe(el);
+            }
         }
 
         return () => observer.disconnect();
@@ -501,8 +500,8 @@ function TableOfContents({
                         <button
                             onClick={() => scrollTo(section.id)}
                             className={`cursor-pointer w-full text-left border-l-2 py-1.5 pl-4 text-sm transition-colors ${activeId === section.id
-                                    ? 'border-primary font-semibold text-primary'
-                                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                                ? 'border-primary font-semibold text-primary'
+                                : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
                                 }`}
                         >
                             {section.title}
