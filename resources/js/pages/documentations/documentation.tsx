@@ -1,6 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import {
+    BadgeCheck,
     BarChart3,
     Box,
     CheckCircle,
@@ -10,6 +11,8 @@ import {
     FileSpreadsheet,
     FileText,
     History,
+    KeyRound,
+    Mail,
     PackageSearch,
     RefreshCcw,
     Terminal,
@@ -72,6 +75,71 @@ const installationSections: DocSection[] = [
                 label: 'Start development servers',
                 code: 'php artisan serve\nnpm run dev',
             },
+        ],
+    },
+    {
+        id: 'email-configuration',
+        title: 'Email Configuration',
+        icon: Mail,
+        description:
+            'The system sends email notifications for return reminders, password resets, and email verification links. You must configure SMTP credentials before deploying to a live environment.',
+        steps: [
+            'Open the .env file in your project root',
+            'Set MAIL_MAILER to smtp',
+            'Set MAIL_HOST to your SMTP server address (e.g. smtp.gmail.com)',
+            'Set MAIL_PORT to the SMTP port (e.g. 587 for TLS)',
+            'Set MAIL_USERNAME to your sending email address',
+            'Set MAIL_PASSWORD to an App Password — not your account password',
+            'Set MAIL_ENCRYPTION to tls',
+            'Set MAIL_FROM_ADDRESS and MAIL_FROM_NAME for outgoing emails',
+            'Run php artisan config:clear to apply changes',
+        ],
+        codeBlocks: [
+            {
+                label: 'Required .env mail settings',
+                code: 'MAIL_MAILER=smtp\nMAIL_HOST=smtp.gmail.com\nMAIL_PORT=587\nMAIL_USERNAME=youremail@gmail.com\nMAIL_PASSWORD=your-app-password\nMAIL_ENCRYPTION=tls\nMAIL_FROM_ADDRESS="youremail@gmail.com"\nMAIL_FROM_NAME="${APP_NAME}"',
+            },
+        ],
+    },
+    {
+        id: 'validate-email',
+        title: 'Validate Your Email',
+        icon: BadgeCheck,
+        description:
+            'Email validation ensures you receive return reminders and password reset codes at your registered address. You can validate your email any time from the Settings page.',
+        steps: [
+            'Go to Settings > Profile',
+            'Find the "Validate Email" section — your registered address is displayed there',
+            'If not yet validated, click the "Validate" button',
+            'Open your email inbox and click the verification link in the message from the system',
+            'The badge will update to show "Validated"',
+        ],
+        actions: [
+            'Changing your email address automatically resets email validation',
+            'Return reminders and OTP codes are only sent to validated email addresses',
+        ],
+    },
+    {
+        id: 'forgot-password',
+        title: 'Forgot Password / Reset Password',
+        icon: KeyRound,
+        description:
+            'Reset your password using an emailed OTP code directly from the login page. You do not need to be signed in to use this feature.',
+        steps: [
+            'On the login page, click "Forgot your password? Reset it here"',
+            'Enter the email address associated with your account',
+            'Click "Send OTP" — a 6-digit verification code will be emailed to you',
+            'The code is valid for 3 minutes; a live countdown is shown on screen',
+            'After 60 seconds you may request a new code by clicking "Resend"',
+            'Enter the 6-digit code in the "Verification code" field',
+            'Enter your new password',
+            'Click "Change Password" — you will be redirected to the login screen',
+            'Sign in with your new password',
+        ],
+        actions: [
+            'A maximum of 5 incorrect code attempts is allowed per code — after that, request a new one',
+            'If the code expires, click "Resend" to receive a fresh OTP',
+            'Your email must be validated to receive the OTP message',
         ],
     },
     {
