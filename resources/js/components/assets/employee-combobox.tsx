@@ -63,7 +63,8 @@ export function EmployeeCombobox({ employees, value, onChange }: Props) {
 
                             <span className="truncate">
                                 {selected
-                                    ? selected.user?.name ?? `Employee #${selected.id}`
+                                    ? (selected.user?.name ??
+                                      `Employee #${selected.id}`)
                                     : 'Select original owner'}
                             </span>
                         </span>
@@ -78,7 +79,7 @@ export function EmployeeCombobox({ employees, value, onChange }: Props) {
                             event.stopPropagation();
                             onChange(undefined);
                         }}
-                        className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+                        className="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     >
                         <X className="size-3.5" />
                     </button>
@@ -91,13 +92,13 @@ export function EmployeeCombobox({ employees, value, onChange }: Props) {
             >
                 <div className="border-b border-border p-2">
                     <div className="relative">
-                        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
 
                         <Input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search by name, ID, or department..."
-                            className="pl-8 h-9"
+                            className="h-9 pl-8"
                             autoFocus
                         />
                     </div>
@@ -121,16 +122,21 @@ export function EmployeeCombobox({ employees, value, onChange }: Props) {
                                         setOpen(false);
                                         setSearch('');
                                     }}
-                                    className={`flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors cursor-pointer ${isSelected ? 'bg-muted' : 'hover:bg-muted/60'}`}
+                                    className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors ${isSelected ? 'bg-muted' : 'hover:bg-muted/60'}`}
                                 >
                                     <span className="flex min-w-0 flex-col">
                                         <span className="truncate font-medium text-foreground">
-                                            {employee.user?.name ?? `Employee #${employee.id}`}
+                                            {employee.user?.name ??
+                                                `Employee #${employee.id}`}
                                         </span>
 
-                                        {(employee.employee_id || employee.department) && (
+                                        {(employee.employee_id ||
+                                            employee.department) && (
                                             <span className="truncate text-xs text-muted-foreground">
-                                                {[employee.employee_id, employee.department]
+                                                {[
+                                                    employee.employee_id,
+                                                    employee.department,
+                                                ]
                                                     .filter(Boolean)
                                                     .join(' · ')}
                                             </span>

@@ -56,7 +56,6 @@ import type { StagedImage } from '@/types/images';
 
 type FormValues = z.infer<typeof assetSchema>;
 
-
 interface Props {
     open: boolean;
     mode: 'create' | 'edit';
@@ -89,7 +88,12 @@ const conditionActiveStyles: Record<number, string> = {
 // (`max:2048` KB) so oversized files are rejected before they're even
 // staged, instead of only failing after a round-trip to the server.
 const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024;
-const ACCEPTED_PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+const ACCEPTED_PHOTO_TYPES = [
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/webp',
+];
 
 function ConditionScale({
     value,
@@ -108,11 +112,13 @@ function ConditionScale({
                         key={option.value}
                         type="button"
                         onClick={() => onChange(option.value)}
-                        className={`flex-1 cursor-pointer border-border px-3 py-2 text-sm font-semibold transition-colors ${index !== 0 ? 'border-l' : ''
-                            } ${isActive
+                        className={`flex-1 cursor-pointer border-border px-3 py-2 text-sm font-semibold transition-colors ${
+                            index !== 0 ? 'border-l' : ''
+                        } ${
+                            isActive
                                 ? conditionActiveStyles[option.value]
                                 : 'bg-background text-muted-foreground hover:bg-muted/50'
-                            }`}
+                        }`}
                     >
                         {option.label}
                     </button>
@@ -362,14 +368,17 @@ export function AssetFormDialog({
     );
 
     return (
-        <Dialog open={open} onOpenChange={(value) => {
-            if (!value) {
-                form.reset(defaultValues);
-                form.clearErrors();
-            }
+        <Dialog
+            open={open}
+            onOpenChange={(value) => {
+                if (!value) {
+                    form.reset(defaultValues);
+                    form.clearErrors();
+                }
 
-            onOpenChange(value);
-        }}>
+                onOpenChange(value);
+            }}
+        >
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
                 <DialogHeader>
                     <DialogTitle>
@@ -415,7 +424,9 @@ export function AssetFormDialog({
                                     name="owner_id"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Original Owner</FormLabel>
+                                            <FormLabel>
+                                                Original Owner
+                                            </FormLabel>
 
                                             <FormControl>
                                                 <EmployeeCombobox
@@ -467,13 +478,23 @@ export function AssetFormDialog({
                                                 <FormLabel>Category</FormLabel>
 
                                                 <Select
-                                                    value={field.value?.toString() ?? ''}
+                                                    value={
+                                                        field.value?.toString() ??
+                                                        ''
+                                                    }
                                                     onValueChange={(value) => {
-                                                        if (value === '__add_new_category__') {
-                                                            setShowAddCategoryDialog(true);
+                                                        if (
+                                                            value ===
+                                                            '__add_new_category__'
+                                                        ) {
+                                                            setShowAddCategoryDialog(
+                                                                true,
+                                                            );
                                                             return;
                                                         }
-                                                        field.onChange(Number(value));
+                                                        field.onChange(
+                                                            Number(value),
+                                                        );
                                                     }}
                                                 >
                                                     <FormControl className="cursor-pointer">
@@ -491,15 +512,17 @@ export function AssetFormDialog({
                                                                     }
                                                                     value={category.id.toString()}
                                                                 >
-                                                                    {category.name}
+                                                                    {
+                                                                        category.name
+                                                                    }
                                                                 </SelectItem>
                                                             ),
                                                         )}
                                                         <SelectItem
                                                             value="__add_new_category__"
-                                                            className="text-orange-600 font-medium"
+                                                            className="font-medium text-orange-600"
                                                         >
-                                                            <Plus className="size-4 inline mr-1" />
+                                                            <Plus className="mr-1 inline size-4" />
                                                             Add New Category
                                                         </SelectItem>
                                                     </SelectContent>
@@ -516,16 +539,28 @@ export function AssetFormDialog({
                                         name="asset_type_id"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Asset Type</FormLabel>
+                                                <FormLabel>
+                                                    Asset Type
+                                                </FormLabel>
 
                                                 <Select
-                                                    value={field.value?.toString() ?? ''}
+                                                    value={
+                                                        field.value?.toString() ??
+                                                        ''
+                                                    }
                                                     onValueChange={(value) => {
-                                                        if (value === '__add_new_asset_type__') {
-                                                            setShowAddAssetTypeDialog(true);
+                                                        if (
+                                                            value ===
+                                                            '__add_new_asset_type__'
+                                                        ) {
+                                                            setShowAddAssetTypeDialog(
+                                                                true,
+                                                            );
                                                             return;
                                                         }
-                                                        field.onChange(Number(value));
+                                                        field.onChange(
+                                                            Number(value),
+                                                        );
                                                     }}
                                                 >
                                                     <FormControl className="cursor-pointer">
@@ -543,15 +578,17 @@ export function AssetFormDialog({
                                                                     }
                                                                     value={assetType.id.toString()}
                                                                 >
-                                                                    {assetType.name}
+                                                                    {
+                                                                        assetType.name
+                                                                    }
                                                                 </SelectItem>
                                                             ),
                                                         )}
                                                         <SelectItem
                                                             value="__add_new_asset_type__"
-                                                            className="text-orange-600 font-medium"
+                                                            className="font-medium text-orange-600"
                                                         >
-                                                            <Plus className="size-4 inline mr-1" />
+                                                            <Plus className="mr-1 inline size-4" />
                                                             Add New Asset Type
                                                         </SelectItem>
                                                     </SelectContent>
@@ -616,7 +653,10 @@ export function AssetFormDialog({
                                             <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}
-                                                disabled={mode === 'edit' && asset?.status === 'borrowed'}
+                                                disabled={
+                                                    mode === 'edit' &&
+                                                    asset?.status === 'borrowed'
+                                                }
                                             >
                                                 <FormControl className="cursor-pointer">
                                                     <SelectTrigger>
@@ -639,11 +679,16 @@ export function AssetFormDialog({
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                            {mode === 'edit' && asset?.status === 'borrowed' && (
-                                                <p className="text-sm text-muted-foreground mt-2">
-                                                    This asset is currently borrowed. Its status can only be changed after it is returned.
-                                                </p>
-                                            )}
+                                            {mode === 'edit' &&
+                                                asset?.status ===
+                                                    'borrowed' && (
+                                                    <p className="mt-2 text-sm text-muted-foreground">
+                                                        This asset is currently
+                                                        borrowed. Its status can
+                                                        only be changed after it
+                                                        is returned.
+                                                    </p>
+                                                )}
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -675,7 +720,9 @@ export function AssetFormDialog({
                                     name="amount"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Amount (Units)</FormLabel>
+                                            <FormLabel>
+                                                Amount (Units)
+                                            </FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
@@ -685,7 +732,9 @@ export function AssetFormDialog({
                                                     value={field.value ?? 1}
                                                     onChange={(e) =>
                                                         field.onChange(
-                                                            Number(e.target.value),
+                                                            Number(
+                                                                e.target.value,
+                                                            ),
                                                         )
                                                     }
                                                 />
@@ -702,12 +751,16 @@ export function AssetFormDialog({
                                     name="acquisition_date"
                                     render={({ field }) => {
                                         const selectedDate = field.value
-                                            ? new Date(`${field.value}T00:00:00`)
+                                            ? new Date(
+                                                  `${field.value}T00:00:00`,
+                                              )
                                             : undefined;
 
                                         return (
                                             <FormItem className="flex flex-col">
-                                                <FormLabel>Acquisition Date</FormLabel>
+                                                <FormLabel>
+                                                    Acquisition Date
+                                                </FormLabel>
 
                                                 <Popover>
                                                     <PopoverTrigger asChild>
@@ -715,22 +768,23 @@ export function AssetFormDialog({
                                                             <Button
                                                                 type="button"
                                                                 variant="outline"
-                                                                className={`h-10 w-full cursor-pointer justify-start text-left font-normal ${!field.value
-                                                                    ? 'text-muted-foreground'
-                                                                    : ''
-                                                                    }`}
+                                                                className={`h-10 w-full cursor-pointer justify-start text-left font-normal ${
+                                                                    !field.value
+                                                                        ? 'text-muted-foreground'
+                                                                        : ''
+                                                                }`}
                                                             >
                                                                 <CalendarDays className="mr-2 size-4" />
 
                                                                 {selectedDate
                                                                     ? selectedDate.toLocaleDateString(
-                                                                        'en-US',
-                                                                        {
-                                                                            year: 'numeric',
-                                                                            month: 'long',
-                                                                            day: 'numeric',
-                                                                        },
-                                                                    )
+                                                                          'en-US',
+                                                                          {
+                                                                              year: 'numeric',
+                                                                              month: 'long',
+                                                                              day: 'numeric',
+                                                                          },
+                                                                      )
                                                                     : 'Select acquisition date'}
                                                             </Button>
                                                         </FormControl>
@@ -742,24 +796,40 @@ export function AssetFormDialog({
                                                     >
                                                         <Calendar
                                                             mode="single"
-                                                            selected={selectedDate}
-                                                            onSelect={(date) => {
+                                                            selected={
+                                                                selectedDate
+                                                            }
+                                                            onSelect={(
+                                                                date,
+                                                            ) => {
                                                                 if (!date) {
-                                                                    field.onChange('');
+                                                                    field.onChange(
+                                                                        '',
+                                                                    );
                                                                     return;
                                                                 }
 
-                                                                const formattedDate = [
-                                                                    date.getFullYear(),
-                                                                    String(
-                                                                        date.getMonth() + 1,
-                                                                    ).padStart(2, '0'),
-                                                                    String(
-                                                                        date.getDate(),
-                                                                    ).padStart(2, '0'),
-                                                                ].join('-');
+                                                                const formattedDate =
+                                                                    [
+                                                                        date.getFullYear(),
+                                                                        String(
+                                                                            date.getMonth() +
+                                                                                1,
+                                                                        ).padStart(
+                                                                            2,
+                                                                            '0',
+                                                                        ),
+                                                                        String(
+                                                                            date.getDate(),
+                                                                        ).padStart(
+                                                                            2,
+                                                                            '0',
+                                                                        ),
+                                                                    ].join('-');
 
-                                                                field.onChange(formattedDate);
+                                                                field.onChange(
+                                                                    formattedDate,
+                                                                );
                                                             }}
                                                         />
                                                     </PopoverContent>

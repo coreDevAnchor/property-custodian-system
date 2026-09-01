@@ -14,7 +14,9 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use Laravel\Fortify\Contracts\VerifyEmailResponse as VerifyEmailResponseContract;
 use App\Http\Responses\LoginResponse;
+use App\Http\Responses\VerifyEmailResponse;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -29,6 +31,11 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->singleton(
             LoginResponseContract::class,
             LoginResponse::class,
+        );
+
+        $this->app->singleton(
+            VerifyEmailResponseContract::class,
+            VerifyEmailResponse::class,
         );
     }
 

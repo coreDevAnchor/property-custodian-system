@@ -27,9 +27,9 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { zodResolver } from "@hookform/resolvers/zod";
-import { employeeSchema } from "./employee-schema";
-import type { z } from "zod";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { employeeSchema } from './employee-schema';
+import type { z } from 'zod';
 
 type FormValues = z.infer<typeof employeeSchema>;
 
@@ -47,7 +47,6 @@ interface Employee {
     is_active: boolean;
     user: EmployeeUser;
 }
-
 
 interface Props {
     open: boolean;
@@ -121,12 +120,9 @@ export function EmployeeFormDialog({
             department: data.department,
             contact: data.contact,
             employee_id:
-                mode === 'create'
-                    ? nextEmployeeId
-                    : employee?.employee_id,
+                mode === 'create' ? nextEmployeeId : employee?.employee_id,
             is_active: data.is_active,
         };
-
 
         if (mode === 'create') {
             router.post('/custodian/employees', payload, {
@@ -163,7 +159,7 @@ export function EmployeeFormDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>
                         {mode === 'create' ? 'Add Employee' : 'Edit Employee'}
@@ -176,7 +172,10 @@ export function EmployeeFormDialog({
                 </DialogHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
+                    <form
+                        onSubmit={form.handleSubmit(submit)}
+                        className="space-y-6"
+                    >
                         <div className="grid gap-4 md:grid-cols-2">
                             <FormField
                                 control={form.control}
@@ -185,7 +184,10 @@ export function EmployeeFormDialog({
                                     <FormItem>
                                         <FormLabel>Full Name</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Juan Dela Cruz" {...field} />
+                                            <Input
+                                                placeholder="Juan Dela Cruz"
+                                                {...field}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -198,7 +200,11 @@ export function EmployeeFormDialog({
                                     <FormItem>
                                         <FormLabel>Email</FormLabel>
                                         <FormControl>
-                                            <Input type="email" placeholder="juan@company.com" {...field} />
+                                            <Input
+                                                type="email"
+                                                placeholder="juan@company.com"
+                                                {...field}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -218,12 +224,13 @@ export function EmployeeFormDialog({
                                             type="text"
                                             value="Password123!"
                                             readOnly
-                                            className="bg-muted cursor-not-allowed"
+                                            className="cursor-not-allowed bg-muted"
                                         />
                                     </FormControl>
 
-                                    <p className="text-sm text-muted-foreground mt-2">
-                                        Default password: Password123! Employee should change it after first login.
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        Default password: Password123! Employee
+                                        should change it after first login.
                                     </p>
 
                                     <FormMessage />
@@ -250,14 +257,16 @@ export function EmployeeFormDialog({
                                             </FormControl>
 
                                             <SelectContent>
-                                                {departments.map((department) => (
-                                                    <SelectItem
-                                                        key={department}
-                                                        value={department}
-                                                    >
-                                                        {department}
-                                                    </SelectItem>
-                                                ))}
+                                                {departments.map(
+                                                    (department) => (
+                                                        <SelectItem
+                                                            key={department}
+                                                            value={department}
+                                                        >
+                                                            {department}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
                                             </SelectContent>
                                         </Select>
 
@@ -273,7 +282,12 @@ export function EmployeeFormDialog({
                                         <FormLabel>Employee ID</FormLabel>
                                         <FormControl>
                                             <Input
-                                                value={mode === 'create' ? nextEmployeeId : employee?.employee_id ?? ''}
+                                                value={
+                                                    mode === 'create'
+                                                        ? nextEmployeeId
+                                                        : (employee?.employee_id ??
+                                                          '')
+                                                }
                                                 disabled
                                             />
                                         </FormControl>
@@ -296,7 +310,11 @@ export function EmployeeFormDialog({
                                             inputMode="numeric"
                                             value={field.value}
                                             onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, '');
+                                                const value =
+                                                    e.target.value.replace(
+                                                        /\D/g,
+                                                        '',
+                                                    );
 
                                                 if (value.length <= 11) {
                                                     field.onChange(value);
@@ -315,15 +333,20 @@ export function EmployeeFormDialog({
                             render={({ field }) => (
                                 <FormItem className="flex items-center justify-between rounded-lg border border-border p-3">
                                     <div>
-                                        <FormLabel className="text-sm">Active</FormLabel>
+                                        <FormLabel className="text-sm">
+                                            Active
+                                        </FormLabel>
                                         <p className="text-xs text-muted-foreground">
-                                            Inactive employees can't be assigned new borrows.
+                                            Inactive employees can't be assigned
+                                            new borrows.
                                         </p>
                                     </div>
                                     <FormControl>
                                         <Switch
                                             checked={!!field.value}
-                                            onCheckedChange={(checked) => field.onChange(checked)}
+                                            onCheckedChange={(checked) =>
+                                                field.onChange(checked)
+                                            }
                                         />
                                     </FormControl>
                                 </FormItem>
@@ -331,11 +354,18 @@ export function EmployeeFormDialog({
                         />
 
                         <DialogFooter>
-                            <Button className="cursor-pointer" type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            <Button
+                                className="cursor-pointer"
+                                type="button"
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                            >
                                 Cancel
                             </Button>
                             <Button className="cursor-pointer" type="submit">
-                                {mode === 'create' ? 'Add Employee' : 'Save Changes'}
+                                {mode === 'create'
+                                    ? 'Add Employee'
+                                    : 'Save Changes'}
                             </Button>
                         </DialogFooter>
                     </form>

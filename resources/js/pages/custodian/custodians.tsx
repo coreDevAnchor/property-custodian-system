@@ -33,9 +33,9 @@ import { CustodianDeleteDialog } from '@/components/custodian/custodian-delete-d
 import type { SharedData } from '@/types';
 import type { Paginated } from '@/types/pagination';
 import type { Custodian, Filters } from '@/types/custodian';
-import { motion } from "framer-motion";
-import { rowVariants } from "@/components/assets/asset-table-animations";
-import { AnimatedTableBody } from "@/components/ui/animated-table-body";
+import { motion } from 'framer-motion';
+import { rowVariants } from '@/components/assets/asset-table-animations';
+import { AnimatedTableBody } from '@/components/ui/animated-table-body';
 
 interface Props {
     custodians: Paginated<Custodian>;
@@ -127,9 +127,11 @@ function CustodianFormDialog({
                         >
                             Cancel
                         </Button>
-                        <Button type="submit"
+                        <Button
+                            type="submit"
                             className="cursor-pointer"
-                            disabled={form.processing}>
+                            disabled={form.processing}
+                        >
                             {isEditing ? 'Save Changes' : 'Add Custodian'}
                         </Button>
                     </DialogFooter>
@@ -143,10 +145,10 @@ export default function Custodians({ custodians, filters }: Props) {
     const { props } = usePage<SharedData>();
     const [search, setSearch] = useState(filters.search ?? '');
     const [formTarget, setFormTarget] = useState<
-        Custodian | null | undefined>();
+        Custodian | null | undefined
+    >();
     const [deleteTarget, setDeleteTarget] = useState<Custodian | null>(null);
     const deleteForm = useForm({});
-
 
     const [loading, setLoading] = useState(false);
 
@@ -171,7 +173,6 @@ export default function Custodians({ custodians, filters }: Props) {
                 only: ['custodians', 'filters'],
                 onFinish: () => setLoading(false),
             },
-
         );
     }
 
@@ -259,7 +260,7 @@ export default function Custodians({ custodians, filters }: Props) {
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Added
                                     </th>
-                                    <th className="py-3 text-middle text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                    <th className="text-middle py-3 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Actions
                                     </th>
                                 </tr>
@@ -273,9 +274,12 @@ export default function Custodians({ custodians, filters }: Props) {
                                     const isCurrentUser =
                                         custodian.id === props.auth.user?.id;
 
-                                    const activeBorrows = custodian.borrows?.filter(
-                                        (b) => b.status === 'borrowed' || b.status === 'awaiting_check'
-                                    );
+                                    const activeBorrows =
+                                        custodian.borrows?.filter(
+                                            (b) =>
+                                                b.status === 'borrowed' ||
+                                                b.status === 'awaiting_check',
+                                        );
 
                                     return (
                                         <motion.tr
@@ -311,7 +315,7 @@ export default function Custodians({ custodians, filters }: Props) {
                                                     custodian.created_at,
                                                 ).toLocaleDateString()}
                                             </td>
-                                            <td className="py-3.5  text-center">
+                                            <td className="py-3.5 text-center">
                                                 <div className="flex justify-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                                                     <button
                                                         onClick={() =>
@@ -319,7 +323,7 @@ export default function Custodians({ custodians, filters }: Props) {
                                                                 custodian,
                                                             )
                                                         }
-                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-500 cursor-pointer"
+                                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-500"
                                                         aria-label={`Edit ${custodian.name}`}
                                                     >
                                                         <Pencil className="size-4" />
@@ -332,16 +336,18 @@ export default function Custodians({ custodians, filters }: Props) {
                                                             )
                                                         }
                                                         disabled={isCurrentUser}
-                                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
                                                         aria-label={`Remove ${custodian.name}`}
                                                     >
                                                         <Trash2 className="size-4" />
                                                     </button>
 
                                                     <HoverCard>
-                                                        <HoverCardTrigger asChild>
+                                                        <HoverCardTrigger
+                                                            asChild
+                                                        >
                                                             <button
-                                                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
+                                                                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500"
                                                                 aria-label={`View borrowed items for ${custodian.name}`}
                                                             >
                                                                 <Eye className="size-4" />
@@ -350,31 +356,50 @@ export default function Custodians({ custodians, filters }: Props) {
 
                                                         <HoverCardContent className="w-80">
                                                             <div className="space-y-3">
-                                                                <h4 className="font-semibold">Borrowed Items</h4>
+                                                                <h4 className="font-semibold">
+                                                                    Borrowed
+                                                                    Items
+                                                                </h4>
 
                                                                 {activeBorrows?.length ? (
-                                                                    activeBorrows.map((borrow) => (
-                                                                        <div
-                                                                            key={borrow.id}
-                                                                            className="border-b border-border pb-2 last:border-0"
-                                                                        >
-                                                                            <div className="font-medium">
-                                                                                {borrow.asset.name}
+                                                                    activeBorrows.map(
+                                                                        (
+                                                                            borrow,
+                                                                        ) => (
+                                                                            <div
+                                                                                key={
+                                                                                    borrow.id
+                                                                                }
+                                                                                className="border-b border-border pb-2 last:border-0"
+                                                                            >
+                                                                                <div className="font-medium">
+                                                                                    {
+                                                                                        borrow
+                                                                                            .asset
+                                                                                            .name
+                                                                                    }
+                                                                                </div>
+                                                                                <div className="text-xs text-muted-foreground">
+                                                                                    {
+                                                                                        borrow
+                                                                                            .asset
+                                                                                            .asset_tag
+                                                                                    }
+                                                                                </div>
+                                                                                <div className="text-xs text-muted-foreground">
+                                                                                    Since{' '}
+                                                                                    {new Date(
+                                                                                        borrow.requested_at,
+                                                                                    ).toLocaleDateString()}
+                                                                                </div>
                                                                             </div>
-                                                                            <div className="text-xs text-muted-foreground">
-                                                                                {borrow.asset.asset_tag}
-                                                                            </div>
-                                                                            <div className="text-xs text-muted-foreground">
-                                                                                Since{' '}
-                                                                                {new Date(
-                                                                                    borrow.requested_at
-                                                                                ).toLocaleDateString()}
-                                                                            </div>
-                                                                        </div>
-                                                                    ))
+                                                                        ),
+                                                                    )
                                                                 ) : (
                                                                     <p className="text-sm text-muted-foreground">
-                                                                        No items currently borrowed.
+                                                                        No items
+                                                                        currently
+                                                                        borrowed.
                                                                     </p>
                                                                 )}
                                                             </div>

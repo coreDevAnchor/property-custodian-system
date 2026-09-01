@@ -41,65 +41,11 @@ interface DocSection {
 
 const installationSections: DocSection[] = [
     {
-        id: 'installation',
-        title: 'Installation',
-        icon: Terminal,
+        id: 'system-overview',
+        title: 'System Overview',
+        icon: Box,
         description:
-            'Follow these steps to set up the Property Custodian System on your local machine.',
-        steps: [
-            'Clone the repository from GitHub',
-            'Install PHP dependencies with Composer',
-            'Install JavaScript dependencies with npm',
-            'Configure your environment file',
-            'Run database migrations',
-            'Start the development servers',
-        ],
-        codeBlocks: [
-            {
-                label: 'Clone the repository',
-                code: 'git clone https://github.com/coreDevAnchor/property-custodian-system.git\ncd property-custodian-system',
-            },
-            {
-                label: 'Install dependencies',
-                code: 'composer install\nnpm install',
-            },
-            {
-                label: 'Configure environment',
-                code: 'cp .env.example .env\nphp artisan key:generate',
-            },
-            {
-                label: 'Run migrations and seeders',
-                code: 'php artisan migrate --seed',
-            },
-            {
-                label: 'Start development servers',
-                code: 'php artisan serve\nnpm run dev',
-            },
-        ],
-    },
-    {
-        id: 'email-configuration',
-        title: 'Email Configuration',
-        icon: Mail,
-        description:
-            'The system sends email notifications for return reminders, password resets, and email verification links. You must configure SMTP credentials before deploying to a live environment.',
-        steps: [
-            'Open the .env file in your project root',
-            'Set MAIL_MAILER to smtp',
-            'Set MAIL_HOST to your SMTP server address (e.g. smtp.gmail.com)',
-            'Set MAIL_PORT to the SMTP port (e.g. 587 for TLS)',
-            'Set MAIL_USERNAME to your sending email address',
-            'Set MAIL_PASSWORD to an App Password — not your account password',
-            'Set MAIL_ENCRYPTION to tls',
-            'Set MAIL_FROM_ADDRESS and MAIL_FROM_NAME for outgoing emails',
-            'Run php artisan config:clear to apply changes',
-        ],
-        codeBlocks: [
-            {
-                label: 'Required .env mail settings',
-                code: 'MAIL_MAILER=smtp\nMAIL_HOST=smtp.gmail.com\nMAIL_PORT=587\nMAIL_USERNAME=youremail@gmail.com\nMAIL_PASSWORD=your-app-password\nMAIL_ENCRYPTION=tls\nMAIL_FROM_ADDRESS="youremail@gmail.com"\nMAIL_FROM_NAME="${APP_NAME}"',
-            },
-        ],
+            'The Property Custodian System is a web application for managing organizational assets. It tracks equipment, handles borrow requests, and generates reports. Built with Laravel 13, React 19, and Inertia.js v3.',
     },
     {
         id: 'validate-email',
@@ -141,13 +87,6 @@ const installationSections: DocSection[] = [
             'If the code expires, click "Resend" to receive a fresh OTP',
             'Your email must be validated to receive the OTP message',
         ],
-    },
-    {
-        id: 'system-overview',
-        title: 'System Overview',
-        icon: Box,
-        description:
-            'The Property Custodian System is a web application for managing organizational assets. It tracks equipment, handles borrow requests, and generates reports. Built with Laravel 13, React 19, and Inertia.js v3.',
     },
 ];
 
@@ -255,6 +194,67 @@ const employeeSections: DocSection[] = [
 
 const custodianSections: DocSection[] = [
     {
+        id: 'installation',
+        title: 'Installation',
+        icon: Terminal,
+        description:
+            'Follow these steps to set up the Property Custodian System on your local machine.',
+        steps: [
+            'Clone the repository from GitHub',
+            'Install PHP dependencies with Composer',
+            'Install JavaScript dependencies with npm',
+            'Configure your environment file',
+            'Run database migrations',
+            'Start the development servers',
+        ],
+        codeBlocks: [
+            {
+                label: 'Clone the repository',
+                code: 'git clone https://github.com/coreDevAnchor/property-custodian-system.git\ncd property-custodian-system',
+            },
+            {
+                label: 'Install dependencies',
+                code: 'composer install\nnpm install',
+            },
+            {
+                label: 'Configure environment',
+                code: 'cp .env.example .env\nphp artisan key:generate',
+            },
+            {
+                label: 'Run migrations and seeders',
+                code: 'php artisan migrate --seed',
+            },
+            {
+                label: 'Start development servers',
+                code: 'php artisan serve\nnpm run dev',
+            },
+        ],
+    },
+    {
+        id: 'email-configuration',
+        title: 'Email Configuration',
+        icon: Mail,
+        description:
+            'The system sends email notifications for return reminders, password resets, and email verification links. You must configure SMTP credentials before deploying to a live environment.',
+        steps: [
+            'Open the .env file in your project root',
+            'Set MAIL_MAILER to smtp',
+            'Set MAIL_HOST to your SMTP server address (e.g. smtp.gmail.com)',
+            'Set MAIL_PORT to the SMTP port (e.g. 587 for TLS)',
+            'Set MAIL_USERNAME to your sending email address',
+            'Set MAIL_PASSWORD to an App Password — not your account password',
+            'Set MAIL_ENCRYPTION to tls',
+            'Set MAIL_FROM_ADDRESS and MAIL_FROM_NAME for outgoing emails',
+            'Run php artisan config:clear to apply changes',
+        ],
+        codeBlocks: [
+            {
+                label: 'Required .env mail settings',
+                code: 'MAIL_MAILER=smtp\nMAIL_HOST=smtp.gmail.com\nMAIL_PORT=587\nMAIL_USERNAME=youremail@gmail.com\nMAIL_PASSWORD=your-app-password\nMAIL_ENCRYPTION=tls\nMAIL_FROM_ADDRESS="youremail@gmail.com"\nMAIL_FROM_NAME="${APP_NAME}"',
+            },
+        ],
+    },
+    {
         id: 'custodian-dashboard',
         title: 'Dashboard',
         icon: Box,
@@ -273,7 +273,7 @@ const custodianSections: DocSection[] = [
         title: 'Asset Management',
         icon: Box,
         description:
-            'Full CRUD operations for managing the organization\'s asset inventory.',
+            "Full CRUD operations for managing the organization's asset inventory.",
         actions: [
             'Add new assets with name, category, type, and acquisition date',
             'Edit existing asset details',
@@ -298,7 +298,7 @@ const custodianSections: DocSection[] = [
             'Fill in the required columns: Name, Category, Asset Type, Acquisition Cost, and Total Depreciation (Amount and Owner are optional)',
             'Upload the file — max 5 MB; missing or unknown categories and asset types are created automatically',
             'Fix any reported row errors and re-upload — imports are all-or-nothing, so nothing is saved until every row is valid',
-            'Each imported asset gets an auto-generated tag, status Available, condition Excellent, and today\'s acquisition date',
+            "Each imported asset gets an auto-generated tag, status Available, condition Excellent, and today's acquisition date",
         ],
     },
     {
@@ -333,8 +333,7 @@ const custodianSections: DocSection[] = [
         id: 'employee-management',
         title: 'Employee Management',
         icon: Users,
-        description:
-            'Manage employee accounts in the system.',
+        description: 'Manage employee accounts in the system.',
         actions: [
             'View list of all employees',
             'Add new employee accounts',
@@ -435,11 +434,7 @@ function useScrollSpy(ids: string[]) {
 function GifPlaceholder({ src }: { src: string }) {
     return (
         <div className="my-6 overflow-hidden rounded-xl border border-border bg-muted/30">
-            <img
-                src={src}
-                alt="Documentation walkthrough"
-                className="w-full"
-            />
+            <img src={src} alt="Documentation walkthrough" className="w-full" />
         </div>
     );
 }
@@ -499,9 +494,9 @@ function TableOfContents({
                     <li key={section.id}>
                         <button
                             onClick={() => scrollTo(section.id)}
-                            className={`cursor-pointer w-full text-left border-l-2 py-1.5 pl-4 text-sm transition-colors ${activeId === section.id
-                                ? 'border-primary font-semibold text-primary'
-                                : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                            className={`w-full cursor-pointer border-l-2 py-1.5 pl-4 text-left text-sm transition-colors ${activeId === section.id
+                                    ? 'border-primary font-semibold text-primary'
+                                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
                                 }`}
                         >
                             {section.title}
@@ -583,10 +578,20 @@ export default function Documentation() {
     const { props } = usePage<SharedData>();
     const role = props.auth.user?.role ?? 'employee';
     const isCustodian = role === 'custodian';
-    const featureSections = isCustodian
-        ? custodianSections
-        : employeeSections;
-    const allSections = [...installationSections, ...featureSections];
+    const featureSections = isCustodian ? custodianSections : employeeSections;
+    const allSections = isCustodian
+        ? [
+            ...installationSections,
+            ...custodianSections.filter(
+                (s) =>
+                    s.id === 'installation' || s.id === 'email-configuration',
+            ),
+            ...custodianSections.filter(
+                (s) =>
+                    s.id !== 'installation' && s.id !== 'email-configuration',
+            ),
+        ]
+        : [...installationSections, ...employeeSections];
     const tocIds = allSections.map((s) => s.id);
     const activeId = useScrollSpy(tocIds);
 
@@ -628,8 +633,8 @@ export default function Documentation() {
                         {/* Footer note */}
                         <SectionReveal>
                             <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                                Need help? Contact your system administrator
-                                for access issues or technical support.
+                                Need help? Contact your system administrator for
+                                access issues or technical support.
                             </div>
                         </SectionReveal>
                     </div>
