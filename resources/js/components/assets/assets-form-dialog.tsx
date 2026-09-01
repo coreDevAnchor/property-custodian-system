@@ -1,12 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
-import { router } from '@inertiajs/react';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ImagePlus, X, CalendarDays, Plus } from 'lucide-react';
 import type { FormDataConvertible } from '@inertiajs/core';
-import { AddCategoryDialog } from '@/components/assets/add-category-dialog';
+import { router } from '@inertiajs/react';
+import { ImagePlus, X, CalendarDays, Plus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import type { z } from 'zod';
 import { AddAssetTypeDialog } from '@/components/assets/add-asset-type-dialog';
+import { AddCategoryDialog } from '@/components/assets/add-category-dialog';
 
+import { assetSchema } from '@/components/assets/assets-schema';
+import { EmployeeCombobox } from '@/components/assets/employee-combobox';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
     Dialog,
     DialogContent,
@@ -25,16 +30,12 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 
-import { Calendar } from '@/components/ui/calendar';
-
+import { Input } from '@/components/ui/input';
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 
 import {
     Select,
@@ -43,16 +44,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
-import { Button } from '@/components/ui/button';
-
-import { assetSchema } from '@/components/assets/assets-schema';
-import { EmployeeCombobox } from '@/components/assets/employee-combobox';
-import type { z } from 'zod';
 import type { Asset, AssetType, OwnerCandidate } from '@/types/assets';
 import type { Category } from '@/types/categories';
-import type { Location } from '@/types/location';
 import type { StagedImage } from '@/types/images';
+import type { Location } from '@/types/location';
 
 type FormValues = z.infer<typeof assetSchema>;
 
@@ -112,13 +109,11 @@ function ConditionScale({
                         key={option.value}
                         type="button"
                         onClick={() => onChange(option.value)}
-                        className={`flex-1 cursor-pointer border-border px-3 py-2 text-sm font-semibold transition-colors ${
-                            index !== 0 ? 'border-l' : ''
-                        } ${
-                            isActive
+                        className={`flex-1 cursor-pointer border-border px-3 py-2 text-sm font-semibold transition-colors ${index !== 0 ? 'border-l' : ''
+                            } ${isActive
                                 ? conditionActiveStyles[option.value]
                                 : 'bg-background text-muted-foreground hover:bg-muted/50'
-                        }`}
+                            }`}
                     >
                         {option.label}
                     </button>
@@ -147,7 +142,7 @@ const defaultValues: FormValues = {
 
     amount: 1,
 
-    owner_id: undefined,
+    owner_id: null,
 };
 
 export function AssetFormDialog({
@@ -189,7 +184,10 @@ export function AssetFormDialog({
             form.clearErrors();
 
             setImage((prev) => {
-                if (prev) URL.revokeObjectURL(prev.url);
+                if (prev) {
+                    URL.revokeObjectURL(prev.url);
+                }
+
                 return null;
             });
             setPhotoError(null);
@@ -217,7 +215,7 @@ export function AssetFormDialog({
 
                 amount: asset.amount ?? 1,
 
-                owner_id: asset.owner?.id ?? undefined,
+                owner_id: asset.owner?.id ?? null,
             });
             setExistingPhoto(asset.photo ?? null);
         }
@@ -242,14 +240,17 @@ export function AssetFormDialog({
 
                 amount: 1,
 
-                owner_id: undefined,
+                owner_id: null,
             });
             setExistingPhoto(null);
         }
 
         // Reset image staging whenever the dialog switches asset/mode.
         setImage((prev) => {
-            if (prev) URL.revokeObjectURL(prev.url);
+            if (prev) {
+                URL.revokeObjectURL(prev.url);
+            }
+
             return null;
         });
         setPhotoError(null);
@@ -258,32 +259,47 @@ export function AssetFormDialog({
     // Clean up the object URL on unmount.
     useEffect(() => {
         return () => {
-            if (image) URL.revokeObjectURL(image.url);
+            if (image) {
+                URL.revokeObjectURL(image.url);
+            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     function handleFileSelected(fileList: FileList | null) {
-        if (!fileList || fileList.length === 0) return;
+        if (!fileList || fileList.length === 0) {
+            return;
+        }
 
         const file = fileList[0];
         setPhotoError(null);
 
         if (!ACCEPTED_PHOTO_TYPES.includes(file.type)) {
             setPhotoError('Only JPG, PNG, or WebP images are allowed.');
-            if (fileInputRef.current) fileInputRef.current.value = '';
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+
             return;
         }
 
         if (file.size > MAX_PHOTO_SIZE_BYTES) {
             setPhotoError('That image exceeds the 2MB limit.');
-            if (fileInputRef.current) fileInputRef.current.value = '';
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+
             return;
         }
 
         // Replace whatever was staged before — only one photo is kept.
         setImage((prev) => {
-            if (prev) URL.revokeObjectURL(prev.url);
+            if (prev) {
+                URL.revokeObjectURL(prev.url);
+            }
+
             return {
                 id: `${file.name}-${file.lastModified}-${Math.random()
                     .toString(36)
@@ -293,18 +309,32 @@ export function AssetFormDialog({
             };
         });
 
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     }
 
     function handleRemove() {
         setImage((prev) => {
-            if (prev) URL.revokeObjectURL(prev.url);
+            if (prev) {
+                URL.revokeObjectURL(prev.url);
+            }
+
             return null;
         });
     }
 
     const submit = (data: FormValues) => {
         const payload: Record<string, FormDataConvertible> = { ...data };
+
+        // A cleared owner (null) would be dropped by FormData serialization,
+        // so the edit would never null the existing owner. Send an empty string
+        // instead; Laravel's ConvertEmptyStringsToNull middleware turns it into
+        // a null owner_id on the server.
+        if (payload.owner_id === null) {
+            payload.owner_id = '';
+        }
+
         if (image) {
             payload.photo = image.file;
         }
@@ -317,6 +347,7 @@ export function AssetFormDialog({
             Object.entries(errors).forEach(([field, message]) => {
                 if (field === 'photo') {
                     setPhotoError(message);
+
                     return;
                 }
 
@@ -326,7 +357,6 @@ export function AssetFormDialog({
                 });
             });
 
-            // eslint-disable-next-line no-console
             console.error('Asset save failed:', errors);
         };
 
@@ -424,9 +454,14 @@ export function AssetFormDialog({
                                     name="owner_id"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>
-                                                Original Owner
-                                            </FormLabel>
+                                            <div className="flex flex-row justify-between">
+                                                <FormLabel>
+                                                    Original Owner
+                                                </FormLabel>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Defaults to coreDev if unassigned.
+                                                </p>
+                                            </div>
 
                                             <FormControl>
                                                 <EmployeeCombobox
@@ -435,12 +470,6 @@ export function AssetFormDialog({
                                                     onChange={field.onChange}
                                                 />
                                             </FormControl>
-
-                                            <p className="text-xs text-muted-foreground">
-                                                If no employee is selected, this
-                                                asset is automatically owned by
-                                                coreDev.
-                                            </p>
 
                                             <FormMessage />
                                         </FormItem>
@@ -490,8 +519,10 @@ export function AssetFormDialog({
                                                             setShowAddCategoryDialog(
                                                                 true,
                                                             );
+
                                                             return;
                                                         }
+
                                                         field.onChange(
                                                             Number(value),
                                                         );
@@ -556,8 +587,10 @@ export function AssetFormDialog({
                                                             setShowAddAssetTypeDialog(
                                                                 true,
                                                             );
+
                                                             return;
                                                         }
+
                                                         field.onChange(
                                                             Number(value),
                                                         );
@@ -681,7 +714,7 @@ export function AssetFormDialog({
                                             </Select>
                                             {mode === 'edit' &&
                                                 asset?.status ===
-                                                    'borrowed' && (
+                                                'borrowed' && (
                                                     <p className="mt-2 text-sm text-muted-foreground">
                                                         This asset is currently
                                                         borrowed. Its status can
@@ -752,8 +785,8 @@ export function AssetFormDialog({
                                     render={({ field }) => {
                                         const selectedDate = field.value
                                             ? new Date(
-                                                  `${field.value}T00:00:00`,
-                                              )
+                                                `${field.value}T00:00:00`,
+                                            )
                                             : undefined;
 
                                         return (
@@ -768,23 +801,22 @@ export function AssetFormDialog({
                                                             <Button
                                                                 type="button"
                                                                 variant="outline"
-                                                                className={`h-10 w-full cursor-pointer justify-start text-left font-normal ${
-                                                                    !field.value
-                                                                        ? 'text-muted-foreground'
-                                                                        : ''
-                                                                }`}
+                                                                className={`h-10 w-full cursor-pointer justify-start text-left font-normal ${!field.value
+                                                                    ? 'text-muted-foreground'
+                                                                    : ''
+                                                                    }`}
                                                             >
                                                                 <CalendarDays className="mr-2 size-4" />
 
                                                                 {selectedDate
                                                                     ? selectedDate.toLocaleDateString(
-                                                                          'en-US',
-                                                                          {
-                                                                              year: 'numeric',
-                                                                              month: 'long',
-                                                                              day: 'numeric',
-                                                                          },
-                                                                      )
+                                                                        'en-US',
+                                                                        {
+                                                                            year: 'numeric',
+                                                                            month: 'long',
+                                                                            day: 'numeric',
+                                                                        },
+                                                                    )
                                                                     : 'Select acquisition date'}
                                                             </Button>
                                                         </FormControl>
@@ -806,6 +838,7 @@ export function AssetFormDialog({
                                                                     field.onChange(
                                                                         '',
                                                                     );
+
                                                                     return;
                                                                 }
 
@@ -814,7 +847,7 @@ export function AssetFormDialog({
                                                                         date.getFullYear(),
                                                                         String(
                                                                             date.getMonth() +
-                                                                                1,
+                                                                            1,
                                                                         ).padStart(
                                                                             2,
                                                                             '0',

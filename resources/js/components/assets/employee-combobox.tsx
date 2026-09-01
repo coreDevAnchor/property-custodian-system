@@ -1,5 +1,5 @@
+import { Check, Search, User, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Check, ChevronsUpDown, Search, User, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,8 @@ import type { OwnerCandidate } from '@/types/assets';
 
 interface Props {
     employees: OwnerCandidate[];
-    value?: number;
-    onChange: (value: number | undefined) => void;
+    value?: number | null;
+    onChange: (value: number | null) => void;
 }
 
 export function EmployeeCombobox({ employees, value, onChange }: Props) {
@@ -25,7 +25,9 @@ export function EmployeeCombobox({ employees, value, onChange }: Props) {
     const filtered = useMemo(() => {
         const query = search.trim().toLowerCase();
 
-        if (!query) return employees;
+        if (!query) {
+            return employees;
+        }
 
         return employees.filter((employee) => {
             const name = employee.user?.name?.toLowerCase() ?? '';
@@ -46,7 +48,9 @@ export function EmployeeCombobox({ employees, value, onChange }: Props) {
             onOpenChange={(next) => {
                 setOpen(next);
 
-                if (!next) setSearch('');
+                if (!next) {
+                    setSearch('');
+                }
             }}
         >
             <div className="relative w-full">
@@ -77,7 +81,7 @@ export function EmployeeCombobox({ employees, value, onChange }: Props) {
                         aria-label="Clear original owner"
                         onClick={(event) => {
                             event.stopPropagation();
-                            onChange(undefined);
+                            onChange(null);
                         }}
                         className="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     >
