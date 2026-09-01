@@ -40,7 +40,7 @@ test('an out-of-range assets page redirects to the last available page', functio
         ->assertRedirect(route('custodian.assets.index', ['page' => 1]));
 });
 
-test('available assets can be searched by asset type case-insensitively', function () {
+test('available assets can be searched by asset name case-insensitively', function () {
     $user = User::factory()->employee()->create();
     $category = Category::create(['name' => 'Electronics', 'prefix' => 'ELEC']);
     $location = Location::create(['name' => 'Main Office']);
@@ -67,7 +67,7 @@ test('available assets can be searched by asset type case-insensitively', functi
     ]);
 
     $this->actingAs($user)
-        ->get(route('employee.assets.index', ['search' => 'mOuSe']))
+        ->get(route('employee.assets.index', ['search' => 'm310']))
         ->assertSuccessful()
         ->assertInertia(fn ($page) => $page
             ->component('employee/employee-assets')

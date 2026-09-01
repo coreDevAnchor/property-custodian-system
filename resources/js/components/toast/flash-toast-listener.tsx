@@ -18,6 +18,7 @@ export function FlashToastListener() {
             return;
         }
 
+        toast.dismiss();
         toast[flash.type](flash.message);
     }, [flash]);
 

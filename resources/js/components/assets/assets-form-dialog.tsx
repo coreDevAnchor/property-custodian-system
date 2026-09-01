@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { FormDataConvertible } from '@inertiajs/core';
 import { router } from '@inertiajs/react';
 import { ImagePlus, X, CalendarDays, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
@@ -109,11 +110,13 @@ function ConditionScale({
                         key={option.value}
                         type="button"
                         onClick={() => onChange(option.value)}
-                        className={`flex-1 cursor-pointer border-border px-3 py-2 text-sm font-semibold transition-colors ${index !== 0 ? 'border-l' : ''
-                            } ${isActive
+                        className={`flex-1 cursor-pointer border-border px-3 py-2 text-sm font-semibold transition-colors ${
+                            index !== 0 ? 'border-l' : ''
+                        } ${
+                            isActive
                                 ? conditionActiveStyles[option.value]
                                 : 'bg-background text-muted-foreground hover:bg-muted/50'
-                            }`}
+                        }`}
                     >
                         {option.label}
                     </button>
@@ -364,6 +367,7 @@ export function AssetFormDialog({
             router.post('/custodian/assets', payload, {
                 forceFormData: true,
                 onSuccess: () => {
+                    toast.success('Asset created successfully.');
                     onOpenChange(false);
                     form.reset();
                 },
@@ -374,6 +378,7 @@ export function AssetFormDialog({
                 forceFormData: true,
                 preserveState: true,
                 onSuccess: () => {
+                    toast.success('Asset updated successfully.');
                     onOpenChange(false);
                 },
                 onError,
@@ -459,7 +464,8 @@ export function AssetFormDialog({
                                                     Original Owner
                                                 </FormLabel>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Defaults to coreDev if unassigned.
+                                                    Defaults to coreDev if
+                                                    unassigned.
                                                 </p>
                                             </div>
 
@@ -714,7 +720,7 @@ export function AssetFormDialog({
                                             </Select>
                                             {mode === 'edit' &&
                                                 asset?.status ===
-                                                'borrowed' && (
+                                                    'borrowed' && (
                                                     <p className="mt-2 text-sm text-muted-foreground">
                                                         This asset is currently
                                                         borrowed. Its status can
@@ -785,8 +791,8 @@ export function AssetFormDialog({
                                     render={({ field }) => {
                                         const selectedDate = field.value
                                             ? new Date(
-                                                `${field.value}T00:00:00`,
-                                            )
+                                                  `${field.value}T00:00:00`,
+                                              )
                                             : undefined;
 
                                         return (
@@ -801,22 +807,23 @@ export function AssetFormDialog({
                                                             <Button
                                                                 type="button"
                                                                 variant="outline"
-                                                                className={`h-10 w-full cursor-pointer justify-start text-left font-normal ${!field.value
-                                                                    ? 'text-muted-foreground'
-                                                                    : ''
-                                                                    }`}
+                                                                className={`h-10 w-full cursor-pointer justify-start text-left font-normal ${
+                                                                    !field.value
+                                                                        ? 'text-muted-foreground'
+                                                                        : ''
+                                                                }`}
                                                             >
                                                                 <CalendarDays className="mr-2 size-4" />
 
                                                                 {selectedDate
                                                                     ? selectedDate.toLocaleDateString(
-                                                                        'en-US',
-                                                                        {
-                                                                            year: 'numeric',
-                                                                            month: 'long',
-                                                                            day: 'numeric',
-                                                                        },
-                                                                    )
+                                                                          'en-US',
+                                                                          {
+                                                                              year: 'numeric',
+                                                                              month: 'long',
+                                                                              day: 'numeric',
+                                                                          },
+                                                                      )
                                                                     : 'Select acquisition date'}
                                                             </Button>
                                                         </FormControl>
@@ -847,7 +854,7 @@ export function AssetFormDialog({
                                                                         date.getFullYear(),
                                                                         String(
                                                                             date.getMonth() +
-                                                                            1,
+                                                                                1,
                                                                         ).padStart(
                                                                             2,
                                                                             '0',

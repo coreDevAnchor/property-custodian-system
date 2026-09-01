@@ -21,6 +21,7 @@ export function useFlashToast(): void {
             return;
         }
 
+        toast.dismiss();
         toast[flash.type](flash.message);
     }, [url]);
 }

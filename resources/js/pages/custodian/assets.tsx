@@ -1,68 +1,51 @@
 import { Head, router } from '@inertiajs/react';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
-    AlertTriangle,
     Armchair,
-    Car,
     FileUp,
-    FlaskConical,
     Laptop,
     Package,
     Pencil,
     Plus,
     Search,
     Video,
-    X,
     Eye,
 } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { rowVariants } from '@/components/assets/asset-table-animations';
+import { AssetFormDialog } from '@/components/assets/assets-form-dialog';
+import { AssetViewDialog } from '@/components/assets/assets-views-dialog';
+import { ImportAssetsDialog } from '@/components/assets/import-assets-dialog';
+import { AnimatedTableBody } from '@/components/ui/animated-table-body';
+import { Badge } from '@/components/ui/badge';
 import {
     HoverCard,
     HoverCardContent,
     HoverCardTrigger,
 } from '@/components/ui/hover-card';
+import { PaginationBar } from '@/components/ui/pagination';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
-import { AssetViewDialog } from "@/components/assets/assets-views-dialog";
+} from '@/components/ui/select';
 import { dashboard } from '@/routes/custodian';
 import assetRoutes from '@/routes/custodian/assets';
-import { AssetFormDialog } from "@/components/assets/assets-form-dialog";
-import { ImportAssetsDialog } from "@/components/assets/import-assets-dialog";
-import { motion } from "framer-motion";
-import { rowVariants, tableVariants } from '@/components/assets/asset-table-animations';
-import { PaginationBar } from '@/components/ui/pagination';
-import { Badge } from "@/components/ui/badge";
-import {
+import type {
     AssetStatus,
     AssetType,
-    AssetFormValues,
     OwnerCandidate,
-    statusOptions,
     Asset,
     AssetFilters,
 } from '@/types/assets';
+import { statusOptions } from '@/types/assets';
+import type { Category } from '@/types/categories';
 import type { Location } from '@/types/location';
 import type { Paginated } from '@/types/pagination';
-import type { Category } from '@/types/categories';
-import { AnimatedTableBody } from '@/components/ui/animated-table-body';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-const emptyForm: AssetFormValues = {
-    name: '',
-    category_id: 0,
-    asset_type_id: 0,
-    location_id: 0,
-    status: 'available',
-    acquisition_date: new Date().toISOString().slice(0, 10),
-    description: '',
-    serial_number: '',
-    amount: 1,
-};
 
 const statusLabels: Record<AssetStatus, string> = {
     available: 'Available',
@@ -89,11 +72,9 @@ const statusStyles: Record<string, string> = {
     under_repair:
         'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 
-    disposed:
-        'bg-muted text-muted-foreground',
+    disposed: 'bg-muted text-muted-foreground',
 
-    lost:
-        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    lost: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -134,12 +115,17 @@ function AssetRow({
                         <p className="truncate text-sm font-semibold text-foreground">
                             {asset.name}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">{asset.asset_tag}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                            {asset.asset_tag}
+                        </p>
                     </div>
                 </div>
             </td>
             <td className="py-3.5 pr-4">
-                <span className="max-w-[150px] truncate text-sm text-foreground block" title={asset.category.name}>
+                <span
+                    className="block max-w-[150px] truncate text-sm text-foreground"
+                    title={asset.category.name}
+                >
                     {asset.category.name}
                 </span>
             </td>
@@ -147,27 +133,43 @@ function AssetRow({
                 <StatusBadge status={asset.status} />
             </td>
             <td className="py-3.5 pr-4">
-                <span className="max-w-[120px] truncate text-sm text-muted-foreground block" title={
-                    asset.status === 'borrowed'
-                        ? (asset.borrows?.find((b) => b.status === 'borrowed')?.borrower?.name ?? 'Borrowed')
-                        : (asset.location?.name ?? '—')
-                }>
-                    {asset.status === 'borrowed'
-                        ? (asset.borrows?.find((b) => b.status === 'borrowed')?.borrower?.name ?? 'Borrowed')
-                        : (asset.location?.name ?? '—')}
-                </span>
-            </td>
-            <td className="py-3.5 pr-4">
-                <span className="text-sm text-muted-foreground">{asset.acquisition_date}</span>
-            </td>
-            <td className="py-3.5 pr-4">
-                <span className="text-sm text-foreground">
-                    {asset.category?.unit_type === 'multi' ? (asset.amount ?? 1) : '—'}
+                <span
+                    className="block max-w-[120px] truncate text-sm text-muted-foreground"
+                    title={asset.location?.name ?? '—'}
+                >
+                    {asset.location?.name ?? '—'}
                 </span>
             </td>
             <td className="py-3.5 pr-4">
                 <span
-                    className="max-w-[120px] truncate text-sm text-muted-foreground block"
+                    className="block max-w-[120px] truncate text-sm text-muted-foreground"
+                    title={
+                        asset.status === 'borrowed'
+                            ? (asset.current_borrow?.borrower?.name ??
+                              'Borrowed')
+                            : '—'
+                    }
+                >
+                    {asset.status === 'borrowed'
+                        ? (asset.current_borrow?.borrower?.name ?? 'Borrowed')
+                        : '—'}
+                </span>
+            </td>
+            <td className="py-3.5 pr-4">
+                <span className="text-sm text-muted-foreground">
+                    {asset.acquisition_date}
+                </span>
+            </td>
+            <td className="py-3.5 pr-4">
+                <span className="text-sm text-foreground">
+                    {asset.category?.unit_type === 'multi'
+                        ? (asset.amount ?? 1)
+                        : '—'}
+                </span>
+            </td>
+            <td className="py-3.5 pr-4">
+                <span
+                    className="block max-w-[120px] truncate text-sm text-muted-foreground"
                     title={asset.owner?.user?.name ?? 'coreDev'}
                 >
                     {asset.owner?.user?.name ?? 'coreDev'}
@@ -180,7 +182,7 @@ function AssetRow({
                             e.stopPropagation();
                             onEdit(asset);
                         }}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-500 cursor-pointer"
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-500/10 hover:text-blue-500"
                         aria-label={`Edit ${asset.name}`}
                     >
                         <Pencil className="size-4" />
@@ -190,7 +192,7 @@ function AssetRow({
                         <HoverCardTrigger asChild>
                             <button
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 cursor-pointer"
+                                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500"
                                 aria-label={`View borrow history for ${asset.name}`}
                             >
                                 <Eye className="size-4" />
@@ -202,23 +204,31 @@ function AssetRow({
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="space-y-3">
-                                <h4 className="font-semibold">Current Status</h4>
+                                <h4 className="font-semibold">
+                                    Current Status
+                                </h4>
 
                                 <p className="text-sm text-muted-foreground">
-                                    {asset.status === 'available' && 'This asset is currently available.'}
+                                    {asset.status === 'available' &&
+                                        'This asset is currently available.'}
 
                                     {asset.status === 'borrowed' && (
                                         <>
                                             Currently borrowed by:{' '}
                                             <span className="font-medium text-foreground">
-                                                {asset.current_borrow?.borrower?.name ?? 'Unknown borrower'}
+                                                {asset.current_borrow?.borrower
+                                                    ?.name ??
+                                                    'Unknown borrower'}
                                             </span>
                                         </>
                                     )}
 
-                                    {asset.status === 'under_repair' && 'This asset is currently under repair.'}
-                                    {asset.status === 'disposed' && 'This asset has been pulled out.'}
-                                    {asset.status === 'lost' && 'This asset has been reported as lost.'}
+                                    {asset.status === 'under_repair' &&
+                                        'This asset is currently under repair.'}
+                                    {asset.status === 'disposed' &&
+                                        'This asset has been pulled out.'}
+                                    {asset.status === 'lost' &&
+                                        'This asset has been reported as lost.'}
                                 </p>
                             </div>
                         </HoverCardContent>
@@ -249,7 +259,9 @@ export default function Assets({
     filters = { search: '', category: 'All', status: 'All', per_page: 10 },
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [categoryFilter, setCategoryFilter] = useState<string>(filters.category ?? 'All');
+    const [categoryFilter, setCategoryFilter] = useState<string>(
+        filters.category ?? 'All',
+    );
     const [statusFilter, setStatusFilter] = useState<'All' | AssetStatus>(
         (filters.status as 'All' | AssetStatus) ?? 'All',
     );
@@ -267,13 +279,8 @@ export default function Assets({
             filters.search,
             filters.category,
             filters.status,
-        ].join("-");
-    }, [
-        assets.current_page,
-        filters.search,
-        filters.category,
-        filters.status,
-    ]);
+        ].join('-');
+    }, [assets.current_page, filters.search, filters.category, filters.status]);
 
     // ── Server-driven filtering/pagination ──
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -289,21 +296,32 @@ export default function Assets({
                 per_page: overrides.per_page ?? assets.per_page,
                 page,
             },
-            { preserveState: true, preserveScroll: true, replace: true, only: ['assets', 'filters'] },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['assets', 'filters'],
+            },
         );
     }
 
     useEffect(() => {
         if (isFirstRun.current) {
             isFirstRun.current = false;
+
             return;
         }
 
-        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
         debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
         return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
@@ -357,7 +375,7 @@ export default function Assets({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setImportOpen(true)}
-                            className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm transition-all hover:bg-muted/60 active:scale-[0.98] cursor-pointer"
+                            className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm transition-all hover:bg-muted/60 active:scale-[0.98]"
                         >
                             <FileUp className="size-4" />
                             Upload Excel
@@ -365,7 +383,7 @@ export default function Assets({
 
                         <button
                             onClick={openAddModal}
-                            className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
+                            className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
                         >
                             <Plus className="size-4" />
                             Add New Asset
@@ -376,8 +394,8 @@ export default function Assets({
                 {/* ── Filters + table ── */}
                 <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
                     <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 h-10 w-full max-w-xs">
-                            <Search className="size-4 text-muted-foreground shrink-0" />
+                        <div className="flex h-10 w-full max-w-xs items-center gap-2 rounded-lg border border-border bg-background px-3">
+                            <Search className="size-4 shrink-0 text-muted-foreground" />
 
                             <input
                                 type="text"
@@ -414,9 +432,13 @@ export default function Assets({
                             {/* Status */}
                             <div className="flex flex-wrap items-center gap-2">
                                 <Badge
-                                    variant={statusFilter === "All" ? "default" : "secondary"}
+                                    variant={
+                                        statusFilter === 'All'
+                                            ? 'default'
+                                            : 'secondary'
+                                    }
                                     className="cursor-pointer"
-                                    onClick={() => handleStatusChange("All")}
+                                    onClick={() => handleStatusChange('All')}
                                 >
                                     All
                                 </Badge>
@@ -424,9 +446,15 @@ export default function Assets({
                                 {statusOptions.map((status) => (
                                     <Badge
                                         key={status}
-                                        variant={statusFilter === status ? "default" : "secondary"}
+                                        variant={
+                                            statusFilter === status
+                                                ? 'default'
+                                                : 'secondary'
+                                        }
                                         className="cursor-pointer"
-                                        onClick={() => handleStatusChange(status)}
+                                        onClick={() =>
+                                            handleStatusChange(status)
+                                        }
                                     >
                                         {statusLabels[status]}
                                     </Badge>
@@ -439,28 +467,31 @@ export default function Assets({
                         <table className="w-full min-w-[760px]">
                             <thead>
                                 <tr className="border-b border-border">
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Asset
                                     </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Category
                                     </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Status
                                     </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                        Location / Assigned To
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                        Location
                                     </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                                        Assigned To
+                                    </th>
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Date Added
                                     </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Amount
                                     </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Ownership
                                     </th>
-                                    <th className="py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground text-center">
+                                    <th className="py-3 text-center text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Actions
                                     </th>
                                 </tr>
@@ -509,7 +540,7 @@ export default function Assets({
 
             <AssetFormDialog
                 open={dialogOpen}
-                mode={editingAsset ? "edit" : "create"}
+                mode={editingAsset ? 'edit' : 'create'}
                 asset={editingAsset}
                 categories={categories}
                 locations={locations}

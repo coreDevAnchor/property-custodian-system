@@ -105,14 +105,14 @@ export function AddAssetTypeDialog({ open, onOpenChange, categoryId, onCreated }
                             value={prefix}
                             onChange={(e) => setPrefix(e.target.value.toUpperCase())}
                         />
-                        <Input
+                        {/* <Input
                             placeholder="Description (optional)"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                         />
                         {error && (
                             <p className="text-xs text-red-500">{error}</p>
-                        )}
+                        )} */}
                     </div>
 
                     <DialogFooter>

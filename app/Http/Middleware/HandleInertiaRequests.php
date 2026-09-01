@@ -45,16 +45,19 @@ class HandleInertiaRequests extends Middleware
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
-                'type' => $request->session()->get('success')
-                    ? 'success'
-                    : ($request->session()->get('error')
-                        ? 'error'
-                        : ($request->session()->get('warning')
-                            ? 'warning'
-                            : ($request->session()->get('info')
-                                ? 'info'
-                                : ($request->boolean('verified') ? 'success' : null)))),
-                'message' => $request->session()->get('success')
+                'type' => $request->session()->get('toast.type')
+                    ? $request->session()->get('toast.type')
+                    : ($request->session()->get('success')
+                        ? 'success'
+                        : ($request->session()->get('error')
+                            ? 'error'
+                            : ($request->session()->get('warning')
+                                ? 'warning'
+                                : ($request->session()->get('info')
+                                    ? 'info'
+                                    : ($request->boolean('verified') ? 'success' : null))))),
+                'message' => $request->session()->get('toast.message')
+                    ?? $request->session()->get('success')
                     ?? $request->session()->get('error')
                     ?? $request->session()->get('warning')
                     ?? $request->session()->get('info')

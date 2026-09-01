@@ -19,16 +19,14 @@ class AvailableAssetController extends Controller
         $assets = Asset::with(['category', 'assetType', 'location'])
             ->where('status', 'available')
             ->when($search, function ($query) use ($search) {
-                $searchPattern = '%' . mb_strtolower($search) . '%';
+                $searchPattern = '%'.mb_strtolower($search).'%';
 
                 $query->where(function ($q) use ($searchPattern) {
                     $q->whereRaw('LOWER(name) LIKE ?', [$searchPattern])
-                        ->orWhereRaw('LOWER(asset_tag) LIKE ?', [$searchPattern])
-                        ->orWhereHas('category', fn ($category) => $category->whereRaw('LOWER(name) LIKE ?', [$searchPattern]))
-                        ->orWhereHas('assetType', fn ($assetType) => $assetType->whereRaw('LOWER(name) LIKE ?', [$searchPattern]));
+                        ->orWhereRaw('LOWER(asset_tag) LIKE ?', [$searchPattern]);
                 });
             })
-            ->when($category !== 'All', fn($q) => $q->where('category_id', $category))
+            ->when($category !== 'All', fn ($q) => $q->where('category_id', $category))
             ->latest()
             ->paginate($perPage)
             ->withQueryString();

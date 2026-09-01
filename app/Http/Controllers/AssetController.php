@@ -2,26 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLogs;
 use App\Models\Asset;
+use App\Models\AssetType;
 use App\Models\Category;
-use App\Models\Location;
 use App\Models\Employee;
+use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use App\Models\AssetType;
-use App\Models\ActivityLogs;
+use OpenSpout\Common\Entity\Row;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 use OpenSpout\Writer\CSV\Writer as CsvWriter;
 use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
-use OpenSpout\Common\Entity\Row;
-
 
 class AssetController extends Controller
 {
-
     public function index(Request $request)
     {
         $search = $request->string('search')->toString();
@@ -57,7 +55,7 @@ class AssetController extends Controller
 
                 'currentBorrow',
 
-                'currentBorrow.borrower:id,name'
+                'currentBorrow.borrower:id,name',
             ])
             ->when($search, function ($query) use ($search) {
 
@@ -66,31 +64,13 @@ class AssetController extends Controller
                 $query->where(function ($q) use ($pattern) {
 
                     $q->where('name', 'ILIKE', $pattern)
-                        ->orWhere('asset_tag', 'ILIKE', $pattern)
-
-                        ->orWhereHas(
-                            'category',
-                            fn($c) =>
-                            $c->where('name', 'ILIKE', $pattern)
-                        )
-
-                        ->orWhereHas(
-                            'assetType',
-                            fn($t) =>
-                            $t->where('name', 'ILIKE', $pattern)
-                        )
-
-                        ->orWhereHas(
-                            'location',
-                            fn($l) =>
-                            $l->where('name', 'ILIKE', $pattern)
-                        );
+                        ->orWhere('asset_tag', 'ILIKE', $pattern);
 
                 });
 
             })
-            ->when($category !== 'All', fn($q) => $q->where('category_id', $category))
-            ->when($status !== 'All', fn($q) => $q->where('status', $status))
+            ->when($category !== 'All', fn ($q) => $q->where('category_id', $category))
+            ->when($status !== 'All', fn ($q) => $q->where('status', $status))
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -127,10 +107,7 @@ class AssetController extends Controller
         ]);
     }
 
-    public function create()
-    {
-
-    }
+    public function create() {}
 
     public function store(Request $request)
     {
@@ -235,7 +212,7 @@ class AssetController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'category_id' => ['required', 'exists:categories,id'],
-            'serial_number' => ['nullable', 'string', 'max:255', 'unique:assets,serial_number,' . $asset->id],
+            'serial_number' => ['nullable', 'string', 'max:255', 'unique:assets,serial_number,'.$asset->id],
             'acquisition_date' => ['required', 'date'],
             'acquisition_cost' => ['nullable', 'numeric', 'min:0'],
             'depreciation_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -362,13 +339,13 @@ class AssetController extends Controller
         ];
 
         $tempPath = sys_get_temp_dir()
-            . DIRECTORY_SEPARATOR
-            . 'asset-import-template-'
-            . uniqid()
-            . '.'
-            . $format;
+            .DIRECTORY_SEPARATOR
+            .'asset-import-template-'
+            .uniqid()
+            .'.'
+            .$format;
 
-        $writer = $format === 'csv' ? new CsvWriter() : new XlsxWriter();
+        $writer = $format === 'csv' ? new CsvWriter : new XlsxWriter;
         $writer->openToFile($tempPath);
         $writer->addRow(Row::fromValues($headerRow));
         $writer->close();
@@ -446,18 +423,18 @@ class AssetController extends Controller
             $problems = ['Upload rejected — the spreadsheet columns do not match the required template.'];
 
             if ($missing) {
-                $problems[] = 'Missing column(s): ' . implode(', ', array_map(
+                $problems[] = 'Missing column(s): '.implode(', ', array_map(
                     fn ($key) => $headerLabels[$key],
                     $missing,
-                )) . '.';
+                )).'.';
             }
 
             if ($unexpectedOriginal) {
-                $problems[] = 'Unexpected column(s): ' . implode(', ', $unexpectedOriginal) . '.';
+                $problems[] = 'Unexpected column(s): '.implode(', ', $unexpectedOriginal).'.';
             }
 
             $problems[] = 'Expected columns: Name, Asset-Tag, Category, Asset Type, Acquisition Cost, Total Depreciation'
-                . ' (optional: Amount, Owner).';
+                .' (optional: Amount, Owner).';
 
             return back()->withErrors(['file' => implode("\n", $problems)]);
         }
@@ -466,7 +443,7 @@ class AssetController extends Controller
         $categoriesByName = Category::all()->keyBy(fn ($category) => mb_strtolower(trim($category->name)));
 
         $assetTypesByKey = AssetType::all()
-            ->keyBy(fn ($type) => $type->category_id . '|' . mb_strtolower(trim($type->name)));
+            ->keyBy(fn ($type) => $type->category_id.'|'.mb_strtolower(trim($type->name)));
 
         $employeesByName = Employee::query()
             ->where('is_active', true)
@@ -513,13 +490,13 @@ class AssetController extends Controller
                 $rowErrors[] = 'Asset Type is required.';
             }
 
-            if (!is_numeric($costRaw)) {
+            if (! is_numeric($costRaw)) {
                 $rowErrors[] = 'Acquisition Cost must be a number.';
             } elseif ((float) $costRaw < 0) {
                 $rowErrors[] = 'Acquisition Cost cannot be negative.';
             }
 
-            if (!is_numeric($depreciationRaw)) {
+            if (! is_numeric($depreciationRaw)) {
                 $rowErrors[] = 'Total Depreciation must be a number.';
             } elseif ((float) $depreciationRaw < 0) {
                 $rowErrors[] = 'Total Depreciation cannot be negative.';
@@ -532,7 +509,7 @@ class AssetController extends Controller
             if ($amountRaw !== '') {
                 $amountDigits = ltrim($amountRaw, '+');
 
-                if (!ctype_digit($amountDigits) || (int) $amountDigits < 1) {
+                if (! ctype_digit($amountDigits) || (int) $amountDigits < 1) {
                     $rowErrors[] = 'Amount must be a whole number of at least 1.';
                 } else {
                     $amount = (int) $amountDigits;
@@ -544,7 +521,7 @@ class AssetController extends Controller
             if ($ownerName !== '') {
                 $employee = $employeesByName->get(mb_strtolower($ownerName));
 
-                if (!$employee) {
+                if (! $employee) {
                     $rowErrors[] = "Owner \"{$ownerName}\" does not match any active employee.";
                 } else {
                     $ownerId = $employee->id;
@@ -552,7 +529,7 @@ class AssetController extends Controller
             }
 
             if ($rowErrors) {
-                $errors[] = "Row {$rowNumber}: " . implode(' ', $rowErrors);
+                $errors[] = "Row {$rowNumber}: ".implode(' ', $rowErrors);
 
                 continue;
             }
@@ -560,7 +537,7 @@ class AssetController extends Controller
             // ── Resolve (or create) category ──
             $category = $categoriesByName->get(mb_strtolower($categoryName));
 
-            if (!$category) {
+            if (! $category) {
                 $category = Category::create([
                     'name' => $categoryName,
                     'prefix' => $this->generateUniquePrefix($categoryName),
@@ -571,10 +548,10 @@ class AssetController extends Controller
             }
 
             // ── Resolve (or create) asset type within that category ──
-            $typeKey = $category->id . '|' . mb_strtolower($assetTypeName);
+            $typeKey = $category->id.'|'.mb_strtolower($assetTypeName);
             $assetType = $assetTypesByKey->get($typeKey);
 
-            if (!$assetType) {
+            if (! $assetType) {
                 $assetType = AssetType::create([
                     'category_id' => $category->id,
                     'name' => $assetTypeName,
@@ -613,8 +590,8 @@ class AssetController extends Controller
 
             array_unshift(
                 $errors,
-                "Import aborted — {$rowCount} " . ($rowCount === 1 ? 'row has' : 'rows have')
-                . ' problems. Fix them and upload again. Nothing has been saved.'
+                "Import aborted — {$rowCount} ".($rowCount === 1 ? 'row has' : 'rows have')
+                .' problems. Fix them and upload again. Nothing has been saved.'
             );
 
             return back()->withErrors(['file' => implode("\n", $errors)]);
@@ -648,7 +625,7 @@ class AssetController extends Controller
 
         return redirect()
             ->route('custodian.assets.index')
-            ->with('success', "Imported {$importedCount} " . ($importedCount === 1 ? 'asset' : 'assets') . " from Excel.");
+            ->with('success', "Imported {$importedCount} ".($importedCount === 1 ? 'asset' : 'assets').' from Excel.');
     }
 
     /**
@@ -678,7 +655,7 @@ class AssetController extends Controller
             Category::where('prefix', $candidate)->exists() ||
             AssetType::where('prefix', $candidate)->exists()
         ) {
-            $candidate = $base . str_pad((string) ++$suffix, 2, '0', STR_PAD_LEFT);
+            $candidate = $base.str_pad((string) ++$suffix, 2, '0', STR_PAD_LEFT);
         }
 
         return $candidate;
@@ -689,7 +666,7 @@ class AssetController extends Controller
      */
     private function parseSpreadsheet(string $path, string $extension): array
     {
-        $reader = $extension === 'csv' ? new CsvReader() : new XlsxReader();
+        $reader = $extension === 'csv' ? new CsvReader : new XlsxReader;
 
         $reader->open($path);
 
@@ -710,7 +687,7 @@ class AssetController extends Controller
                     $hasContent = collect($cells)
                         ->contains(fn ($value) => $value !== null && trim((string) $value) !== '');
 
-                    if (!$hasContent) {
+                    if (! $hasContent) {
                         continue;
                     }
                 }
@@ -727,7 +704,8 @@ class AssetController extends Controller
     }
 
     public function destroy(Asset $asset)
-    {        ActivityLogs::record($asset, 'asset_deleted', "{$asset->name} ({$asset->asset_tag}) was removed from inventory.");
+    {
+        ActivityLogs::record($asset, 'asset_deleted', "{$asset->name} ({$asset->asset_tag}) was removed from inventory.");
 
         if ($asset->photo) {
             Storage::disk('public')->delete($asset->photo);
@@ -750,7 +728,7 @@ class AssetController extends Controller
             ->latest('id')
             ->first();
 
-        if (!$lastAsset) {
+        if (! $lastAsset) {
             return "{$prefix}-0001";
         }
 
@@ -759,6 +737,6 @@ class AssetController extends Controller
             strrpos($lastAsset->asset_tag, '-') + 1
         );
 
-        return $prefix . '-' . sprintf('%04d', $lastNumber + 1);
+        return $prefix.'-'.sprintf('%04d', $lastNumber + 1);
     }
 }

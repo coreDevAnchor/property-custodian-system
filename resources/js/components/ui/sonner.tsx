@@ -10,6 +10,7 @@ function Toaster({ ...props }: ToasterProps) {
             theme={appearance}
             className="toaster group"
             position="top-right"
+            toastOptions={{ duration: 5000 }}
             style={
                 {
                     '--normal-bg': 'var(--popover)',
