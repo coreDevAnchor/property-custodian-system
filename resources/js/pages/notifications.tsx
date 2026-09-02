@@ -156,7 +156,7 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                     <div className="flex items-center gap-2">
                         {unreadCount > 0 && (
                             <Button variant="outline" onClick={markAllAsRead}>
-                                <CheckCheck className="size-4" />
+                                <CheckCheck className="size-4 cursor-pointer" />
                                 Mark all as read
                             </Button>
                         )}

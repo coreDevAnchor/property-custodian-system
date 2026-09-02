@@ -154,7 +154,6 @@ function RequestRow({
     onSelect,
 }: {
     request: PendingRequest;
-    onApprove: (id: number, expectedReturnDate: string) => void;
     onReject: (id: number) => void;
     onSelect: (request: PendingRequest) => void;
 }) {
@@ -251,6 +250,112 @@ function RequestRow({
                 </div>
             </td>
         </motion.tr>
+    );
+}
+
+function RequestCard({
+    request,
+    onReject,
+    onSelect,
+}: {
+    request: PendingRequest;
+    onReject: (id: number) => void;
+    onSelect: (request: PendingRequest) => void;
+}) {
+    const borrower = request.borrower;
+    const asset = request.asset;
+
+    return (
+        <motion.div variants={rowVariants} className="flex flex-col gap-3 py-4">
+            <div className="flex items-center gap-3">
+                <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                        request.borrower
+                            ? avatarColorFor(request.borrower.id)
+                            : 'bg-gray-400'
+                    } text-xs font-bold text-white`}
+                >
+                    {request.borrower
+                        ? getInitials(request.borrower.name)
+                        : '?'}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-gray-800 dark:text-white">
+                        {borrower?.name ?? 'Unknown User'}
+                    </p>
+
+                    {request.remarks && (
+                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                            {request.remarks}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            <div className="rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-zinc-800/50">
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                            Asset
+                        </span>
+                        <span
+                            className="truncate text-sm font-medium text-gray-700 dark:text-gray-300"
+                            title={asset?.name ?? 'Unknown Asset'}
+                        >
+                            {asset?.name ?? 'Unknown Asset'}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                            Category
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {asset?.category?.name ?? 'Unknown Category'}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                            Requested
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {new Date(request.requested_at).toLocaleDateString(
+                                'en-US',
+                                {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                },
+                            )}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={() => onSelect(request)}
+                    className="flex-1 cursor-pointer rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-95"
+                    aria-label={`Approve request from ${
+                        borrower?.name ?? 'Unknown Employee'
+                    }`}
+                >
+                    Approve
+                </button>
+
+                <button
+                    onClick={() => onReject(request.id)}
+                    className="flex-1 cursor-pointer rounded-lg px-3.5 py-2 text-xs font-bold text-red-500 transition-colors hover:bg-red-50 active:scale-95"
+                    aria-label={`Reject request from ${
+                        borrower?.name ?? 'Unknown Employee'
+                    }`}
+                >
+                    Reject
+                </button>
+            </div>
+        </motion.div>
     );
 }
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -388,49 +493,71 @@ export default function Dashboard({
                                     </button>
                                 </div>
 
-                                {/* Table */}
-                                <div className="overflow-x-auto px-6 pb-4">
+                                {/* Pending requests — cards on mobile, table on md+ */}
+                                <div className="px-6 pb-4">
                                     {pendingRequests.length > 0 ? (
-                                        <table className="w-full min-w-[640px]">
-                                            <thead>
-                                                <tr className="border-b border-gray-100 dark:border-zinc-800">
-                                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
-                                                        Employee
-                                                    </th>
-                                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
-                                                        Asset
-                                                    </th>
-                                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
-                                                        Category
-                                                    </th>
-                                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
-                                                        Requested
-                                                    </th>
-                                                    <th className="py-3 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
-                                                        Actions
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <motion.tbody
-                                                variants={tableVariants}
-                                                initial="hidden"
-                                                animate="show"
-                                            >
+                                        <>
+                                            {/* Mobile: stacked cards */}
+                                            <div className="divide-y divide-gray-100 md:hidden dark:divide-zinc-800">
                                                 {pendingRequests.map((req) => (
-                                                    <RequestRow
+                                                    <RequestCard
                                                         key={req.id}
                                                         request={req}
-                                                        onApprove={
-                                                            handleApprove
-                                                        }
                                                         onReject={handleReject}
                                                         onSelect={
                                                             setSelectedRequest
                                                         }
                                                     />
                                                 ))}
-                                            </motion.tbody>
-                                        </table>
+                                            </div>
+
+                                            {/* Desktop: scrollable table */}
+                                            <div className="custom-scrollbar hidden max-h-[450px] overflow-auto md:block">
+                                                <table className="w-full min-w-[640px]">
+                                                    <thead>
+                                                        <tr className="border-gray-100 dark:border-zinc-800">
+                                                            <th className="sticky top-0 z-10 border-b border-gray-100 bg-white py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:border-zinc-800 dark:bg-zinc-900 dark:text-gray-400">
+                                                                Employee
+                                                            </th>
+                                                            <th className="sticky top-0 z-10 border-b border-gray-100 bg-white py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:border-zinc-800 dark:bg-zinc-900 dark:text-gray-400">
+                                                                Asset
+                                                            </th>
+                                                            <th className="sticky top-0 z-10 border-b border-gray-100 bg-white py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:border-zinc-800 dark:bg-zinc-900 dark:text-gray-400">
+                                                                Category
+                                                            </th>
+                                                            <th className="sticky top-0 z-10 border-b border-gray-100 bg-white py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:border-zinc-800 dark:bg-zinc-900 dark:text-gray-400">
+                                                                Requested
+                                                            </th>
+                                                            <th className="sticky top-0 z-10 border-b border-gray-100 bg-white py-3 text-left text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:border-zinc-800 dark:bg-zinc-900 dark:text-gray-400">
+                                                                Actions
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <motion.tbody
+                                                        variants={tableVariants}
+                                                        initial="hidden"
+                                                        animate="show"
+                                                    >
+                                                        {pendingRequests.map(
+                                                            (req) => (
+                                                                <RequestRow
+                                                                    key={req.id}
+                                                                    request={
+                                                                        req
+                                                                    }
+                                                                    onReject={
+                                                                        handleReject
+                                                                    }
+                                                                    onSelect={
+                                                                        setSelectedRequest
+                                                                    }
+                                                                />
+                                                            ),
+                                                        )}
+                                                    </motion.tbody>
+                                                </table>
+                                            </div>
+                                        </>
                                     ) : (
                                         <div className="flex flex-col items-center gap-1 py-10 text-center">
                                             <p className="text-sm font-semibold text-gray-800 dark:text-white">

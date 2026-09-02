@@ -22,6 +22,41 @@
     will-change: transform;
 }
 
+.custom-scrollbar {
+    scrollbar-color: rgb(212 212 216) transparent;
+    scrollbar-width: thin;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(212 212 216);
+    border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(161 161 170);
+}
+
+.dark .custom-scrollbar {
+    scrollbar-color: rgb(63 63 70) transparent;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(63 63 70);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(113 113 122);
+}
+
 @theme {
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif,

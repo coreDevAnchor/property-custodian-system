@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Employee;
 use App\Models\Location;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -357,6 +358,121 @@ class AssetController extends Controller
 
     public function import(Request $request)
     {
+        $analysis = $this->analyzeImport($request);
+
+        if ($analysis['error']) {
+            return back()->withErrors(['file' => $analysis['error']]);
+        }
+
+        $importedCount = DB::transaction(function () use ($analysis) {
+            $count = 0;
+
+            foreach ($analysis['rows'] as $entry) {
+                $categoryName = trim($entry['category']);
+                $category = $analysis['categoriesByName']->get($categoryName);
+
+                if (! $category) {
+                    $category = Category::create([
+                        'name' => $categoryName,
+                        'prefix' => $this->generateUniquePrefix($categoryName),
+                        'unit_type' => $analysis['categoryPlan'][$categoryName]['unit_type'],
+                    ]);
+
+                    $analysis['categoriesByName']->put($categoryName, $category);
+                }
+
+                $assetTypeName = trim($entry['asset_type']);
+                $typeKey = $category->id.'|'.$assetTypeName;
+                $assetType = $analysis['assetTypesByKey']->get($typeKey);
+
+                if (! $assetType) {
+                    $assetType = AssetType::create([
+                        'category_id' => $category->id,
+                        'name' => $assetTypeName,
+                        'prefix' => $this->generateUniquePrefix($assetTypeName),
+                    ]);
+
+                    $analysis['assetTypesByKey']->put($typeKey, $assetType);
+                }
+
+                $acquisitionCost = $entry['acquisition_cost'];
+
+                $asset = Asset::create([
+                    'name' => $entry['name'],
+                    'asset_tag' => $this->generateAssetTag($assetType->id),
+                    'description' => null,
+                    'category_id' => $category->id,
+                    'asset_type_id' => $assetType->id,
+                    'serial_number' => null,
+                    'remarks' => 'Imported via Excel upload.',
+                    'acquisition_date' => now()->toDateString(),
+                    'acquisition_cost' => $acquisitionCost,
+                    'depreciation_rate' => $acquisitionCost > 0
+                        ? min(100, round(($entry['total_depreciation'] / $acquisitionCost) * 100, 2))
+                        : 0,
+                    'condition' => 4,
+                    'status' => 'available',
+                    'photo' => null,
+                    'location_id' => null,
+                    'owner_id' => $entry['owner_id'],
+                    'amount' => $entry['amount'],
+                ]);
+
+                ActivityLogs::record(
+                    $asset,
+                    'asset_created',
+                    "{$asset->name} ({$asset->asset_tag}) was added to inventory via Excel import.",
+                );
+
+                $count++;
+            }
+
+            return $count;
+        });
+
+        return redirect()
+            ->route('custodian.assets.index')
+            ->with('success', "Imported {$importedCount} ".($importedCount === 1 ? 'asset' : 'assets').' from Excel.');
+    }
+
+    /**
+     * Analyzes an uploaded spreadsheet and returns the import plan without
+     * writing anything to the database. Feeds the preview dialog.
+     */
+    public function preview(Request $request)
+    {
+        $analysis = $this->analyzeImport($request);
+
+        if ($analysis['error']) {
+            return response()->json(['message' => $analysis['error']], 422);
+        }
+
+        return response()->json([
+            'summary' => $analysis['summary'],
+            'rows' => $analysis['rows'],
+        ]);
+    }
+
+    /**
+     * Parses and validates an uploaded spreadsheet without writing anything.
+     * Category and Asset Type names are matched exactly (case-sensitive) to
+     * existing records so identical names are reused and only unknown names are
+     * created. The unit type is inferred from the amount: blank or 1 is a
+     * single-unit asset, any amount greater than 1 is multi-unit. Brand-new
+     * categories adopt the unit type derived from their rows; existing
+     * categories keep their current unit type.
+     *
+     * @return array{
+     *     error: string|null,
+     *     rows: list<array<string, mixed>>,
+     *     summary: array<string, int>,
+     *     categoriesByName: Collection<int, Category>,
+     *     assetTypesByKey: Collection<int, AssetType>,
+     *     categoryPlan: array<string, array{status: string, unit_type: string, existing: Category|null}>
+     * }
+     */
+    private function analyzeImport(Request $request): array
+    {
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:5120'],
         ], [
@@ -373,15 +489,11 @@ class AssetController extends Controller
                 $extension,
             );
         } catch (\Throwable) {
-            return back()->withErrors([
-                'file' => 'Could not read the file. Please make sure it is a valid .xlsx or .csv spreadsheet.',
-            ]);
+            return ['error' => 'Could not read the file. Please make sure it is a valid .xlsx or .csv spreadsheet.'];
         }
 
         if ($headerRow === null) {
-            return back()->withErrors([
-                'file' => 'The file is empty. It must start with a header row.',
-            ]);
+            return ['error' => 'The file is empty. It must start with a header row.'];
         }
 
         // ── Strict header validation ──
@@ -436,14 +548,14 @@ class AssetController extends Controller
             $problems[] = 'Expected columns: Name, Asset-Tag, Category, Asset Type, Acquisition Cost, Total Depreciation'
                 .' (optional: Amount, Owner).';
 
-            return back()->withErrors(['file' => implode("\n", $problems)]);
+            return ['error' => implode("\n", $problems)];
         }
 
-        // ── Lookup caches ──
-        $categoriesByName = Category::all()->keyBy(fn ($category) => mb_strtolower(trim($category->name)));
+        // ── Exact match lookup caches ──
+        $categoriesByName = Category::all()->keyBy(fn ($category) => trim($category->name));
 
         $assetTypesByKey = AssetType::all()
-            ->keyBy(fn ($type) => $type->category_id.'|'.mb_strtolower(trim($type->name)));
+            ->keyBy(fn ($type) => $type->category_id.'|'.trim($type->name));
 
         $employeesByName = Employee::query()
             ->where('is_active', true)
@@ -451,8 +563,9 @@ class AssetController extends Controller
             ->get()
             ->keyBy(fn ($employee) => mb_strtolower(trim(optional($employee->user)->name ?? '')));
 
-        $errors = [];
-        $records = [];
+        $errorLines = [];
+        $validRows = [];
+        $categoryPlan = [];
 
         foreach ($dataRows as $index => $cells) {
             $rowNumber = $index + 2; // account for the header row
@@ -529,103 +642,87 @@ class AssetController extends Controller
             }
 
             if ($rowErrors) {
-                $errors[] = "Row {$rowNumber}: ".implode(' ', $rowErrors);
+                $errorLines[] = "Row {$rowNumber}: ".implode(' ', $rowErrors);
 
                 continue;
             }
 
-            // ── Resolve (or create) category ──
-            $category = $categoriesByName->get(mb_strtolower($categoryName));
+            // Unit type is inferred from the amount: blank or 1 is a
+            // single-unit asset, anything greater is a multi-unit asset.
+            $unitType = $amount > 1 ? Category::UNIT_MULTI : Category::UNIT_SINGLE;
 
-            if (! $category) {
-                $category = Category::create([
-                    'name' => $categoryName,
-                    'prefix' => $this->generateUniquePrefix($categoryName),
-                    'unit_type' => Category::UNIT_SINGLE,
-                ]);
+            if (! array_key_exists($categoryName, $categoryPlan)) {
+                $existingCategory = $categoriesByName->get($categoryName);
 
-                $categoriesByName->put(mb_strtolower($categoryName), $category);
+                $categoryPlan[$categoryName] = [
+                    'status' => $existingCategory ? 'existing' : 'new',
+                    'unit_type' => $existingCategory ? $existingCategory->unit_type : Category::UNIT_SINGLE,
+                    'existing' => $existingCategory,
+                ];
             }
 
-            // ── Resolve (or create) asset type within that category ──
-            $typeKey = $category->id.'|'.mb_strtolower($assetTypeName);
-            $assetType = $assetTypesByKey->get($typeKey);
-
-            if (! $assetType) {
-                $assetType = AssetType::create([
-                    'category_id' => $category->id,
-                    'name' => $assetTypeName,
-                    'prefix' => $this->generateUniquePrefix($assetTypeName),
-                ]);
-
-                $assetTypesByKey->put($typeKey, $assetType);
+            // A brand-new category that carries any multi-unit row is created
+            // as multi-unit; existing categories keep their unit type.
+            if ($unitType === Category::UNIT_MULTI
+                && $categoryPlan[$categoryName]['existing'] === null
+                && $categoryPlan[$categoryName]['unit_type'] === Category::UNIT_SINGLE) {
+                $categoryPlan[$categoryName]['unit_type'] = Category::UNIT_MULTI;
             }
 
-            $acquisitionCost = round((float) $costRaw, 2);
-            $totalDepreciation = round((float) $depreciationRaw, 2);
-
-            $records[] = [
+            $validRows[] = [
+                'row' => $rowNumber,
                 'name' => $name,
-                'description' => null,
-                'category_id' => $category->id,
-                'asset_type_id' => $assetType->id,
-                'serial_number' => null,
-                'remarks' => 'Imported via Excel upload.',
-                'acquisition_date' => now()->toDateString(),
-                'acquisition_cost' => $acquisitionCost,
-                'depreciation_rate' => $acquisitionCost > 0
-                    ? min(100, round(($totalDepreciation / $acquisitionCost) * 100, 2))
-                    : 0,
-                'condition' => 4,
-                'status' => 'available',
-                'photo' => null,
-                'location_id' => null,
-                'owner_id' => $ownerId,
+                'category' => $categoryName,
+                'asset_type' => $assetTypeName,
                 'amount' => $amount,
+                'unit_type' => $unitType,
+                'category_status' => $categoryPlan[$categoryName]['status'],
+                'asset_type_status' => $categoryPlan[$categoryName]['status'] === 'existing'
+                    ? ($assetTypesByKey->has($categoryPlan[$categoryName]['existing']->id.'|'.$assetTypeName) ? 'existing' : 'new')
+                    : 'new',
+                'owner_id' => $ownerId,
+                'acquisition_cost' => round((float) $costRaw, 2),
+                'total_depreciation' => round((float) $depreciationRaw, 2),
             ];
         }
 
-        if ($errors) {
-            $rowCount = count($errors);
+        if ($errorLines) {
+            $rowCount = count($errorLines);
 
             array_unshift(
-                $errors,
+                $errorLines,
                 "Import aborted — {$rowCount} ".($rowCount === 1 ? 'row has' : 'rows have')
                 .' problems. Fix them and upload again. Nothing has been saved.'
             );
 
-            return back()->withErrors(['file' => implode("\n", $errors)]);
+            return ['error' => implode("\n", $errorLines)];
         }
 
-        if (empty($records)) {
-            return back()->withErrors([
-                'file' => 'No data rows found. Add at least one asset below the header row.',
-            ]);
+        if (empty($validRows)) {
+            return ['error' => 'No data rows found. Add at least one asset below the header row.'];
         }
 
-        $importedCount = DB::transaction(function () use ($records) {
-            $count = 0;
+        $assetTypePlan = [];
+        foreach ($validRows as $entry) {
+            $assetTypePlan[$entry['category'].'|'.$entry['asset_type']] = $entry['asset_type_status'];
+        }
 
-            foreach ($records as $record) {
-                $record['asset_tag'] = $this->generateAssetTag($record['asset_type_id']);
-
-                $asset = Asset::create($record);
-
-                ActivityLogs::record(
-                    $asset,
-                    'asset_created',
-                    "{$asset->name} ({$asset->asset_tag}) was added to inventory via Excel import.",
-                );
-
-                $count++;
-            }
-
-            return $count;
-        });
-
-        return redirect()
-            ->route('custodian.assets.index')
-            ->with('success', "Imported {$importedCount} ".($importedCount === 1 ? 'asset' : 'assets').' from Excel.');
+        return [
+            'error' => null,
+            'rows' => $validRows,
+            'summary' => [
+                'total' => count($validRows),
+                'single' => count(array_filter($validRows, fn ($entry) => $entry['unit_type'] === Category::UNIT_SINGLE)),
+                'multi' => count(array_filter($validRows, fn ($entry) => $entry['unit_type'] === Category::UNIT_MULTI)),
+                'categories_existing' => count(array_filter($categoryPlan, fn ($entry) => $entry['status'] === 'existing')),
+                'categories_new' => count(array_filter($categoryPlan, fn ($entry) => $entry['status'] === 'new')),
+                'asset_types_existing' => count(array_filter($assetTypePlan, fn ($status) => $status === 'existing')),
+                'asset_types_new' => count(array_filter($assetTypePlan, fn ($status) => $status === 'new')),
+            ],
+            'categoriesByName' => $categoriesByName,
+            'assetTypesByKey' => $assetTypesByKey,
+            'categoryPlan' => $categoryPlan,
+        ];
     }
 
     /**
