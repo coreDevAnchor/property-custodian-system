@@ -64,8 +64,8 @@ class AssetController extends Controller
 
                 $query->where(function ($q) use ($pattern) {
 
-                    $q->where('name', 'ILIKE', $pattern)
-                        ->orWhere('asset_tag', 'ILIKE', $pattern);
+                    $q->caseInsensitiveLike('name', $pattern)
+                        ->orCaseInsensitiveLike('asset_tag', $pattern);
 
                 });
 

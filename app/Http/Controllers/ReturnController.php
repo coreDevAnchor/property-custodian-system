@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLogs;
+use App\Models\Asset;
 use App\Models\BorrowRequest;
+use App\Notifications\ReturnConfirmedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use App\Models\Asset;
 use Illuminate\Support\Facades\DB;
-use App\Notifications\ReturnConfirmedNotification;
+use Inertia\Inertia;
 
 class ReturnController extends Controller
 {
@@ -35,35 +35,34 @@ class ReturnController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->whereHas(
                         'borrower',
-                        fn($u) =>
-                        $u->where('name', 'ilike', "%{$search}%")
+                        fn ($u) => $u->caseInsensitiveLike('name', "%{$search}%")
                     )
                         ->orWhereHas('asset', function ($a) use ($search) {
-                            $a->where('name', 'ilike', "%{$search}%")
-                                ->orWhere('asset_tag', 'ilike', "%{$search}%")
+                            $a->caseInsensitiveLike('name', "%{$search}%")
+                                ->orCaseInsensitiveLike('asset_tag', "%{$search}%")
                                 ->orWhereHas('assetType', function ($type) use ($search) {
-                                    $type->where('name', 'ilike', "%{$search}%");
+                                    $type->caseInsensitiveLike('name', "%{$search}%");
                                 });
                         });
                 });
             })
-            ->when($status !== 'All', fn($q) => $q->where('status', $status))
+            ->when($status !== 'All', fn ($q) => $q->where('status', $status))
             ->when(
                 $sort === 'newest',
-                fn($q) => $q
+                fn ($q) => $q
                     ->orderByRaw('returned_at IS NULL ASC')
                     ->orderBy('returned_at', 'desc')
             )
             ->when(
                 $sort === 'oldest',
-                fn($q) => $q
+                fn ($q) => $q
                     ->orderByRaw('returned_at IS NULL ASC')
                     ->orderBy('returned_at', 'asc')
             )
-            ->when($sort === 'borrower_az', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
+            ->when($sort === 'borrower_az', fn ($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'asc')
                 ->select('borrows.*'))
-            ->when($sort === 'borrower_za', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
+            ->when($sort === 'borrower_za', fn ($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'desc')
                 ->select('borrows.*'))
             ->paginate($perPage)

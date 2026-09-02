@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\BorrowRequest;
 use App\Models\Category;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
@@ -75,7 +76,7 @@ class ReportController extends Controller
                 ->whereDate('expected_return_date', '<', now());
 
             if ($selectedCategory !== 'all') {
-                $query->whereHas('asset', fn($q) => $q->where('category_id', $selectedCategory));
+                $query->whereHas('asset', fn ($q) => $q->where('category_id', $selectedCategory));
             }
 
             match ($sort) {
@@ -93,7 +94,7 @@ class ReportController extends Controller
                 ->paginate($perPage)
                 ->through(function ($borrow) {
                     $daysOverdue = now()->startOfDay()
-                        ->diffInDays(\Carbon\Carbon::parse($borrow->expected_return_date)->startOfDay());
+                        ->diffInDays(Carbon::parse($borrow->expected_return_date)->startOfDay());
 
                     return [
                         'id' => $borrow->id,
@@ -132,7 +133,7 @@ class ReportController extends Controller
 
             $lostItems = $query
                 ->paginate($perPage)
-                ->through(fn($asset) => [
+                ->through(fn ($asset) => [
                     'id' => $asset->id,
                     'name' => $asset->name,
                     'asset_tag' => $asset->asset_tag,
@@ -234,13 +235,13 @@ class ReportController extends Controller
                 $slots = collect(range(0, 23));
 
                 $dateExpression = match ($driver) {
-                    'pgsql' => "EXTRACT(HOUR FROM %s)",
-                    'sqlite' => "strftime('%H', %s)",
-                    default => "HOUR(%s)",
+                    'pgsql' => 'EXTRACT(HOUR FROM %s)',
+                    'sqlite' => "strftime('%%H', %s)",
+                    default => 'HOUR(%s)',
                 };
 
-                $label = fn($i) => sprintf('%02d:00', $i);
-                $key = fn($i) => (string) $i;
+                $label = fn ($i) => sprintf('%02d:00', $i);
+                $key = fn ($i) => (string) $i;
                 break;
 
             case 'week':
@@ -249,15 +250,14 @@ class ReportController extends Controller
                 $slots = collect(range(0, 6));
 
                 $dateExpression = match ($driver) {
-                    'pgsql' => "EXTRACT(DOW FROM %s)",
-                    'sqlite' => "strftime('%w', %s)",
-                    default => "DAYOFWEEK(%s)",
+                    'pgsql' => 'EXTRACT(DOW FROM %s)',
+                    'sqlite' => "strftime('%%w', %s)",
+                    default => 'DAYOFWEEK(%s)',
                 };
 
-                $label = fn($i) =>
-                    now()->startOfWeek()->copy()->addDays($i)->format('D');
+                $label = fn ($i) => now()->startOfWeek()->copy()->addDays($i)->format('D');
 
-                $key = fn($i) => (string) $i;
+                $key = fn ($i) => (string) $i;
                 break;
 
             case 'month':
@@ -266,13 +266,13 @@ class ReportController extends Controller
                 $slots = collect(range(1, now()->daysInMonth));
 
                 $dateExpression = match ($driver) {
-                    'pgsql' => "EXTRACT(DAY FROM %s)",
-                    'sqlite' => "strftime('%d', %s)",
-                    default => "DAY(%s)",
+                    'pgsql' => 'EXTRACT(DAY FROM %s)',
+                    'sqlite' => "strftime('%%d', %s)",
+                    default => 'DAY(%s)',
                 };
 
-                $label = fn($i) => (string) $i;
-                $key = fn($i) => (string) $i;
+                $label = fn ($i) => (string) $i;
+                $key = fn ($i) => (string) $i;
                 break;
 
             default: // year
@@ -282,15 +282,14 @@ class ReportController extends Controller
                 $slots = collect(range(1, 12));
 
                 $dateExpression = match ($driver) {
-                    'pgsql' => "EXTRACT(MONTH FROM %s)",
-                    'sqlite' => "strftime('%m', %s)",
-                    default => "MONTH(%s)",
+                    'pgsql' => 'EXTRACT(MONTH FROM %s)',
+                    'sqlite' => "strftime('%%m', %s)",
+                    default => 'MONTH(%s)',
                 };
 
-                $label = fn($i) =>
-                    now()->startOfYear()->copy()->addMonths($i - 1)->format('M');
+                $label = fn ($i) => now()->startOfYear()->copy()->addMonths($i - 1)->format('M');
 
-                $key = fn($i) => (string) $i;
+                $key = fn ($i) => (string) $i;
                 break;
         }
 
@@ -304,10 +303,10 @@ class ReportController extends Controller
             }
 
             $rows = $query
-                ->selectRaw(sprintf($dateExpression, 'created_at') . " as bucket,
+                ->selectRaw(sprintf($dateExpression, 'created_at').' as bucket,
                 condition,
                 status,
-                COUNT(*) as count")
+                COUNT(*) as count')
                 ->groupBy('bucket', 'condition', 'status')
                 ->get();
 
@@ -317,7 +316,7 @@ class ReportController extends Controller
 
                 $bucket = (string) (int) $row->bucket;
 
-                if (!isset($grouped[$bucket])) {
+                if (! isset($grouped[$bucket])) {
                     $grouped[$bucket] = [
                         'good' => 0,
                         'defective' => 0,
@@ -367,14 +366,14 @@ class ReportController extends Controller
         if ($selectedCategory !== 'all') {
             $query->whereHas(
                 'asset',
-                fn($q) => $q->where('category_id', $selectedCategory)
+                fn ($q) => $q->where('category_id', $selectedCategory)
             );
         }
 
         $rows = $query
-            ->selectRaw(sprintf($dateExpression, 'requested_at') . " as bucket,
+            ->selectRaw(sprintf($dateExpression, 'requested_at').' as bucket,
             status,
-            COUNT(*) as count")
+            COUNT(*) as count')
             ->groupBy('bucket', 'status')
             ->get();
 
@@ -412,6 +411,7 @@ class ReportController extends Controller
 
         })->values()->all();
     }
+
     /**
      * Headline totals for the summary panel: overall borrow-request volume,
      * how much of it was approved/returned, the return-condition mix
@@ -488,7 +488,6 @@ class ReportController extends Controller
             'poor' => (int) ($conditionCounts[1] ?? 0),
         ];
 
-
         $totalAssets = Asset::where(
             'created_at',
             '>=',
@@ -522,8 +521,8 @@ class ReportController extends Controller
             '>=',
             $start
         )->sum(
-                DB::raw('acquisition_cost * depreciation_rate / 100')
-            );
+            DB::raw('acquisition_cost * depreciation_rate / 100')
+        );
 
         $currentEstimatedValue =
             max($totalAssetValue - $totalDepreciation, 0);
@@ -622,7 +621,7 @@ class ReportController extends Controller
                 ->whereDate('expected_return_date', '<', now());
 
             if ($selectedCategory !== 'all') {
-                $query->whereHas('asset', fn($q) => $q->where('category_id', $selectedCategory));
+                $query->whereHas('asset', fn ($q) => $q->where('category_id', $selectedCategory));
             }
 
             $query->orderBy('expected_return_date');
@@ -632,7 +631,7 @@ class ReportController extends Controller
 
             $overdueItems = $results->map(function ($borrow) {
                 $daysOverdue = now()->startOfDay()
-                    ->diffInDays(\Carbon\Carbon::parse($borrow->expected_return_date)->startOfDay());
+                    ->diffInDays(Carbon::parse($borrow->expected_return_date)->startOfDay());
 
                 return [
                     'id' => $borrow->id,
@@ -661,7 +660,7 @@ class ReportController extends Controller
             $lostTotalCount = $query->count();
             $results = $limit ? $query->limit($limit)->get() : $query->get();
 
-            $lostItems = $results->map(fn($asset) => [
+            $lostItems = $results->map(fn ($asset) => [
                 'id' => $asset->id,
                 'name' => $asset->name,
                 'asset_tag' => $asset->asset_tag,
@@ -696,7 +695,7 @@ class ReportController extends Controller
             'generatedAt' => now()->format('F d, Y h:i A'),
         ])->setPaper('a4', $orientation);
 
-        $filename = 'custodian_report_' . now()->format('Y-m-d') . '.pdf';
+        $filename = 'custodian_report_'.now()->format('Y-m-d').'.pdf';
 
         if ($action === 'preview') {
             return $pdf->stream($filename);
@@ -718,7 +717,7 @@ class ReportController extends Controller
                 ->whereDate('expected_return_date', '<', now());
 
             if ($selectedCategory !== 'all') {
-                $query->whereHas('asset', fn($q) => $q->where('category_id', $selectedCategory));
+                $query->whereHas('asset', fn ($q) => $q->where('category_id', $selectedCategory));
             }
 
             $items = $query->orderBy('expected_return_date')->get();
@@ -729,7 +728,7 @@ class ReportController extends Controller
 
                 foreach ($items as $borrow) {
                     $daysOverdue = now()->startOfDay()
-                        ->diffInDays(\Carbon\Carbon::parse($borrow->expected_return_date)->startOfDay());
+                        ->diffInDays(Carbon::parse($borrow->expected_return_date)->startOfDay());
 
                     fputcsv($handle, [
                         $borrow->borrower?->name,
@@ -742,7 +741,7 @@ class ReportController extends Controller
                 }
 
                 fclose($handle);
-            }, 'overdue_assets_' . now()->format('Y-m-d') . '.csv');
+            }, 'overdue_assets_'.now()->format('Y-m-d').'.csv');
         }
 
         if ($view === 'lost') {
@@ -777,7 +776,7 @@ class ReportController extends Controller
                 }
 
                 fclose($handle);
-            }, 'lost_assets_' . now()->format('Y-m-d') . '.csv');
+            }, 'lost_assets_'.now()->format('Y-m-d').'.csv');
         }
 
         $query = Asset::with([
@@ -789,14 +788,14 @@ class ReportController extends Controller
             $query->where('category_id', $selectedCategory);
         }
 
-            match ($sort) {
-                'oldest' => $query->oldest(),
-                'name_asc' => $query->orderBy('name'),
-                'name_desc' => $query->orderByDesc('name'),
-                'cost_high' => $query->orderByDesc('acquisition_cost'),
-                'cost_low' => $query->orderBy('acquisition_cost'),
-                default => $query->latest(),
-            };
+        match ($sort) {
+            'oldest' => $query->oldest(),
+            'name_asc' => $query->orderBy('name'),
+            'name_desc' => $query->orderByDesc('name'),
+            'cost_high' => $query->orderByDesc('acquisition_cost'),
+            'cost_low' => $query->orderBy('acquisition_cost'),
+            default => $query->latest(),
+        };
 
         $assets = $query->get();
 
@@ -823,8 +822,7 @@ class ReportController extends Controller
             }
 
             fclose($handle);
-        }, 'assets_report_' . now()->format('Y-m-d') . '.csv');
-
+        }, 'assets_report_'.now()->format('Y-m-d').'.csv');
 
     }
 
@@ -878,7 +876,7 @@ class ReportController extends Controller
         };
 
         $monthExpression = match (
-        DB::connection()->getDriverName()
+            DB::connection()->getDriverName()
         ) {
             'pgsql' => "TO_CHAR(%s, 'YYYY-MM')",
             'sqlite' => "strftime('%%Y-%%m', %s)",
@@ -901,7 +899,7 @@ class ReportController extends Controller
             sprintf($monthExpression, 'returned_at'),
             $start,
             'returned_at',
-            fn($query) => $query
+            fn ($query) => $query
                 ->whereNotNull('expected_return_date')
                 ->whereColumn(
                     'returned_at',
@@ -914,7 +912,7 @@ class ReportController extends Controller
             sprintf($monthExpression, 'returned_at'),
             $start,
             'returned_at',
-            fn($query) => $query
+            fn ($query) => $query
                 ->where('return_condition', 'defective')
         );
 
@@ -922,7 +920,7 @@ class ReportController extends Controller
             sprintf($monthExpression, 'returned_at'),
             $start,
             'returned_at',
-            fn($query) => $query
+            fn ($query) => $query
                 ->where('return_condition', 'lost')
         );
 
@@ -956,11 +954,11 @@ class ReportController extends Controller
         }
 
         $results = $query
-            ->selectRaw("
+            ->selectRaw('
             borrows.borrower_id,
             users.name as borrower,
             COUNT(*) as count
-        ")
+        ')
             ->groupBy(
                 'borrows.borrower_id',
                 'users.name'
@@ -970,7 +968,7 @@ class ReportController extends Controller
             ->get();
 
         return $results
-            ->map(fn($item) => [
+            ->map(fn ($item) => [
                 'borrower_id' => (int) $item->borrower_id,
                 'borrower' => $item->borrower,
                 'count' => (int) $item->count,
@@ -1006,11 +1004,11 @@ class ReportController extends Controller
             ->get();
 
         $totalAssetValue = $assets->sum(
-            fn($asset) => (float) $asset->acquisition_cost
+            fn ($asset) => (float) $asset->acquisition_cost
         );
 
         $totalDepreciation = $assets->sum(
-            fn($asset) => $asset->depreciation_rate
+            fn ($asset) => $asset->depreciation_rate
             ? (float) $asset->acquisition_cost *
             ((float) $asset->depreciation_rate / 100)
             : 0

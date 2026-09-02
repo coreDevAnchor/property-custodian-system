@@ -37,22 +37,36 @@ class UserFactory extends Factory
 
     public function employee(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'role' => 'employee',
         ]);
     }
 
     public function custodian(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'role' => 'custodian',
         ]);
     }
 
     public function unverified(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'email_verified_at' => null,
         ]);
+    }
+
+    public function withTwoFactor(): static
+    {
+        return $this->afterCreating(function (User $user) {
+            $user->forceFill([
+                'two_factor_secret' => 'test-secret',
+                'two_factor_recovery_codes' => json_encode([
+                    'recovery-code-1',
+                    'recovery-code-2',
+                ]),
+                'two_factor_confirmed_at' => now(),
+            ])->save();
+        });
     }
 }

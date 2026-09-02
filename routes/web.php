@@ -1,29 +1,34 @@
 <?php
 
+use App\Http\Controllers\AssetController;
+use App\Http\Controllers\AssetTypeController;
+use App\Http\Controllers\AuditTrailController;
+use App\Http\Controllers\Auth\ForcePasswordChangeController;
+use App\Http\Controllers\Auth\OtpResetController;
+use App\Http\Controllers\AvailableAssetController;
+use App\Http\Controllers\BorrowRenewalController;
+use App\Http\Controllers\BorrowRequestController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CurrentBorrowsController;
+use App\Http\Controllers\Custodian\ReportController;
+use App\Http\Controllers\CustodianController;
+use App\Http\Controllers\CustodianDashboardController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeDashboardController;
+use App\Http\Controllers\EmployeeReturnController;
+use App\Http\Controllers\MyBorrowController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ReturnController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-use App\Http\Controllers\AssetController;
-use App\Http\Controllers\Auth\OtpResetController;
-use App\Http\Controllers\BorrowRequestController;
-use App\Http\Controllers\ReturnController;
-use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\EmployeeDashboardController;
-use App\Http\Controllers\AvailableAssetController;
-use App\Http\Controllers\MyBorrowController;
-use App\Http\Controllers\CurrentBorrowsController;
-use App\Http\Controllers\EmployeeReturnController;
-use App\Http\Controllers\AuditTrailController;
-use App\Http\Controllers\CustodianDashboardController;
-use App\Http\Controllers\CustodianController;
-use App\Http\Controllers\Custodian\ReportController;
-use App\Http\Controllers\Auth\ForcePasswordChangeController;
-use App\Http\Controllers\BorrowRenewalController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\AssetTypeController;
-
 Route::redirect('/', '/login')->name('home');
+
+Route::middleware(['auth'])->get('/dashboard', function () {
+    return auth()->user()->role === 'employee'
+        ? redirect()->route('employee.dashboard')
+        : redirect()->route('custodian.dashboard');
+})->name('dashboard');
 
 Route::post('/forgot-password/otp', [OtpResetController::class, 'sendOtp'])
     ->middleware('throttle:5,1')
@@ -145,4 +150,4 @@ Route::get('/loadtest/token', function () {
     return response()->json(['token' => session()->token()]);
 });
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

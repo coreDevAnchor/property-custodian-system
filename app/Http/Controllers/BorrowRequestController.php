@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLogs;
 use App\Models\Asset;
-use App\Models\BorrowRequest;
 use App\Models\BorrowRenewal;
+use App\Models\BorrowRequest;
 use App\Models\User;
+use App\Notifications\BorrowRequestStatusNotification;
 use App\Notifications\ManualOverdueReminderNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Notifications\BorrowRequestStatusNotification;
 
 class BorrowRequestController extends Controller
 {
@@ -36,25 +36,24 @@ class BorrowRequestController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->whereHas(
                         'borrower',
-                        fn($u) =>
-                        $u->where('name', 'ilike', "%{$search}%")
+                        fn ($u) => $u->caseInsensitiveLike('name', "%{$search}%")
                     )
                         ->orWhereHas('asset', function ($a) use ($search) {
-                            $a->where('name', 'ilike', "%{$search}%")
-                                ->orWhere('asset_tag', 'ilike', "%{$search}%")
+                            $a->caseInsensitiveLike('name', "%{$search}%")
+                                ->orCaseInsensitiveLike('asset_tag', "%{$search}%")
                                 ->orWhereHas('assetType', function ($type) use ($search) {
-                                    $type->where('name', 'ilike', "%{$search}%");
+                                    $type->caseInsensitiveLike('name', "%{$search}%");
                                 });
                         });
                 });
             })
-            ->when($status !== 'All', fn($q) => $q->where('status', $status))
-            ->when($sort === 'newest', fn($q) => $q->latest('requested_at'))
-            ->when($sort === 'oldest', fn($q) => $q->oldest('requested_at'))
-            ->when($sort === 'requester_az', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
+            ->when($status !== 'All', fn ($q) => $q->where('status', $status))
+            ->when($sort === 'newest', fn ($q) => $q->latest('requested_at'))
+            ->when($sort === 'oldest', fn ($q) => $q->oldest('requested_at'))
+            ->when($sort === 'requester_az', fn ($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'asc')
                 ->select('borrows.*'))
-            ->when($sort === 'requester_za', fn($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
+            ->when($sort === 'requester_za', fn ($q) => $q->join('users', 'users.id', '=', 'borrows.borrower_id')
                 ->orderBy('users.name', 'desc')
                 ->select('borrows.*'))
             ->paginate($perPage)
@@ -99,7 +98,7 @@ class BorrowRequestController extends Controller
 
         $asset = Asset::query()->find((int) $validated['asset_id']);
 
-        if (!$asset instanceof Asset) {
+        if (! $asset instanceof Asset) {
             abort(404);
         }
 
@@ -118,11 +117,11 @@ class BorrowRequestController extends Controller
 
         $user = Auth::user();
 
-        if (!$user instanceof User) {
+        if (! $user instanceof User) {
             abort(403);
         }
 
-        if (!$isMultiUnit) {
+        if (! $isMultiUnit) {
             $hasDuplicate = BorrowRequest::where('asset_id', $asset->id)
                 ->where('borrower_id', $user->id)
                 ->whereIn('status', ['pending', 'borrowed', 'awaiting_check'])
@@ -147,7 +146,7 @@ class BorrowRequestController extends Controller
         ActivityLogs::record(
             $asset,
             'borrow_requested',
-            "{$user->name} requested to borrow {$asset->name}" . ($isMultiUnit ? " (x{$borrowQty})." : ".")
+            "{$user->name} requested to borrow {$asset->name}".($isMultiUnit ? " (x{$borrowQty})." : '.')
         );
 
         return redirect()
@@ -200,7 +199,7 @@ class BorrowRequestController extends Controller
         $requesterName = $borrowRequest->borrower->name;
         $custodian = Auth::user();
 
-        if (!$custodian instanceof User) {
+        if (! $custodian instanceof User) {
             abort(403);
         }
 
@@ -237,7 +236,7 @@ class BorrowRequestController extends Controller
         if ($validated['status'] === 'borrowed') {
             $updateData['approved_by'] = $custodian->id;
             $updateData['approved_at'] = now();
-            if (!empty($validated['expected_return_date'])) {
+            if (! empty($validated['expected_return_date'])) {
                 $updateData['expected_return_date'] = $validated['expected_return_date'];
             }
         } elseif ($validated['status'] === 'returned') {
@@ -262,13 +261,13 @@ class BorrowRequestController extends Controller
         }
 
         if ($validated['status'] === 'returned') {
-        $borrowRequest->borrower->notify(
-            new ReturnConfirmedNotification(
-                $borrowRequest->asset->name,
-                $borrowRequest->return_condition ?? 'ok',
-            )
-        );
-    }
+            $borrowRequest->borrower->notify(
+                new ReturnConfirmedNotification(
+                    $borrowRequest->asset->name,
+                    $borrowRequest->return_condition ?? 'ok',
+                )
+            );
+        }
 
         if ($validated['status'] === 'borrowed') {
             $isMultiUnit = $asset->category?->unit_type === 'multi';
@@ -323,7 +322,7 @@ class BorrowRequestController extends Controller
             $validated['status'] === 'awaiting_check' => "{$requesterName} submitted {$asset->name} for return inspection.",
             $validated['status'] === 'returned' && ($validated['return_condition'] ?? null) === 'lost' => "{$asset->name} ({$asset->asset_tag}) was confirmed lost by custodian.",
             $validated['status'] === 'returned' => "{$asset->name} was inspected and confirmed returned"
-            . ($updateData['return_condition'] ? " ({$updateData['return_condition']})." : '.'),
+            .($updateData['return_condition'] ? " ({$updateData['return_condition']})." : '.'),
             default => "Borrow request status changed to {$validated['status']}.",
         };
 

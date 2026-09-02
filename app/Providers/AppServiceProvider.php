@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -24,6 +25,22 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->registerQueryBuilderMacros();
+    }
+
+    /**
+     * Register case-insensitive search helpers that work on both
+     * PostgreSQL and SQLite (the ILIKE operator is Postgres-only).
+     */
+    protected function registerQueryBuilderMacros(): void
+    {
+        Builder::macro('caseInsensitiveLike', function (string $column, string $value) {
+            return $this->whereRaw('LOWER('.$column.') LIKE LOWER(?)', [$value]);
+        });
+
+        Builder::macro('orCaseInsensitiveLike', function (string $column, string $value) {
+            return $this->orWhereRaw('LOWER('.$column.') LIKE LOWER(?)', [$value]);
+        });
     }
 
     /**
