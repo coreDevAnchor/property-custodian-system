@@ -20,6 +20,15 @@ export interface LostItem {
 export type ReportView = 'assets' | 'overdue' | 'lost';
 export type ReportPeriod = "today" | "week" | "month" | "year";
 
+export interface EmployeeOption {
+    id: number;
+    name: string;
+    email?: string | null;
+    department?: string | null;
+    employee_id?: string | null;
+    contact?: string | null;
+}
+
 export interface MonthlyUsagePoint {
     month: string;
     label: string;

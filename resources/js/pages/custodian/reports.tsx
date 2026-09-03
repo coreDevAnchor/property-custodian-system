@@ -30,7 +30,8 @@ import type {
     DepreciationSummary,
     UsageMetric,
     ReportSummary,
-    ReportPeriod
+    ReportPeriod,
+    EmployeeOption
 } from '@/types/reports';
 
 import { ReportTabs } from '@/components/reports/report-tabs';
@@ -40,6 +41,7 @@ import { LostsReportTable } from '@/components/reports/table/losts-report-table'
 
 interface Props {
     categories: Category[];
+    employees: EmployeeOption[];
     selectedCategory: string;
     selectedSort: string;
     selectedView: ReportView;
@@ -77,6 +79,7 @@ const overdueSortOptions = [
 
 export default function Reports({
     categories,
+    employees,
     selectedCategory,
     selectedSort,
     selectedView,
@@ -459,6 +462,7 @@ export default function Reports({
             <ExportPdfModal
                 open={isExportPdfOpen}
                 onOpenChange={setIsExportPdfOpen}
+                employees={employees ?? []}
                 filters={{
                     category,
                     sort,

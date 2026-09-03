@@ -338,12 +338,15 @@
         /* ── Borrower Analytics ── */
         .analytics-columns {
             width: 100%;
+            box-sizing: border-box;
+            table-layout: fixed;
         }
 
         .analytics-columns td {
             width: 50%;
             vertical-align: top;
             padding: 0 8px;
+            box-sizing: border-box;
         }
 
         .analytics-columns td:first-child {
@@ -357,8 +360,10 @@
         .mini-table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
             font-size: 9.5px;
             margin-bottom: 16px;
+            box-sizing: border-box;
         }
 
         .mini-table caption {
@@ -372,18 +377,41 @@
         .mini-table th {
             background: #f1f5f9;
             border: 1px solid #dfe4ea;
-            padding: 5px 8px;
+            padding: 8px 10px;
             text-align: left;
             font-weight: 700;
             font-size: 8.5px;
             text-transform: uppercase;
             color: #6b7280;
+            box-sizing: border-box;
+        }
+
+        .mini-table th:nth-child(1),
+        .mini-table td:nth-child(1) {
+            width: 10%;
+            text-align: center;
+        }
+
+        .mini-table th:nth-child(2),
+        .mini-table td:nth-child(2) {
+            width: 65%;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .mini-table th:nth-child(3),
+        .mini-table td:nth-child(3) {
+            width: 25%;
+            text-align: right;
+            padding-left: 10px;
+            padding-right: 10px;
         }
 
         .mini-table td {
             border: 1px solid #e2e8f0;
-            padding: 5px 8px;
+            padding: 7px 10px;
             color: #1f2937;
+            box-sizing: border-box;
         }
 
         /* ── Footer ── */
@@ -415,6 +443,58 @@
         .page-break {
             page-break-before: always;
         }
+
+        /* ── Account History (per-employee) ── */
+        .acct-grid {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5px;
+            margin-bottom: 18px;
+        }
+
+        .acct-grid td {
+            border: 1px solid #e2e8f0;
+            padding: 7px 10px;
+            vertical-align: top;
+            width: 33.33%;
+        }
+
+        .acct-grid .acct-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .acct-grid .acct-value {
+            font-size: 10px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .employee-kpi {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 22px;
+        }
+
+        .employee-kpi td {
+            width: 20%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .employee-kpi .kpi-label {
+            font-size: 8px;
+        }
+
+        .employee-kpi .kpi-value {
+            font-size: 15px;
+        }
     </style>
 </head>
 
@@ -438,6 +518,122 @@
     </div>
 
     @php $firstSectionRendered = false; @endphp
+
+    {{-- ── Account History Report (per-employee) ── --}}
+    @isset($employeeHistories)
+        @foreach($employeeHistories as $history)
+            @php
+                $emp = $history['employee'];
+                $statusLabel = $history['is_active'] ? 'Active' : 'Inactive';
+            @endphp
+            <div class="section {{ $firstSectionRendered ? 'page-break' : '' }}">
+                @php $firstSectionRendered = true; @endphp
+                <h2 class="section-title">Account History — {{ $history['name'] }}</h2>
+
+                {{-- Account information --}}
+                <table class="acct-grid">
+                    <tr>
+                        <td>
+                            <span class="acct-label">Full Name</span>
+                            <span class="acct-value">{{ $history['name'] }}</span>
+                        </td>
+                        <td>
+                            <span class="acct-label">Email</span>
+                            <span class="acct-value">{{ $history['email'] ?? '—' }}</span>
+                        </td>
+                        <td>
+                            <span class="acct-label">Employee ID</span>
+                            <span class="acct-value">{{ $history['employee_id'] ?? '—' }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="acct-label">Department</span>
+                            <span class="acct-value">{{ $history['department'] ?? '—' }}</span>
+                        </td>
+                        <td>
+                            <span class="acct-label">Contact</span>
+                            <span class="acct-value">{{ $history['contact'] ?? '—' }}</span>
+                        </td>
+                        <td>
+                            <span class="acct-label">Account Status</span>
+                            <span class="acct-value">{{ $statusLabel }}</span>
+                        </td>
+                    </tr>
+                </table>
+
+                {{-- Per-employee summary --}}
+                <table class="employee-kpi">
+                    <tr>
+                        <td>
+                            <div class="kpi-label">Total Borrows</div>
+                            <div class="kpi-value">{{ number_format($history['total_borrows']) }}</div>
+                        </td>
+                        <td>
+                            <div class="kpi-label">Active</div>
+                            <div class="kpi-value">{{ number_format($history['active']) }}</div>
+                        </td>
+                        <td>
+                            <div class="kpi-label">Overdue</div>
+                            <div class="kpi-value danger">{{ number_format($history['overdue']) }}</div>
+                        </td>
+                        <td>
+                            <div class="kpi-label">Pending</div>
+                            <div class="kpi-value warning">{{ number_format($history['pending']) }}</div>
+                        </td>
+                        <td>
+                            <div class="kpi-label">Returned</div>
+                            <div class="kpi-value" style="color:#166534;">{{ number_format($history['returned']) }}</div>
+                        </td>
+                    </tr>
+                </table>
+
+                {{-- Borrow history --}}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Asset</th>
+                            <th>Asset Tag</th>
+                            <th>Category</th>
+                            <th>Requested</th>
+                            <th>Status</th>
+                            <th>Expected Return</th>
+                            <th>Returned</th>
+                            <th>Condition</th>
+                            <th class="text-right">Qty</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($history['borrows'] as $i => $b)
+                            <tr>
+                                <td>{{ $i + 1 }}</td>
+                                <td>{{ $b->asset?->name ?? '—' }}</td>
+                                <td>{{ $b->asset?->asset_tag ?? '—' }}</td>
+                                <td>{{ $b->asset?->category?->name ?? '—' }}</td>
+                                <td>{{ $b->requested_at?->format('M d, Y') }}</td>
+                                <td>{{ ucfirst(str_replace('_', ' ', $b->status)) }}</td>
+                                <td>{{ $b->expected_return_date ? $b->expected_return_date->format('M d, Y') : '—' }}</td>
+                                <td>{{ $b->returned_at ? $b->returned_at->format('M d, Y') : '—' }}</td>
+                                <td>{{ $b->return_condition ? ucfirst($b->return_condition) : '—' }}</td>
+                                <td class="text-right">{{ $b->borrow_amount ?? 1 }}</td>
+                                <td>{{ $b->remarks ? Str::limit($b->remarks, 40) : '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="11" class="text-center">No borrow activity on record.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+
+                @if($recordLimit !== 'all' && $history['total_borrows'] > (int) $recordLimit)
+                    <p class="limit-note">Showing {{ count($history['borrows']) }} of {{ number_format($history['total_borrows']) }} total records.</p>
+                @endif
+            </div>
+        @endforeach
+    @endisset
 
     {{-- ── Section: Executive Summary ── --}}
     @if(in_array('summary', $sections))
@@ -817,9 +1013,9 @@
                             <tbody>
                                 @forelse($borrowerAnalytics['borrowers'] as $i => $b)
                                     <tr>
-                                        <td class="p-1">{{ $i + 1 }}</td>
+                                        <td>{{ $i + 1 }}</td>
                                         <td>{{ $b['borrower'] }}</td>
-                                        <td class="text-right">{{ $b['count'] }}</td>
+                                        <td class="text-right">{{ $b['count'] }}</td>                    
                                     </tr>
                                 @empty
                                     <tr>

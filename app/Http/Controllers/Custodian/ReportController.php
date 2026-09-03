@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\BorrowRequest;
 use App\Models\Category;
+use App\Models\Employee;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -31,6 +32,19 @@ class ReportController extends Controller
             ->sortBy('name')
             ->values();
 
+        $employees = Employee::with('user:id,name,email')
+            ->get(['id', 'user_id', 'department', 'employee_id', 'contact', 'is_active'])
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'name' => $e->user?->name ?? 'Unknown',
+                'email' => $e->user?->email,
+                'department' => $e->department,
+                'employee_id' => $e->employee_id,
+                'contact' => $e->contact,
+            ])
+            ->sortBy('name')
+            ->values();
+
         // Always-accurate overdue count for the stat card, independent of
         // which tab/filter/page is currently active.
         $overdueCount = BorrowRequest::where('status', 'borrowed')
@@ -47,6 +61,7 @@ class ReportController extends Controller
 
         $sharedReportData = [
             'categories' => $categories,
+            'employees' => $employees,
             'selectedCategory' => $selectedCategory,
             'selectedSort' => $sort,
             'selectedView' => $view,
@@ -545,8 +560,10 @@ class ReportController extends Controller
     public function exportPdf(Request $request)
     {
         $validated = $request->validate([
-            'sections' => ['required', 'array', 'min:1'],
+            'sections' => ['sometimes', 'array', 'min:1'],
             'sections.*' => ['string', 'in:summary,assets,overdue,lost,usage_chart,borrowers'],
+            'employees' => ['sometimes', 'array', 'min:1', 'max:200'],
+            'employees.*' => ['integer', 'exists:employees,id'],
             'record_limit' => ['sometimes', 'string'],
             'orientation' => ['sometimes', 'string', 'in:portrait,landscape'],
             'action' => ['sometimes', 'string', 'in:preview,download'],
@@ -559,7 +576,8 @@ class ReportController extends Controller
             'usage_metric' => ['sometimes', 'string', 'in:borrows,assets_added'],
         ]);
 
-        $sections = $validated['sections'];
+        $employeeIds = $validated['employees'] ?? null;
+        $sections = $validated['sections'] ?? ([]);
         $recordLimit = $validated['record_limit'] ?? 'all';
         $orientation = $validated['orientation'] ?? 'portrait';
         $action = $validated['action'] ?? 'download';
@@ -575,6 +593,73 @@ class ReportController extends Controller
         $categoryName = 'All Categories';
         if ($selectedCategory !== 'all') {
             $categoryName = Category::find($selectedCategory)?->name ?? 'Unknown';
+        }
+
+        // ── Account History export (per-employee) ──
+        // When employee ids are provided, generate a standalone account-history
+        // report for each selected employee (account info + full borrow history).
+        if (! empty($employeeIds)) {
+            $employeeHistories = collect($employeeIds)
+                ->map(fn ($id) => Employee::with('user:id,name,email')->find($id))
+                ->filter()
+                ->map(function (Employee $employee) use ($limit) {
+                    $borrowsQuery = BorrowRequest::with([
+                        'asset.category:id,name',
+                        'asset.assetType:id,name',
+                    ])
+                        ->where('employee_id', $employee->id)
+                        ->latest('requested_at');
+
+                    $totalBorrows = $borrowsQuery->count();
+                    $borrows = ($limit ? $borrowsQuery->limit($limit) : $borrowsQuery)->get();
+
+                    $borrowCount = $borrows->count();
+                    $returnedCount = $borrows->where('status', 'returned')->count();
+                    $pendingCount = $borrows->where('status', 'pending')->count();
+                    $activeCount = $borrows->whereIn('status', ['borrowed', 'awaiting_check'])->count();
+                    $overdueCount = $borrows->filter(
+                        fn ($b) => $b->status === 'borrowed'
+                            && $b->expected_return_date
+                            && $b->expected_return_date->isPast()
+                    )->count();
+
+                    return [
+                        'employee' => $employee,
+                        'name' => $employee->user?->name ?? 'Unknown',
+                        'email' => $employee->user?->email,
+                        'employee_id' => $employee->employee_id,
+                        'department' => $employee->department,
+                        'contact' => $employee->contact,
+                        'is_active' => (bool) $employee->is_active,
+                        'borrows' => $borrows,
+                        'total_borrows' => $totalBorrows,
+                        'shown_borrows' => $borrowCount,
+                        'returned' => $returnedCount,
+                        'pending' => $pendingCount,
+                        'active' => $activeCount,
+                        'overdue' => $overdueCount,
+                    ];
+                })
+                ->values();
+
+            $pdf = Pdf::loadView('reports.pdf', [
+                'sections' => $sections,
+                'employeeHistories' => $employeeHistories,
+                'recordLimit' => $recordLimit,
+                'orientation' => $orientation,
+                'headerPeriod' => $headerPeriod,
+                'category' => $selectedCategory,
+                'categoryName' => $categoryName,
+                'generatedAt' => now()->format('F d, Y h:i A'),
+            ])->setPaper('a4', $orientation);
+
+            $filename = 'employee_account_history_'.now()->format('Y-m-d').'.pdf';
+
+            if ($action === 'preview') {
+                return $pdf->stream($filename);
+            }
+
+            return $pdf->download($filename);
         }
 
         // ── Build data for each selected section ──
