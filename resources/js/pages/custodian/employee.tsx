@@ -17,6 +17,7 @@ import { EmployeeDeleteDialog } from '@/components/employees/employee-delete-dia
 import { EmployeeFormDialog } from '@/components/employees/employee-form-dialog';
 import { EmployeeViewDialog } from '@/components/employees/employee-views-dialog';
 import { AnimatedTableBody } from "@/components/ui/animated-table-body";
+import { Badge } from '@/components/ui/badge';
 import {
     HoverCard,
     HoverCardContent,
@@ -26,6 +27,14 @@ import { PaginationBar } from '@/components/ui/pagination';
 import { dashboard } from '@/routes/custodian';
 import type { Employee, EmployeeStatusFilter, Filters } from '@/types/employee';
 import type { Paginated } from '@/types/pagination';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+const statusLabels: Record<EmployeeStatusFilter, string> = {
+    All: 'All',
+    active: 'Active',
+    inactive: 'Inactive',
+};
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
@@ -292,29 +301,40 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
                 {/* ── Filters + table ── */}
                 <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
                     <div className="flex flex-col gap-3 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="relative w-full max-w-xs">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by name, email, department…"
-                                className="h-10 w-full rounded-lg border border-border bg-background pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                            />
-                        </div>
+                    <div className="flex h-10 w-full max-w-xs items-center gap-2 rounded-lg border border-border bg-background px-3">
+                        <Search className="size-4 shrink-0 text-muted-foreground" />
+
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search by name, email, department…"
+                            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        />
+                    </div>
 
                         <div className="flex items-center gap-2">
-                            <select
-                                value={statusFilter}
-                                onChange={(e) =>
-                                    handleStatusChange(e.target.value as EmployeeStatusFilter)
-                                }
-                                className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                            >
-                                <option value="All">All Statuses</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
+                        <Badge
+                            variant={statusFilter === 'All' ? 'default' : 'secondary'}
+                            className="cursor-pointer"
+                            onClick={() => handleStatusChange('All')}
+                        >
+                            All
+                        </Badge>
+                        <Badge
+                            variant={statusFilter === 'active' ? 'default' : 'secondary'}
+                            className="cursor-pointer"
+                            onClick={() => handleStatusChange('active')}
+                        >
+                            Active
+                        </Badge>
+                        <Badge
+                            variant={statusFilter === 'inactive' ? 'default' : 'secondary'}
+                            className="cursor-pointer"
+                            onClick={() => handleStatusChange('inactive')}
+                        >
+                            Inactive
+                        </Badge>
                         </div>
                     </div>
 
