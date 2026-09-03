@@ -427,7 +427,7 @@ export default function Login({ status }: Props) {
                                                         htmlFor="email"
                                                         className="text-sm font-semibold text-gray-700 dark:text-gray-300"
                                                     >
-                                                        Username
+                                                        Email
                                                     </Label>
                                                     <Input
                                                         id="email"

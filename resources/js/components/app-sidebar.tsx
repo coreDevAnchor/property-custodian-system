@@ -13,10 +13,11 @@ import {
     PackageSearch,
     BoxSelect,
 } from 'lucide-react';
+import * as reports from '@/actions/App/Http/Controllers/Custodian/ReportController';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import * as custodians from '@/routes/custodian/custodians';
+import ThemeToggle from '@/components/themetoggle/theme-toggle';
 import {
     Sidebar,
     SidebarContent,
@@ -27,20 +28,19 @@ import {
     SidebarMenuItem,
     SidebarSeparator,
 } from '@/components/ui/sidebar';
+import { logout } from '@/routes';
 import { dashboard } from '@/routes/custodian';
-
+import * as activity from '@/routes/custodian/activity';
 import assets from '@/routes/custodian/assets/index';
 import * as borrowRequests from '@/routes/custodian/borrow-requests';
+import * as custodians from '@/routes/custodian/custodians';
+
 import * as employees from '@/routes/custodian/employees';
 import * as returns from '@/routes/custodian/returns';
-import * as activity from '@/routes/custodian/activity';
-import * as reports from '@/actions/App/Http/Controllers/Custodian/ReportController';
 import * as availableAssets from '@/routes/employee/assets';
 import * as currentBorrows from '@/routes/employee/current-borrows';
 
-import { logout } from '@/routes';
 import type { NavItem, SharedData } from '@/types';
-import ThemeToggle from '@/components/themetoggle/theme-toggle';
 
 export function AppSidebar() {
     const { props } = usePage<SharedData>();

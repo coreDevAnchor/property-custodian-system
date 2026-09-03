@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
+import { motion } from 'framer-motion';
 import { History, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import { rowVariants } from '@/components/assets/asset-table-animations';
 import { AnimatedTableBody } from '@/components/ui/animated-table-body';
 import {

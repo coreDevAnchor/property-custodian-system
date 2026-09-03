@@ -1,9 +1,5 @@
-import * as Recharts from 'recharts';
 import { useState } from 'react';
-import {
-    MonthlyUsagePoint,
-    UsageMetric,
-} from '@/types/reports';
+import * as Recharts from 'recharts';
 
 import {
     Card,
@@ -18,8 +14,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import type {
+    MonthlyUsagePoint,
+    UsageMetric,
+} from '@/types/reports';
 
-import { ReportPeriod } from '@/types/reports';
+import type { ReportPeriod } from '@/types/reports';
 
 const metricCopy: Record<
     UsageMetric,

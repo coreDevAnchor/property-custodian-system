@@ -1,4 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
+import { motion } from "framer-motion";
 import {
     Building2,
     Eye,
@@ -11,9 +12,11 @@ import {
     UserRound,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { rowVariants } from "@/components/assets/asset-table-animations";
 import { EmployeeDeleteDialog } from '@/components/employees/employee-delete-dialog';
 import { EmployeeFormDialog } from '@/components/employees/employee-form-dialog';
 import { EmployeeViewDialog } from '@/components/employees/employee-views-dialog';
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
 import {
     HoverCard,
     HoverCardContent,
@@ -23,9 +26,6 @@ import { PaginationBar } from '@/components/ui/pagination';
 import { dashboard } from '@/routes/custodian';
 import type { Employee, EmployeeStatusFilter, Filters } from '@/types/employee';
 import type { Paginated } from '@/types/pagination';
-import { motion } from "framer-motion";
-import { rowVariants } from "@/components/assets/asset-table-animations";
-import { AnimatedTableBody } from "@/components/ui/animated-table-body";
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 

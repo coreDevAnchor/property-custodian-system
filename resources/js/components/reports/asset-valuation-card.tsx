@@ -1,8 +1,8 @@
-import { Coins, Package, Wallet, type LucideIcon } from "lucide-react";
-import { AnimatedNumber } from "@/components/ui/animated-number";
+import { Coins, Package, Wallet  } from "lucide-react";
+import type {LucideIcon} from "lucide-react";
 import { useEffect, useRef } from "react";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 
-import { ReportPeriod } from "@/types/reports"
 
 import {
     Card,
@@ -18,8 +18,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import type { ReportPeriod } from "@/types/reports"
 
-import { DepreciationSummary } from "@/types/reports";
+import type { DepreciationSummary } from "@/types/reports";
 
 
 function MiniStat({

@@ -1,6 +1,8 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
 import { History } from 'lucide-react';
+import { useState } from 'react';
+import { ActivityFeed } from '@/components/activity/activity-feed';
+import { PaginationBar } from '@/components/ui/pagination';
 import {
     Select,
     SelectContent,
@@ -8,11 +10,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ActivityFeed } from '@/components/activity/activity-feed';
 import { dashboard } from '@/routes/custodian';
-import { PaginationBar } from '@/components/ui/pagination';
-import type { Paginated } from '@/types/pagination';
 import type { ActivityItem, Category, DateRange, Filters } from '@/types/activities';
+import type { Paginated } from '@/types/pagination';
 
 
 interface Props {

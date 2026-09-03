@@ -1,5 +1,7 @@
+import { CalendarDays, FileText, Package, User } from 'lucide-react';
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -8,8 +10,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { CalendarDays, FileText, Package, User } from 'lucide-react';
 
 interface BorrowRequest {
     id: number;
@@ -40,9 +40,16 @@ interface Props {
 }
 
 function formatDate(value?: string | null) {
-    if (!value) return undefined;
+    if (!value) {
+return undefined;
+}
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+
+    if (Number.isNaN(date.getTime())) {
+return value;
+}
+
     return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -53,7 +60,9 @@ function formatDate(value?: string | null) {
 export function BorrowRejectionDialog({ request, onClose, onConfirm }: Props) {
     const [message, setMessage] = useState('');
 
-    if (!request) return null;
+    if (!request) {
+return null;
+}
 
     return (
         <Dialog open={!!request} onOpenChange={(open) => !open && onClose()}>

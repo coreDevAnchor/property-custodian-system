@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import {
     ArrowRightLeft,
     Ban,
@@ -11,12 +12,11 @@ import {
     XCircle,
 } from 'lucide-react';
 
-import type { ActivityItem } from '@/types/activities';
-import { motion } from "framer-motion";
 import {
     tableVariants,
     rowVariants,
 } from "@/components/assets/asset-table-animations";
+import type { ActivityItem } from '@/types/activities';
 
 const actionIcons: Record<string, typeof History> = {
     asset_created: PackagePlus,

@@ -1,13 +1,13 @@
-import { useEffect } from "react";
-import { Coins, Package, Wallet, type LucideIcon } from "lucide-react";
-import { AnimatedNumber } from "../ui/animated-number";
-import { useRef } from "react";
-
+import type {LucideIcon} from "lucide-react";
+import { Coins, Package, Wallet  } from "lucide-react";
 import {
     TrendingDown,
     Percent,
     WalletCards,
 } from "lucide-react";
+import { useRef } from "react";
+
+import { useEffect } from "react";
 
 import {
     Card,
@@ -16,8 +16,9 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 
-import { DepreciationSummary } from "@/types/reports";
+import type { DepreciationSummary } from "@/types/reports";
 import { ReportPeriod } from "@/types/reports";
+import { AnimatedNumber } from "../ui/animated-number";
 
 
 function MiniStat({

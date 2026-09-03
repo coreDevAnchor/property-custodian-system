@@ -2,8 +2,8 @@ import { usePage } from '@inertiajs/react';
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
-import { EmployeeSidebar } from '@/components/ui/employee-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { EmployeeSidebar } from '@/components/ui/employee-sidebar';
 import type { AppLayoutProps, SharedData } from '@/types';
 
 export default function AppSidebarLayout({

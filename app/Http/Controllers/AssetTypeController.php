@@ -42,4 +42,19 @@ class AssetTypeController extends Controller
 
         return $candidate;
     }
+
+    public function check(AssetType $assetType): JsonResponse
+    {
+        return response()->json([
+            'assets' => $assetType->assets()
+                ->get(['id', 'name', 'asset_tag']),
+        ]);
+    }
+
+    public function destroy(AssetType $assetType): JsonResponse
+    {
+        $assetType->delete();
+
+        return response()->json(['ok' => true]);
+    }
 }

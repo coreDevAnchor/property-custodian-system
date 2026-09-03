@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
     Dialog,
     DialogContent,
@@ -8,8 +10,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { Category } from '@/types/categories';
 
 interface Props {
@@ -43,6 +43,7 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
     async function handleCreate() {
         if (!name.trim() || !prefix.trim()) {
             setError('Name and prefix are required.');
+
             return;
         }
 
@@ -68,6 +69,7 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
 
             if (!response.ok) {
                 const errors = await response.json();
+
                 throw new Error(errors.message || 'Failed to create category.');
             }
 
@@ -140,8 +142,10 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
                     </div>
 
                     <DialogFooter>
-                        <Button variant="ghost" onClick={handleClose}>Cancel</Button>
-                        <Button onClick={() => setConfirmOpen(true)}>Create</Button>
+                        <Button className="cursor-pointer"
+                            variant="ghost" onClick={handleClose}>Cancel</Button>
+                        <Button className="cursor-pointer" 
+                            onClick={() => setConfirmOpen(true)}>Create</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

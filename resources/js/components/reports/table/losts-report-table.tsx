@@ -1,10 +1,10 @@
-import { Paginated } from "@/types/pagination";
-import { PaginationBar } from "@/components/ui/pagination";
-import { LostItem } from "@/types/reports";
-import { PackageX } from "lucide-react";
 import { motion } from "framer-motion";
+import { PackageX } from "lucide-react";
 import { rowVariants } from "@/components/assets/asset-table-animations";
 import { AnimatedTableBody } from "@/components/ui/animated-table-body";
+import { PaginationBar } from "@/components/ui/pagination";
+import type { Paginated } from "@/types/pagination";
+import type { LostItem } from "@/types/reports";
 
 interface Props {
     lostItems: Paginated<LostItem>;

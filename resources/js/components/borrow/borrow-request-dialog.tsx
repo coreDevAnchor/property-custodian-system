@@ -1,4 +1,12 @@
+import {
+    CalendarDays,
+    ImageOff,
+    MapPin,
+    ShieldCheck,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
     Dialog,
     DialogContent,
@@ -7,20 +15,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import {
-    CalendarDays,
-    ImageOff,
-    MapPin,
-    ShieldCheck,
-} from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Asset {
     id: number;
@@ -126,7 +126,9 @@ function DetailRow({
 }
 
 function formatDate(value?: string | null) {
-    if (!value) return undefined;
+    if (!value) {
+return undefined;
+}
 
     const date = new Date(value);
 
@@ -358,6 +360,7 @@ export function BorrowRequestDialog({
                                             setExpectedReturnDate(
                                                 '',
                                             );
+
                                             return;
                                         }
 

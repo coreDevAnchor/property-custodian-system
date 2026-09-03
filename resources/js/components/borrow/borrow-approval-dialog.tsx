@@ -1,4 +1,7 @@
+import { CalendarDays, FileText, Package, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
     Dialog,
     DialogContent,
@@ -7,14 +10,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { CalendarDays, FileText, Package, User } from 'lucide-react';
 
 interface BorrowRequest {
     id: number;
@@ -46,9 +46,16 @@ interface Props {
 }
 
 function formatDate(value?: string | null) {
-    if (!value) return undefined;
+    if (!value) {
+return undefined;
+}
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+
+    if (Number.isNaN(date.getTime())) {
+return value;
+}
+
     return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -69,7 +76,9 @@ export function BorrowApprovalDialog({ request, onClose, onConfirm }: Props) {
         }
     }, [request]);
 
-    if (!request) return null;
+    if (!request) {
+return null;
+}
 
     const borrowAmount = request.borrow_amount ?? 1;
     const isMultiUnit = borrowAmount > 1;
@@ -203,6 +212,7 @@ export function BorrowApprovalDialog({ request, onClose, onConfirm }: Props) {
                                     onSelect={(date) => {
                                         if (!date) {
                                             setExpectedReturnDate('');
+
                                             return;
                                         }
 

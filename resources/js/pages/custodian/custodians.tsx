@@ -1,4 +1,6 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
+import { motion } from 'framer-motion';
 import {
     Eye,
     Mail,
@@ -10,6 +12,9 @@ import {
     UserRound,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { rowVariants } from '@/components/assets/asset-table-animations';
+import { CustodianDeleteDialog } from '@/components/custodian/custodian-delete-dialog';
+import { AnimatedTableBody } from '@/components/ui/animated-table-body';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -25,17 +30,12 @@ import {
     HoverCardTrigger,
 } from '@/components/ui/hover-card';
 import { Input } from '@/components/ui/input';
+import { PaginationBar } from '@/components/ui/pagination';
 import custodian, { dashboard } from '@/routes/custodian';
 import { destroy, store, update } from '@/routes/custodian/custodians';
-import { router } from '@inertiajs/react';
-import { PaginationBar } from '@/components/ui/pagination';
-import { CustodianDeleteDialog } from '@/components/custodian/custodian-delete-dialog';
 import type { SharedData } from '@/types';
-import type { Paginated } from '@/types/pagination';
 import type { Custodian, Filters } from '@/types/custodian';
-import { motion } from 'framer-motion';
-import { rowVariants } from '@/components/assets/asset-table-animations';
-import { AnimatedTableBody } from '@/components/ui/animated-table-body';
+import type { Paginated } from '@/types/pagination';
 
 interface Props {
     custodians: Paginated<Custodian>;
@@ -179,14 +179,20 @@ export default function Custodians({ custodians, filters }: Props) {
     useEffect(() => {
         if (isFirstRun.current) {
             isFirstRun.current = false;
+
             return;
         }
 
-        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (debounceRef.current) {
+clearTimeout(debounceRef.current);
+}
+
         debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
         return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (debounceRef.current) {
+clearTimeout(debounceRef.current);
+}
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);

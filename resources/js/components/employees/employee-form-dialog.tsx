@@ -1,6 +1,9 @@
-import { useEffect } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from '@inertiajs/react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import type { z } from 'zod';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -26,10 +29,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { employeeSchema } from './employee-schema';
-import type { z } from 'zod';
 
 type FormValues = z.infer<typeof employeeSchema>;
 

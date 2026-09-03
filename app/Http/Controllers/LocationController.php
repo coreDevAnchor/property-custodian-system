@@ -2,63 +2,36 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Location;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class LocationController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function store(Request $request): JsonResponse
     {
-        //
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:locations,name'],
+            'description' => ['nullable', 'string'],
+        ]);
+
+        $location = Location::create($validated);
+
+        return response()->json($location);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function check(Location $location): JsonResponse
     {
-        //
+        return response()->json([
+            'assets' => $location->assets()
+                ->get(['id', 'name', 'asset_tag']),
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function destroy(Location $location): JsonResponse
     {
-        //
-    }
+        $location->delete();
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return response()->json(['ok' => true]);
     }
 }

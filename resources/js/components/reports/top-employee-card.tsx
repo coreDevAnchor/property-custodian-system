@@ -8,9 +8,9 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-import { ReportPeriod } from "@/types/reports";
+import type { ReportPeriod } from "@/types/reports";
 
-import { BorrowerAnalytics } from "@/types/reports";
+import type { BorrowerAnalytics } from "@/types/reports";
 
 type Metric =
     | "borrowers"

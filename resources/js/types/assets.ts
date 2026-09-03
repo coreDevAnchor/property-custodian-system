@@ -1,14 +1,10 @@
-import type { Borrow } from "./borrows";
-import type { Category } from "./categories";
-import { StagedImage } from "./images";
-import type { Location } from "./location";
+import type { Borrow } from './borrows';
+import type { Category } from './categories';
+import { StagedImage } from './images';
+import type { Location } from './location';
 
 export type AssetStatus =
-    | 'available'
-    | 'borrowed'
-    | 'under_repair'
-    | 'disposed'
-    | 'lost';
+    'available' | 'borrowed' | 'under_repair' | 'disposed' | 'lost';
 
 export const statusOptions: AssetStatus[] = [
     'available',
@@ -17,13 +13,6 @@ export const statusOptions: AssetStatus[] = [
     'disposed',
     'lost',
 ];
-
-export interface OwnerCandidate {
-    id: number;
-    employee_id?: string | null;
-    department?: string | null;
-    user?: { id: number; name: string };
-}
 
 export interface Asset {
     id: number;
@@ -46,11 +35,9 @@ export interface Asset {
 
     asset_type?: AssetType | null;
 
-    category: Category;
+    category: Category | null;
 
     location?: Location | null;
-
-    owner?: OwnerCandidate | null;
 
     borrows?: Borrow[];
     current_borrow?: Borrow;
@@ -68,7 +55,7 @@ export interface AssetType {
     name: string;
     prefix: string;
 
-    category: Category;
+    category: Category | null;
 }
 
 export interface AssetFormValues {
@@ -81,5 +68,4 @@ export interface AssetFormValues {
     description?: string;
     serial_number?: string;
     amount?: number;
-    owner_id?: number;
 }

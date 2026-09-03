@@ -1,5 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ReportView } from "@/types/reports";
+import type { ReportView } from "@/types/reports";
 
 interface ReportTabsProps {
     view: ReportView;

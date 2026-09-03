@@ -36,7 +36,6 @@ import assetRoutes from '@/routes/custodian/assets';
 import type {
     AssetStatus,
     AssetType,
-    OwnerCandidate,
     Asset,
     AssetFilters,
 } from '@/types/assets';
@@ -97,7 +96,9 @@ function AssetRow({
     onEdit: (asset: Asset) => void;
     onView: (asset: Asset) => void;
 }) {
-    const Icon = categoryIcon[asset.category.name] ?? Package;
+    const Icon = asset.category
+        ? (categoryIcon[asset.category.name] ?? Package)
+        : Package;
 
     return (
         <motion.tr
@@ -124,9 +125,9 @@ function AssetRow({
             <td className="py-3.5 pr-4">
                 <span
                     className="block max-w-[150px] truncate text-sm text-foreground"
-                    title={asset.category.name}
+                    title={asset.category?.name ?? 'Unspecified'}
                 >
-                    {asset.category.name}
+                    {asset.category?.name ?? 'Unspecified'}
                 </span>
             </td>
             <td className="py-3.5 pr-4">
@@ -165,14 +166,6 @@ function AssetRow({
                     {asset.category?.unit_type === 'multi'
                         ? (asset.amount ?? 1)
                         : '—'}
-                </span>
-            </td>
-            <td className="py-3.5 pr-4">
-                <span
-                    className="block max-w-[120px] truncate text-sm text-muted-foreground"
-                    title={asset.owner?.user?.name ?? 'coreDev'}
-                >
-                    {asset.owner?.user?.name ?? 'coreDev'}
                 </span>
             </td>
             <td className="py-3.5">
@@ -246,7 +239,6 @@ interface Props {
     assetTypes: AssetType[];
     categories: Category[];
     locations: Location[];
-    employees: OwnerCandidate[];
     filters: AssetFilters;
 }
 
@@ -255,7 +247,6 @@ export default function Assets({
     assetTypes,
     categories,
     locations,
-    employees,
     filters = { search: '', category: 'All', status: 'All', per_page: 10 },
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -419,6 +410,10 @@ export default function Assets({
                                         All Categories
                                     </SelectItem>
 
+                                    <SelectItem value="Unspecified">
+                                        Unspecified
+                                    </SelectItem>
+
                                     {categoryOptions.map((category) => (
                                         <SelectItem
                                             key={category.id}
@@ -486,10 +481,7 @@ export default function Assets({
                                         Date Added
                                     </th>
                                     <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                        Amount
-                                    </th>
-                                    <th className="py-3 pr-4 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                                        Ownership
+                                        Quantity
                                     </th>
                                     <th className="py-3 text-center text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
                                         Actions
@@ -545,7 +537,6 @@ export default function Assets({
                 categories={categories}
                 locations={locations}
                 assetTypes={assetTypes}
-                employees={employees}
                 onOpenChange={setDialogOpen}
             />
 

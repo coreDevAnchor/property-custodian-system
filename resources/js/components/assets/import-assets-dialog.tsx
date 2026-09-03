@@ -28,7 +28,7 @@ const REQUIRED_COLUMNS = [
     'Total Depreciation',
 ];
 
-const OPTIONAL_COLUMNS = ['Amount', 'Owner'];
+const OPTIONAL_COLUMNS = ['Amount'];
 
 async function postJson(url: string, file: File) {
     const formData = new FormData();
@@ -268,7 +268,7 @@ export function ImportAssetsDialog({ open, onOpenChange }: Props) {
                                                 Asset Type
                                             </th>
                                             <th className="px-3 py-2 text-right font-semibold">
-                                                Amount
+                                                Quantity
                                             </th>
                                             <th className="px-3 py-2 font-semibold">
                                                 Unit
@@ -376,16 +376,14 @@ export function ImportAssetsDialog({ open, onOpenChange }: Props) {
                                         (cannot exceed Acquisition Cost).
                                     </li>
                                     <li>
-                                        Amount: blank or 1 = single-unit asset;
-                                        more than 1 = multi-unit asset.
+                                        Quantity: blank or 1 = single-unit
+                                        asset; more than 1 = multi-unit asset.
                                     </li>
                                     <li>
                                         Category and Asset Type names are
                                         matched exactly (case-sensitive);
                                         matching existing records are reused,
                                         unknown names are created automatically.
-                                        Owner must match an active employee
-                                        name.
                                     </li>
                                 </ul>
                             </div>

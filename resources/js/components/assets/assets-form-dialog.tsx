@@ -1,18 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { FormDataConvertible } from '@inertiajs/core';
 import { router } from '@inertiajs/react';
-import { ImagePlus, X, CalendarDays, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import { ImagePlus, X, CalendarDays } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import type { z } from 'zod';
 import { AddAssetTypeDialog } from '@/components/assets/add-asset-type-dialog';
 import { AddCategoryDialog } from '@/components/assets/add-category-dialog';
+import { AddLocationDialog } from '@/components/assets/add-location-dialog';
 
 import { assetSchema } from '@/components/assets/assets-schema';
-import { EmployeeCombobox } from '@/components/assets/employee-combobox';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
     Dialog,
     DialogContent,
@@ -37,6 +38,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import type { SearchableOption } from '@/components/ui/searchable-select';
 
 import {
     Select,
@@ -47,7 +50,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-import type { Asset, AssetType, OwnerCandidate } from '@/types/assets';
+import type { Asset, AssetType } from '@/types/assets';
 import type { Category } from '@/types/categories';
 import type { StagedImage } from '@/types/images';
 import type { Location } from '@/types/location';
@@ -63,7 +66,6 @@ interface Props {
     categories: Category[];
     locations: Location[];
     assetTypes: AssetType[];
-    employees?: OwnerCandidate[];
 
     onOpenChange: (open: boolean) => void;
 }
@@ -144,8 +146,6 @@ const defaultValues: FormValues = {
     status: 'available',
 
     amount: 1,
-
-    owner_id: null,
 };
 
 export function AssetFormDialog({
@@ -155,7 +155,6 @@ export function AssetFormDialog({
     categories,
     locations,
     assetTypes,
-    employees,
     onOpenChange,
 }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -170,10 +169,33 @@ export function AssetFormDialog({
     // ── Category/AssetType dialog state ──
     const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
     const [showAddAssetTypeDialog, setShowAddAssetTypeDialog] = useState(false);
+    const [showAddLocationDialog, setShowAddLocationDialog] = useState(false);
 
-    // ── Local state for dynamically added categories/asset types ──
+    // ── Local state for dynamically added categories/asset types/locations ──
     const [localCategories, setLocalCategories] = useState<Category[]>([]);
     const [localAssetTypes, setLocalAssetTypes] = useState<AssetType[]>([]);
+    const [localLocations, setLocalLocations] = useState<Location[]>([]);
+
+    // ── Deleted categories/asset types/locations (removed this session) ──
+    const [removedCategoryIds, setRemovedCategoryIds] = useState<number[]>([]);
+    const [removedAssetTypeIds, setRemovedAssetTypeIds] = useState<number[]>(
+        [],
+    );
+    const [removedLocationIds, setRemovedLocationIds] = useState<number[]>([]);
+
+    // ── Category / Asset Type / Location delete confirmation state ──
+    const [deleteTarget, setDeleteTarget] = useState<{
+        kind: 'category' | 'asset_type' | 'location';
+        id: number;
+        name: string;
+    } | null>(null);
+    const [affectedAssets, setAffectedAssets] = useState<
+        { id: number; name: string; asset_tag: string }[]
+    >([]);
+    const [affectedAssetTypes, setAffectedAssetTypes] = useState<
+        { id: number; name: string }[]
+    >([]);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(assetSchema),
@@ -217,8 +239,6 @@ export function AssetFormDialog({
                 status: asset.status,
 
                 amount: asset.amount ?? 1,
-
-                owner_id: asset.owner?.id ?? null,
             });
             setExistingPhoto(asset.photo ?? null);
         }
@@ -242,8 +262,6 @@ export function AssetFormDialog({
                 status: 'available',
 
                 amount: 1,
-
-                owner_id: null,
             });
             setExistingPhoto(null);
         }
@@ -330,14 +348,6 @@ export function AssetFormDialog({
     const submit = (data: FormValues) => {
         const payload: Record<string, FormDataConvertible> = { ...data };
 
-        // A cleared owner (null) would be dropped by FormData serialization,
-        // so the edit would never null the existing owner. Send an empty string
-        // instead; Laravel's ConvertEmptyStringsToNull middleware turns it into
-        // a null owner_id on the server.
-        if (payload.owner_id === null) {
-            payload.owner_id = '';
-        }
-
         if (image) {
             payload.photo = image.file;
         }
@@ -388,19 +398,156 @@ export function AssetFormDialog({
 
     const selectedCategoryId = form.watch('category_id');
 
-    const allCategories = [...(categories ?? []), ...localCategories];
+    const allCategories = [...(categories ?? []), ...localCategories].filter(
+        (c) => !removedCategoryIds.includes(c.id),
+    );
     const selectedCategory = allCategories.find(
         (c) => c.id === selectedCategoryId,
     );
 
     const isMultiUnit = selectedCategory?.unit_type === 'multi';
 
-    const allAssetTypes = [...(assetTypes ?? []), ...localAssetTypes];
+    const allAssetTypes = [...(assetTypes ?? []), ...localAssetTypes].filter(
+        (t) => !removedAssetTypeIds.includes(t.id),
+    );
     const filteredAssetTypes = allAssetTypes.filter(
         (assetType) =>
             !selectedCategoryId ||
             assetType.category?.id === selectedCategoryId,
     );
+
+    const allLocations = [...(locations ?? []), ...localLocations].filter(
+        (l) => !removedLocationIds.includes(l.id),
+    );
+
+    function handleDeleteClick(
+        kind: 'category' | 'asset_type' | 'location',
+        option: SearchableOption,
+    ) {
+        setDeleteTarget({ kind, id: option.id, name: option.name });
+        setAffectedAssets([]);
+        setAffectedAssetTypes([]);
+        setDeleteLoading(false);
+
+        const url =
+            kind === 'category'
+                ? `/custodian/categories/${option.id}/check`
+                : kind === 'asset_type'
+                  ? `/custodian/asset-types/${option.id}/check`
+                  : `/custodian/locations/${option.id}/check`;
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('Failed to load affected items.');
+                }
+
+                return response.json();
+            })
+            .then((data) => {
+                setAffectedAssets(data.assets ?? []);
+
+                if (kind === 'category') {
+                    setAffectedAssetTypes(data.asset_types ?? []);
+                }
+            })
+            .catch(() => {
+                toast.error('Could not load affected items.');
+            });
+    }
+
+    function handleConfirmDelete() {
+        if (!deleteTarget) {
+            return;
+        }
+
+        setDeleteLoading(true);
+
+        const resource =
+            deleteTarget.kind === 'category'
+                ? 'categories'
+                : deleteTarget.kind === 'asset_type'
+                  ? 'asset-types'
+                  : 'locations';
+
+        fetch(`/custodian/${resource}/${deleteTarget.id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': decodeURIComponent(
+                    document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '',
+                ),
+            },
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('Failed to delete.');
+                }
+
+                return response.json();
+            })
+            .then(() => {
+                const target = deleteTarget;
+
+                if (target.kind === 'category') {
+                    setRemovedCategoryIds((prev) => [...prev, target.id]);
+
+                    if (selectedCategoryId === target.id) {
+                        form.setValue('category_id', undefined);
+                    }
+
+                    const sameCategoryTypes = filteredAssetTypes
+                        .filter((t) => t.category?.id === target.id)
+                        .map((t) => t.id);
+
+                    if (sameCategoryTypes.length > 0) {
+                        setRemovedAssetTypeIds((prev) => [
+                            ...new Set([...prev, ...sameCategoryTypes]),
+                        ]);
+                    }
+
+                    if (
+                        form.getValues('asset_type_id') !== undefined &&
+                        sameCategoryTypes.includes(
+                            form.getValues('asset_type_id')!,
+                        )
+                    ) {
+                        form.setValue('asset_type_id', undefined);
+                    }
+                } else if (target.kind === 'asset_type') {
+                    setRemovedAssetTypeIds((prev) => [...prev, target.id]);
+
+                    if (form.getValues('asset_type_id') === target.id) {
+                        form.setValue('asset_type_id', undefined);
+                    }
+                } else {
+                    setRemovedLocationIds((prev) => [...prev, target.id]);
+
+                    if (form.getValues('location_id') === target.id) {
+                        form.setValue('location_id', undefined);
+                    }
+                }
+
+                const successMessage =
+                    target.kind === 'category'
+                        ? `Category "${target.name}" deleted.`
+                        : target.kind === 'asset_type'
+                          ? `Asset type "${target.name}" deleted.`
+                          : `Location "${target.name}" deleted.`;
+                toast.success(successMessage);
+
+                setDeleteTarget(null);
+                setDeleteLoading(false);
+
+                router.reload({
+                    only: ['categories', 'assetTypes', 'locations'],
+                });
+            })
+            .catch((error) => {
+                setDeleteLoading(false);
+                toast.error(error.message || 'Failed to delete.');
+            });
+    }
 
     return (
         <Dialog
@@ -453,34 +600,6 @@ export function AssetFormDialog({
                                         </FormItem>
                                     )}
                                 />
-
-                                <FormField
-                                    control={form.control}
-                                    name="owner_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex flex-row justify-between">
-                                                <FormLabel>
-                                                    Original Owner
-                                                </FormLabel>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Defaults to coreDev if
-                                                    unassigned.
-                                                </p>
-                                            </div>
-
-                                            <FormControl>
-                                                <EmployeeCombobox
-                                                    employees={employees ?? []}
-                                                    value={field.value}
-                                                    onChange={field.onChange}
-                                                />
-                                            </FormControl>
-
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                             </div>
 
                             <FormField
@@ -512,58 +631,37 @@ export function AssetFormDialog({
                                             <FormItem>
                                                 <FormLabel>Category</FormLabel>
 
-                                                <Select
-                                                    value={
-                                                        field.value?.toString() ??
-                                                        ''
-                                                    }
-                                                    onValueChange={(value) => {
-                                                        if (
-                                                            value ===
-                                                            '__add_new_category__'
-                                                        ) {
+                                                <FormControl>
+                                                    <SearchableSelect
+                                                        placeholder="Select category"
+                                                        selectedId={field.value}
+                                                        options={allCategories.map(
+                                                            (category) => ({
+                                                                id: category.id,
+                                                                name: category.name,
+                                                                secondary:
+                                                                    category.prefix,
+                                                            }),
+                                                        )}
+                                                        onSelect={(value) =>
+                                                            field.onChange(
+                                                                value,
+                                                            )
+                                                        }
+                                                        onDelete={(option) =>
+                                                            handleDeleteClick(
+                                                                'category',
+                                                                option,
+                                                            )
+                                                        }
+                                                        onAdd={() =>
                                                             setShowAddCategoryDialog(
                                                                 true,
-                                                            );
-
-                                                            return;
+                                                            )
                                                         }
-
-                                                        field.onChange(
-                                                            Number(value),
-                                                        );
-                                                    }}
-                                                >
-                                                    <FormControl className="cursor-pointer">
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select category" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-
-                                                    <SelectContent>
-                                                        {allCategories.map(
-                                                            (category) => (
-                                                                <SelectItem
-                                                                    key={
-                                                                        category.id
-                                                                    }
-                                                                    value={category.id.toString()}
-                                                                >
-                                                                    {
-                                                                        category.name
-                                                                    }
-                                                                </SelectItem>
-                                                            ),
-                                                        )}
-                                                        <SelectItem
-                                                            value="__add_new_category__"
-                                                            className="font-medium text-orange-600"
-                                                        >
-                                                            <Plus className="mr-1 inline size-4" />
-                                                            Add New Category
-                                                        </SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                        addLabel="Add New Category"
+                                                    />
+                                                </FormControl>
 
                                                 <FormMessage />
                                             </FormItem>
@@ -580,58 +678,39 @@ export function AssetFormDialog({
                                                     Asset Type
                                                 </FormLabel>
 
-                                                <Select
-                                                    value={
-                                                        field.value?.toString() ??
-                                                        ''
-                                                    }
-                                                    onValueChange={(value) => {
-                                                        if (
-                                                            value ===
-                                                            '__add_new_asset_type__'
-                                                        ) {
+                                                <FormControl>
+                                                    <SearchableSelect
+                                                        placeholder="Select asset type"
+                                                        selectedId={field.value}
+                                                        options={filteredAssetTypes.map(
+                                                            (assetType) => ({
+                                                                id: assetType.id,
+                                                                name: assetType.name,
+                                                                secondary:
+                                                                    assetType
+                                                                        .category
+                                                                        ?.name,
+                                                            }),
+                                                        )}
+                                                        onSelect={(value) =>
+                                                            field.onChange(
+                                                                value,
+                                                            )
+                                                        }
+                                                        onDelete={(option) =>
+                                                            handleDeleteClick(
+                                                                'asset_type',
+                                                                option,
+                                                            )
+                                                        }
+                                                        onAdd={() =>
                                                             setShowAddAssetTypeDialog(
                                                                 true,
-                                                            );
-
-                                                            return;
+                                                            )
                                                         }
-
-                                                        field.onChange(
-                                                            Number(value),
-                                                        );
-                                                    }}
-                                                >
-                                                    <FormControl className="cursor-pointer">
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select asset type" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-
-                                                    <SelectContent>
-                                                        {filteredAssetTypes.map(
-                                                            (assetType) => (
-                                                                <SelectItem
-                                                                    key={
-                                                                        assetType.id
-                                                                    }
-                                                                    value={assetType.id.toString()}
-                                                                >
-                                                                    {
-                                                                        assetType.name
-                                                                    }
-                                                                </SelectItem>
-                                                            ),
-                                                        )}
-                                                        <SelectItem
-                                                            value="__add_new_asset_type__"
-                                                            className="font-medium text-orange-600"
-                                                        >
-                                                            <Plus className="mr-1 inline size-4" />
-                                                            Add New Asset Type
-                                                        </SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                        addLabel="Add New Asset Type"
+                                                    />
+                                                </FormControl>
 
                                                 <FormMessage />
                                             </FormItem>
@@ -645,35 +724,33 @@ export function AssetFormDialog({
                                         <FormItem>
                                             <FormLabel>Location</FormLabel>
 
-                                            <Select
-                                                value={field.value?.toString()}
-                                                onValueChange={(value) =>
-                                                    field.onChange(
-                                                        Number(value),
-                                                    )
-                                                }
-                                            >
-                                                <FormControl className="cursor-pointer">
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select location" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-
-                                                <SelectContent>
-                                                    {(locations ?? []).map(
-                                                        (location) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    location.id
-                                                                }
-                                                                value={location.id.toString()}
-                                                            >
-                                                                {location.name}
-                                                            </SelectItem>
-                                                        ),
+                                            <FormControl>
+                                                <SearchableSelect
+                                                    placeholder="Select location"
+                                                    selectedId={field.value}
+                                                    options={allLocations.map(
+                                                        (l) => ({
+                                                            id: l.id,
+                                                            name: l.name,
+                                                        }),
                                                     )}
-                                                </SelectContent>
-                                            </Select>
+                                                    onSelect={(value) =>
+                                                        field.onChange(value)
+                                                    }
+                                                    onAdd={() =>
+                                                        setShowAddLocationDialog(
+                                                            true,
+                                                        )
+                                                    }
+                                                    addLabel="Add New Location"
+                                                    onDelete={(option) =>
+                                                        handleDeleteClick(
+                                                            'location',
+                                                            option,
+                                                        )
+                                                    }
+                                                />
+                                            </FormControl>
 
                                             <FormMessage />
                                         </FormItem>
@@ -759,9 +836,7 @@ export function AssetFormDialog({
                                     name="amount"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>
-                                                Amount (Units)
-                                            </FormLabel>
+                                            <FormLabel>Quantity</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
@@ -1076,6 +1151,68 @@ export function AssetFormDialog({
                     setLocalAssetTypes((prev) => [...prev, assetType]);
                     form.setValue('asset_type_id', assetType.id);
                 }}
+            />
+
+            <AddLocationDialog
+                open={showAddLocationDialog}
+                onOpenChange={setShowAddLocationDialog}
+                onCreated={(location) => {
+                    setLocalLocations((prev) => [...prev, location]);
+                    form.setValue('location_id', location.id);
+                }}
+            />
+
+            <ConfirmDialog
+                open={!!deleteTarget}
+                onOpenChange={(value) => {
+                    if (!value && !deleteLoading) {
+                        setDeleteTarget(null);
+                    }
+                }}
+                title={
+                    deleteTarget?.kind === 'category'
+                        ? `Delete Category "${deleteTarget?.name}"?`
+                        : deleteTarget?.kind === 'asset_type'
+                          ? `Delete Asset Type "${deleteTarget?.name}"?`
+                          : `Delete Location "${deleteTarget?.name}"?`
+                }
+                description={
+                    deleteTarget?.kind === 'category'
+                        ? `This will permanently delete the category${affectedAssetTypes.length > 0 ? ` and its ${affectedAssetTypes.length} asset type${affectedAssetTypes.length === 1 ? '' : 's'}` : ''}. The following assets will become unspecified:`
+                        : deleteTarget?.kind === 'asset_type'
+                          ? `This will permanently delete the asset type. The following assets will lose their type:`
+                          : `This will permanently delete the location. The following assets will become unspecified:`
+                }
+                confirmLabel="Delete"
+                confirmVariant="destructive"
+                loading={deleteLoading}
+                onConfirm={handleConfirmDelete}
+                details={
+                    affectedAssets.length > 0 ? (
+                        <div className="mt-1 max-h-40 overflow-y-auto rounded-md border border-border bg-muted/30 p-2">
+                            <ul className="list-disc space-y-0.5 pl-4 text-sm text-muted-foreground">
+                                {affectedAssets.map((asset) => (
+                                    <li key={asset.id}>
+                                        {asset.name}{' '}
+                                        <span className="text-xs text-muted-foreground">
+                                            ({asset.asset_tag})
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : (
+                        <div className="mt-1 rounded-md border border-border bg-muted/30 p-2 text-sm text-muted-foreground">
+                            No assets are currently assigned to this{' '}
+                            {deleteTarget?.kind === 'category'
+                                ? 'category'
+                                : deleteTarget?.kind === 'asset_type'
+                                  ? 'asset type'
+                                  : 'location'}
+                            .
+                        </div>
+                    )
+                }
             />
         </Dialog>
     );

@@ -1,3 +1,6 @@
+import { AlertTriangle } from 'lucide-react';
+import type { Asset } from '@/components/assets/types';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -6,9 +9,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Asset } from '@/components/assets/types';
-import { AlertTriangle } from 'lucide-react';
 
 export function DeleteConfirmModal({
     asset,

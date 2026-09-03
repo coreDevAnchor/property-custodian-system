@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+import type { ReportSummary } from "@/types/reports";
 import { ReportSummaryCard } from "./reports-summary-card";
-import { ReportSummary } from "@/types/reports";
 
 interface Props {
     data: ReportSummary;

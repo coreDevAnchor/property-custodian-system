@@ -46,7 +46,5 @@ export const assetSchema = z.object({
 
     status: z.string(),
 
-    amount: z.number().min(1, 'Amount must be at least 1.').optional(),
-
-    owner_id: z.number().optional().nullable(),
+    amount: z.number().min(1, 'Quantity must be at least 1.').optional(),
 });

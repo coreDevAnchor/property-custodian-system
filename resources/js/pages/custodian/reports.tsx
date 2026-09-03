@@ -1,20 +1,27 @@
 import { Head, router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
-import { useRef, useState } from 'react';
 import { AlertTriangle, Download, PackageX } from 'lucide-react';
+import { useRef, useState } from 'react';
 import {
     pageStaggerVariants,
 } from '@/components/assets/asset-table-animations';
+import { AssetValuationCard } from '@/components/reports/asset-valuation-card';
+import { BorrowerAnalyticsChart } from '@/components/reports/borrower-analytics-chart';
+import { DepreciationCard } from '@/components/reports/depreciation-card';
+import { ExportPdfModal } from '@/components/reports/export-pdf-modal';
+import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
+import { ReportFilters } from '@/components/reports/report-filters';
+import { ReportHeader } from '@/components/reports/report-header';
+import { ReportSummaryGrid } from '@/components/reports/report-summary-grid';
+import { TopEmployeeCard } from '@/components/reports/top-employee-card';
+import { PaginationBar } from '@/components/ui/pagination';
 import { SectionReveal } from '@/components/ui/section-reveal';
 import { dashboard, reports as custodianReports } from '@/routes/custodian';
 import { exportMethod as exportReports } from '@/routes/custodian/reports';
-import { PaginationBar } from '@/components/ui/pagination';
-import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
-import { ReportSummaryGrid } from '@/components/reports/report-summary-grid';
-import { Paginated } from '@/types/pagination';
-import { Category } from '@/types/categories';
-import { Asset } from '@/types/assets';
-import {
+import type { Asset } from '@/types/assets';
+import type { Category } from '@/types/categories';
+import type { Paginated } from '@/types/pagination';
+import type {
     OverdueItem,
     LostItem,
     ReportView,
@@ -26,17 +33,10 @@ import {
     ReportPeriod
 } from '@/types/reports';
 
-import { BorrowerAnalyticsChart } from '@/components/reports/borrower-analytics-chart';
-import { AssetValuationCard } from '@/components/reports/asset-valuation-card';
-import { DepreciationCard } from '@/components/reports/depreciation-card';
-import { ReportHeader } from '@/components/reports/report-header';
-import { TopEmployeeCard } from '@/components/reports/top-employee-card';
-import { ReportFilters } from '@/components/reports/report-filters';
 import { ReportTabs } from '@/components/reports/report-tabs';
 import { AssetsReportTable } from '@/components/reports/table/assets-report-table';
 import { OverdueReportTable } from '@/components/reports/table/overdue-report-table';
 import { LostsReportTable } from '@/components/reports/table/losts-report-table';
-import { ExportPdfModal } from '@/components/reports/export-pdf-modal';
 
 interface Props {
     categories: Category[];

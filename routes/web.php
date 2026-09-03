@@ -16,6 +16,7 @@ use App\Http\Controllers\CustodianDashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeDashboardController;
 use App\Http\Controllers\EmployeeReturnController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MyBorrowController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReturnController;
@@ -80,7 +81,16 @@ Route::middleware(['auth', 'verified'])
             ->name('assets.import');
 
         Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::get('categories/{category}/check', [CategoryController::class, 'check'])->name('categories.check');
+        Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
         Route::post('asset-types', [AssetTypeController::class, 'store'])->name('asset-types.store');
+        Route::get('asset-types/{assetType}/check', [AssetTypeController::class, 'check'])->name('asset-types.check');
+        Route::delete('asset-types/{assetType}', [AssetTypeController::class, 'destroy'])->name('asset-types.destroy');
+
+        Route::post('locations', [LocationController::class, 'store'])->name('locations.store');
+        Route::get('locations/{location}/check', [LocationController::class, 'check'])->name('locations.check');
+        Route::delete('locations/{location}', [LocationController::class, 'destroy'])->name('locations.destroy');
 
         Route::resource('borrow-requests', BorrowRequestController::class);
 

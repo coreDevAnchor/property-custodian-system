@@ -1,5 +1,5 @@
-import http from 'k6/http';
 import { check, group, sleep } from 'k6';
+import http from 'k6/http';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
 // ─── Custom Metrics ───────────────────────────────────────────
@@ -68,8 +68,10 @@ function getCsrfToken() {
         headers: { Accept: 'application/json' },
         tags: { name: 'GET /loadtest/token' },
     });
+
     try {
         var body = JSON.parse(res.body);
+
         return body.token || '';
     } catch (e) {
         return '';
@@ -81,8 +83,10 @@ function getCsrfToken() {
  */
 function login(user) {
     var token = getCsrfToken();
+
     if (!token) {
         console.error('[' + user.email + '] Failed to get CSRF token');
+
         return false;
     }
 
@@ -106,11 +110,13 @@ function login(user) {
 
     // 302 = success (redirect to dashboard), 200 = force-change-password page
     var success = res.status === 302 || res.status === 200;
+
     if (!success) {
         console.error(
             '[' + user.email + '] Login failed: ' + res.status + ' ' + res.status_text
         );
     }
+
     return success;
 }
 
@@ -127,6 +133,7 @@ export function employeeSearch() {
         if (!ok) {
             console.error(`VU ${vuId}: Login failed, skipping iteration`);
             sleep(1);
+
             return;
         }
     });
@@ -137,8 +144,15 @@ export function employeeSearch() {
             const category = CATEGORIES[i % CATEGORIES.length];
 
             var qs = 'per_page=10';
-            if (query) qs += '&search=' + encodeURIComponent(query);
-            if (category !== 'All') qs += '&category=' + encodeURIComponent(category);
+
+            if (query) {
+qs += '&search=' + encodeURIComponent(query);
+}
+
+            if (category !== 'All') {
+qs += '&category=' + encodeURIComponent(category);
+}
+
             var url = BASE_URL + '/employee/assets?' + qs;
 
             const res = http.get(url, {
@@ -180,6 +194,7 @@ export function custodianWork() {
         if (!ok) {
             console.error(`VU ${vuId}: Login failed, skipping iteration`);
             sleep(1);
+
             return;
         }
     });
@@ -216,9 +231,11 @@ export function custodianWork() {
         group('Custodian Create Asset', () => {
             // Step 1: GET CSRF token
             var token = getCsrfToken();
+
             if (!token) {
                 console.error('VU ' + vuId + ' iter ' + i + ': CSRF token fetch failed');
                 createFail.add(1);
+
                 return;
             }
 

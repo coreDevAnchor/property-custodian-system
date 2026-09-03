@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { motion } from "framer-motion";
 import {
     Check,
     ClipboardCheck,
@@ -10,8 +11,10 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { update as updateRenewal } from '@/actions/App/Http/Controllers/BorrowRenewalController';
+import { rowVariants } from "@/components/assets/asset-table-animations";
 import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
 import { BorrowRejectionDialog } from '@/components/borrow/borrow-rejection-dialog';
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
 import { PaginationBar } from '@/components/ui/pagination';
 import {
     Select,
@@ -21,6 +24,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useInertiaLoading } from "@/hooks/use-inertia-loading"
 import { dashboard } from '@/routes/custodian';
 import { borrowStatusLabels, borrowStatusStyles } from '@/types/borrow-status';
 import type {
@@ -31,10 +35,6 @@ import type {
     Filters
 } from '@/types/borrows';
 import type { Paginated } from '@/types/pagination';
-import { motion } from "framer-motion";
-import { AnimatedTableBody } from "@/components/ui/animated-table-body";
-import { rowVariants } from "@/components/assets/asset-table-animations";
-import { useInertiaLoading } from "@/hooks/use-inertia-loading"
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 

@@ -1,13 +1,13 @@
-import { Paginated } from "@/types/pagination";
-import { PaginationBar } from "@/components/ui/pagination";
-import { OverdueItem } from "@/types/reports";
-import { AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { router } from "@inertiajs/react";
-import borrowRequests from "@/routes/custodian/borrow-requests";
 import { motion } from "framer-motion";
+import { AlertTriangle } from "lucide-react";
 import { rowVariants } from "@/components/assets/asset-table-animations";
 import { AnimatedTableBody } from "@/components/ui/animated-table-body";
+import { Button } from "@/components/ui/button";
+import { PaginationBar } from "@/components/ui/pagination";
+import borrowRequests from "@/routes/custodian/borrow-requests";
+import type { Paginated } from "@/types/pagination";
+import type { OverdueItem } from "@/types/reports";
 
 function OverdueBadge({ days }: { days: number }) {
     const cls =

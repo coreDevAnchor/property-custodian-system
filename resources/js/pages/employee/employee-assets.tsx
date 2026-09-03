@@ -45,7 +45,9 @@ function AssetCard({
     onRequest: (asset: Asset) => void;
     onView: (asset: Asset) => void;
 }) {
-    const Icon = categoryIcon[asset.category.name] ?? Laptop;
+    const Icon = asset.category
+        ? (categoryIcon[asset.category.name] ?? Laptop)
+        : Laptop;
 
     return (
         <motion.div
@@ -73,7 +75,8 @@ function AssetCard({
                         {asset.name}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                        {asset.asset_tag} · {asset.category.name}
+                        {asset.asset_tag} ·{' '}
+                        {asset.category?.name ?? 'Unspecified'}
                     </p>
                 </div>
 

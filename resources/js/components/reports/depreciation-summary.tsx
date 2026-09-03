@@ -5,7 +5,7 @@ import {
     TrendingDown,
 } from 'lucide-react';
 
-import { DepreciationSummary } from '@/types/reports';
+import type { DepreciationSummary } from '@/types/reports';
 
 interface Props {
     data: DepreciationSummary;

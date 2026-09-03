@@ -37,6 +37,7 @@ export default function DeleteUser() {
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button
+                            className="cursor-pointer"
                             variant="destructive"
                             data-test="delete-user-button"
                         >

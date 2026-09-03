@@ -21,4 +21,21 @@ class CategoryController extends Controller
 
         return response()->json($category);
     }
+
+    public function check(Category $category): JsonResponse
+    {
+        return response()->json([
+            'assets' => $category->assets()
+                ->get(['id', 'name', 'asset_tag']),
+            'asset_types' => $category->assetTypes()
+                ->get(['id', 'name']),
+        ]);
+    }
+
+    public function destroy(Category $category): JsonResponse
+    {
+        $category->delete();
+
+        return response()->json(['ok' => true]);
+    }
 }

@@ -1,9 +1,9 @@
-import { Asset } from "@/types/assets"
-import { Paginated } from "@/types/pagination";
-import { PaginationBar } from "@/components/ui/pagination";
 import { motion } from "framer-motion";
 import { rowVariants } from "@/components/assets/asset-table-animations";
 import { AnimatedTableBody } from "@/components/ui/animated-table-body";
+import { PaginationBar } from "@/components/ui/pagination";
+import type { Asset } from "@/types/assets"
+import type { Paginated } from "@/types/pagination";
 
 interface Props {
     assets: Paginated<Asset>;

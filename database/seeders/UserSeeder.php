@@ -14,14 +14,14 @@ class UserSeeder extends Seeder
     {
         User::create([
             'name' => 'Custodian User',
-            'email' => 'custodian@example.com',
+            'email' => 'anchorjave16@gmail.com',
             'password' => 'password',
             'role' => 'custodian',
         ]);
 
         User::create([
             'name' => 'Employee User',
-            'email' => 'employee@example.com',
+            'email' => 'javeanchor@gmail.com',
             'password' => 'password',
             'role' => 'employee',
         ]);

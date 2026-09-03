@@ -280,10 +280,9 @@ const custodianSections: DocSection[] = [
             'Delete assets no longer in the system',
             'Search and filter assets by name, category, or status',
             'View asset details and borrow history',
-            'Assign an owner to each asset via a searchable employee combobox — unassigned assets belong to coreDev',
             'Create new categories and asset types inline from the Add Asset dialog (prefixes are auto-generated)',
-            'Track quantity with the Amount field for multi-unit categories',
-            'View enhanced asset details showing owner, amount, unit type, and the complete activity log',
+            'Track quantity with the Quantity field for multi-unit categories',
+            'View enhanced asset details showing quantity, unit type, and the complete activity log',
         ],
         gif: '/docs/assets.gif',
     },
@@ -295,7 +294,7 @@ const custodianSections: DocSection[] = [
             'Bulk-import assets from an Excel (XLSX) or CSV spreadsheet instead of creating them one by one.',
         steps: [
             'Click Import on the Assets page and download the XLSX or CSV template',
-            'Fill in the required columns: Name, Category, Asset Type, Acquisition Cost, and Total Depreciation (Amount and Owner are optional)',
+            'Fill in the required columns: Name, Category, Asset Type, Acquisition Cost, and Total Depreciation (Amount is optional)',
             'Upload the file — max 5 MB; missing or unknown categories and asset types are created automatically',
             'Fix any reported row errors and re-upload — imports are all-or-nothing, so nothing is saved until every row is valid',
             "Each imported asset gets an auto-generated tag, status Available, condition Excellent, and today's acquisition date",
@@ -376,7 +375,7 @@ const custodianSections: DocSection[] = [
             'Generate and export reports for asset management and borrowing activity.',
         actions: [
             'Generate asset summary reports',
-            'Export data as CSV or PDF — CSV includes Unit Amount and Ownership columns',
+            'Export data as CSV or PDF — CSV includes Unit Amount columns',
             'View borrowing statistics and trends',
         ],
         gif: '/docs/reports.gif',
@@ -494,10 +493,11 @@ function TableOfContents({
                     <li key={section.id}>
                         <button
                             onClick={() => scrollTo(section.id)}
-                            className={`w-full cursor-pointer border-l-2 py-1.5 pl-4 text-left text-sm transition-colors ${activeId === section.id
+                            className={`w-full cursor-pointer border-l-2 py-1.5 pl-4 text-left text-sm transition-colors ${
+                                activeId === section.id
                                     ? 'border-primary font-semibold text-primary'
                                     : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
-                                }`}
+                            }`}
                         >
                             {section.title}
                         </button>
@@ -581,16 +581,16 @@ export default function Documentation() {
     const featureSections = isCustodian ? custodianSections : employeeSections;
     const allSections = isCustodian
         ? [
-            ...installationSections,
-            ...custodianSections.filter(
-                (s) =>
-                    s.id === 'installation' || s.id === 'email-configuration',
-            ),
-            ...custodianSections.filter(
-                (s) =>
-                    s.id !== 'installation' && s.id !== 'email-configuration',
-            ),
-        ]
+              ...installationSections,
+              ...custodianSections.filter(
+                  (s) =>
+                      s.id === 'installation' || s.id === 'email-configuration',
+              ),
+              ...custodianSections.filter(
+                  (s) =>
+                      s.id !== 'installation' && s.id !== 'email-configuration',
+              ),
+          ]
         : [...installationSections, ...employeeSections];
     const tocIds = allSections.map((s) => s.id);
     const activeId = useScrollSpy(tocIds);

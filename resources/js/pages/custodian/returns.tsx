@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { motion } from "framer-motion";
 import {
     AlertTriangle,
     CheckCircle2,
@@ -8,6 +8,11 @@ import {
     Search,
     ShieldCheck,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { rowVariants } from "@/components/assets/asset-table-animations";
+import { LostConfirmDialog } from '@/components/dialog/lost-confirm-dialog';
+import { AnimatedTableBody } from "@/components/ui/animated-table-body";
+import { PaginationBar } from '@/components/ui/pagination';
 import {
     Select,
     SelectContent,
@@ -16,9 +21,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { dashboard } from '@/routes/custodian';
-import { PaginationBar } from '@/components/ui/pagination';
-import { LostConfirmDialog } from '@/components/dialog/lost-confirm-dialog';
-import { Paginated } from '@/types/pagination';
+import type { Paginated } from '@/types/pagination';
 import type {
     ReturnStatus,
     ReturnCondition,
@@ -27,9 +30,6 @@ import type {
     Filters
 } from '@/types/returns';
 
-import { motion } from "framer-motion";
-import { AnimatedTableBody } from "@/components/ui/animated-table-body";
-import { rowVariants } from "@/components/assets/asset-table-animations";
 
 const statusLabels: Record<ReturnStatus, string> = {
     awaiting_check: 'Awaiting Check',
@@ -242,14 +242,20 @@ export default function Returns({
     useEffect(() => {
         if (isFirstRun.current) {
             isFirstRun.current = false;
+
             return;
         }
 
-        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (debounceRef.current) {
+clearTimeout(debounceRef.current);
+}
+
         debounceRef.current = setTimeout(() => fetchPage(1), 350);
 
         return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (debounceRef.current) {
+clearTimeout(debounceRef.current);
+}
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
@@ -275,8 +281,10 @@ export default function Returns({
     function handleConfirmReturn(item: ReturnItem, condition: ReturnCondition) {
         if (condition === 'lost') {
             setLostConfirmItem(item);
+
             return;
         }
+
         submitConfirmReturn(item, condition);
     }
 

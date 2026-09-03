@@ -1,4 +1,3 @@
-import { Category } from "@/types/categories";
 import {
     Select,
     SelectContent,
@@ -6,6 +5,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import type { Category } from "@/types/categories";
 
 interface ReportFiltersProps {
     categories: Category[];

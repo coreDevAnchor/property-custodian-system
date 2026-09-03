@@ -1,5 +1,5 @@
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { LucideIcon } from "lucide-react";
 
 import { AnimatedNumber } from "../ui/animated-number";
 

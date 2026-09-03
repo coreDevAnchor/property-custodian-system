@@ -1,4 +1,3 @@
-import { useMemo, useState } from 'react';
 import {
     AlertTriangle,
     Clock,
@@ -6,6 +5,7 @@ import {
     RotateCcw,
     UserCheck,
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 import {
     Select,
@@ -15,7 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-import {
+import type {
     BorrowerAnalytics,
     MonthlyAnalyticsPoint,
 } from '@/types/reports';

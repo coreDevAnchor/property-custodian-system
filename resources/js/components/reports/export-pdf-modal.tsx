@@ -1,5 +1,7 @@
-import { useState } from 'react';
 import { Eye, FileDown, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -8,10 +10,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { exportPdf } from '@/routes/custodian/reports';
 
@@ -88,16 +88,20 @@ export function ExportPdfModal({ open, onOpenChange, filters }: Props) {
     };
 
     const handleAction = async (actionType: 'preview' | 'download') => {
-        if (sections.length === 0) return;
+        if (sections.length === 0) {
+return;
+}
 
         const url = buildExportUrl(actionType);
 
         if (actionType === 'preview') {
             setIsPreviewing(true);
             const win = window.open(url, '_blank');
+
             if (win) {
                 win.focus();
             }
+
             setTimeout(() => setIsPreviewing(false), 1500);
         } else {
             setIsDownloading(true);
@@ -145,6 +149,7 @@ export function ExportPdfModal({ open, onOpenChange, filters }: Props) {
                         <div className="grid gap-3 sm:grid-cols-2">
                             {REPORT_SECTIONS.map((section) => {
                                 const isChecked = sections.includes(section.id);
+
                                 return (
                                     <div
                                         key={section.id}

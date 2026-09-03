@@ -6,7 +6,6 @@ use App\Models\ActivityLogs;
 use App\Models\Asset;
 use App\Models\AssetType;
 use App\Models\Category;
-use App\Models\Employee;
 use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -39,7 +38,6 @@ class AssetController extends Controller
                 'category_id',
                 'asset_type_id',
                 'location_id',
-                'owner_id',
                 'status',
                 'condition',
                 'photo',
@@ -52,7 +50,6 @@ class AssetController extends Controller
                 'category:id,name,unit_type',
                 'assetType:id,name,prefix',
                 'location:id,name',
-                'owner.user:id,name',
 
                 'currentBorrow',
 
@@ -70,7 +67,8 @@ class AssetController extends Controller
                 });
 
             })
-            ->when($category !== 'All', fn ($q) => $q->where('category_id', $category))
+            ->when($category === 'Unspecified', fn ($q) => $q->whereNull('category_id'))
+            ->when($category !== 'All' && $category !== 'Unspecified', fn ($q) => $q->where('category_id', $category))
             ->when($status !== 'All', fn ($q) => $q->where('status', $status))
             ->latest()
             ->paginate($perPage)
@@ -92,13 +90,6 @@ class AssetController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name', 'prefix', 'category_id']),
             'locations' => Location::orderBy('name', 'asc')->get(['id', 'name']),
-            'employees' => Employee::query()
-                ->where('is_active', true)
-                ->with('user:id,name')
-                ->orderBy('employee_id')
-                ->get(['id', 'user_id', 'department', 'employee_id'])
-                ->sortBy(fn ($employee) => $employee->user?->name ?? '')
-                ->values(),
             'filters' => [
                 'search' => $search,
                 'category' => $category,
@@ -127,7 +118,6 @@ class AssetController extends Controller
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'asset_type_id' => ['required', 'exists:asset_types,id'],
             'amount' => ['nullable', 'integer', 'min:1'],
-            'owner_id' => ['nullable', 'exists:employees,id'],
         ], [
             'name.required' => 'Asset name is required.',
             'category_id.required' => 'Category is required.',
@@ -151,18 +141,10 @@ class AssetController extends Controller
 
         $asset = Asset::create($validated);
 
-        $ownerDescription = '';
-
-        if ($asset->owner_id) {
-            $asset->load('owner.user:id,name');
-
-            $ownerDescription = " Assigned to {$asset->owner->user->name}.";
-        }
-
         ActivityLogs::record(
             $asset,
             'asset_created',
-            "{$asset->name} ({$asset->asset_tag}) was added to inventory.{$ownerDescription}"
+            "{$asset->name} ({$asset->asset_tag}) was added to inventory."
         );
 
         return redirect()
@@ -178,7 +160,6 @@ class AssetController extends Controller
             'category',
             'assetType',
             'location',
-            'owner.user:id,name',
             'currentBorrow',
             'borrows.borrower',
         ]);
@@ -202,7 +183,6 @@ class AssetController extends Controller
                 'category',
                 'assetType',
                 'location',
-                'owner.user:id,name',
             ])
         );
     }
@@ -224,12 +204,9 @@ class AssetController extends Controller
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'asset_type_id' => ['required', 'exists:asset_types,id'],
             'amount' => ['nullable', 'integer', 'min:1'],
-            'owner_id' => ['nullable', 'exists:employees,id'],
         ]);
 
         $previousStatus = $asset->status;
-        $previousOwnerId = $asset->owner_id;
-        $previousOwnerName = $asset->load('owner.user:id,name')->owner?->user?->name;
 
         if (
             $asset->status === 'borrowed' &&
@@ -266,8 +243,6 @@ class AssetController extends Controller
 
         $asset->update($validated);
 
-        $ownerChanged = ($validated['owner_id'] ?? null) != $previousOwnerId;
-
         if ($previousStatus !== $asset->status) {
             $action = match ($asset->status) {
                 'disposed' => 'asset_disposed',
@@ -287,30 +262,6 @@ class AssetController extends Controller
                 'from' => $previousStatus,
                 'to' => $asset->status,
             ]);
-        } elseif ($ownerChanged) {
-            if ($validated['owner_id']) {
-                $asset->load('owner.user:id,name');
-
-                ActivityLogs::record(
-                    $asset,
-                    'asset_updated',
-                    "{$asset->name} ownership assigned to {$asset->owner->user->name}.",
-                    [
-                        'from' => $previousOwnerName,
-                        'to' => $asset->owner?->user?->name,
-                    ]
-                );
-            } else {
-                ActivityLogs::record(
-                    $asset,
-                    'asset_updated',
-                    "{$asset->name} ownership removed.",
-                    [
-                        'from' => $previousOwnerName,
-                        'to' => null,
-                    ]
-                );
-            }
         } else {
             ActivityLogs::record($asset, 'asset_updated', "{$asset->name} details were updated.");
         }
@@ -336,7 +287,6 @@ class AssetController extends Controller
             'Acquisition Cost',
             'Total Depreciation',
             'Amount',
-            'Owner',
         ];
 
         $tempPath = sys_get_temp_dir()
@@ -414,7 +364,6 @@ class AssetController extends Controller
                     'status' => 'available',
                     'photo' => null,
                     'location_id' => null,
-                    'owner_id' => $entry['owner_id'],
                     'amount' => $entry['amount'],
                 ]);
 
@@ -502,7 +451,7 @@ class AssetController extends Controller
         $normalizeHeader = fn ($header) => preg_replace('/[\s_\-]+/', '', strtolower(trim((string) $header)));
 
         $requiredHeaders = ['name', 'assettag', 'category', 'assettype', 'acquisitioncost', 'totaldepreciation'];
-        $optionalHeaders = ['amount', 'owner'];
+        $optionalHeaders = ['amount'];
 
         $headerLabels = [
             'name' => 'Name',
@@ -512,7 +461,6 @@ class AssetController extends Controller
             'acquisitioncost' => 'Acquisition Cost',
             'totaldepreciation' => 'Total Depreciation',
             'amount' => 'Amount',
-            'owner' => 'Owner',
         ];
 
         $normalizedHeaders = array_map($normalizeHeader, $headerRow);
@@ -546,7 +494,7 @@ class AssetController extends Controller
             }
 
             $problems[] = 'Expected columns: Name, Asset-Tag, Category, Asset Type, Acquisition Cost, Total Depreciation'
-                .' (optional: Amount, Owner).';
+                .' (optional: Amount).';
 
             return ['error' => implode("\n", $problems)];
         }
@@ -556,12 +504,6 @@ class AssetController extends Controller
 
         $assetTypesByKey = AssetType::all()
             ->keyBy(fn ($type) => $type->category_id.'|'.trim($type->name));
-
-        $employeesByName = Employee::query()
-            ->where('is_active', true)
-            ->with('user:id,name')
-            ->get()
-            ->keyBy(fn ($employee) => mb_strtolower(trim(optional($employee->user)->name ?? '')));
 
         $errorLines = [];
         $validRows = [];
@@ -585,7 +527,6 @@ class AssetController extends Controller
             $costRaw = $getName('acquisitioncost');
             $depreciationRaw = $getName('totaldepreciation');
             $amountRaw = $getName('amount');
-            $ownerName = $getName('owner');
 
             $rowErrors = [];
 
@@ -629,18 +570,6 @@ class AssetController extends Controller
                 }
             }
 
-            $ownerId = null;
-
-            if ($ownerName !== '') {
-                $employee = $employeesByName->get(mb_strtolower($ownerName));
-
-                if (! $employee) {
-                    $rowErrors[] = "Owner \"{$ownerName}\" does not match any active employee.";
-                } else {
-                    $ownerId = $employee->id;
-                }
-            }
-
             if ($rowErrors) {
                 $errorLines[] = "Row {$rowNumber}: ".implode(' ', $rowErrors);
 
@@ -680,7 +609,6 @@ class AssetController extends Controller
                 'asset_type_status' => $categoryPlan[$categoryName]['status'] === 'existing'
                     ? ($assetTypesByKey->has($categoryPlan[$categoryName]['existing']->id.'|'.$assetTypeName) ? 'existing' : 'new')
                     : 'new',
-                'owner_id' => $ownerId,
                 'acquisition_cost' => round((float) $costRaw, 2),
                 'total_depreciation' => round((float) $depreciationRaw, 2),
             ];
