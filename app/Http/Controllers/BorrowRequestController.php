@@ -25,6 +25,7 @@ class BorrowRequestController extends Controller
         $status = $request->input('status', 'pending');
         $sort = $request->input('sort', 'newest');
         $perPage = (int) $request->input('per_page', 10);
+        $renewalPerPage = (int) $request->input('renewal_per_page', 10);
 
         $borrowRequests = BorrowRequest::with([
             'asset.category',
@@ -60,19 +61,25 @@ class BorrowRequestController extends Controller
             ->withQueryString();
 
         $pendingCount = BorrowRequest::where('status', 'pending')->count();
+        $pendingRenewalCount = BorrowRenewal::where('status', 'pending')->count();
         $renewalRequests = BorrowRenewal::with([
             'borrow.asset.category',
             'borrow.borrower',
         ])
             ->where('status', 'pending')
             ->latest()
-            ->get();
+            ->paginate($renewalPerPage, ['*'], 'renewal_page')
+            ->withQueryString();
 
         return Inertia::render('custodian/borrow-requests', [
             'borrowRequests' => $borrowRequests,
             'pendingCount' => $pendingCount,
             'renewalRequests' => $renewalRequests,
-            'pendingRenewalCount' => $renewalRequests->count(),
+            'pendingRenewalCount' => $pendingRenewalCount,
+            'renewalFilters' => [
+                'renewal_page' => $request->integer('renewal_page', 1),
+                'renewal_per_page' => $renewalPerPage,
+            ],
             'filters' => [
                 'search' => $search,
                 'status' => $status,

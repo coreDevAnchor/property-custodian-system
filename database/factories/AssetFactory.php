@@ -14,6 +14,8 @@ class AssetFactory extends Factory
 
     public function definition(): array
     {
+        $createdAt = fake()->dateTimeBetween('-11 months', 'now');
+
         return [
             'asset_tag' => fake()->unique()->bothify('AST-#####'),
 
@@ -58,6 +60,9 @@ class AssetFactory extends Factory
             'location_id' => Location::inRandomOrder()->value('id') ?? Location::factory(),
 
             'remarks' => fake()->optional()->sentence(),
+
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
         ];
     }
 }

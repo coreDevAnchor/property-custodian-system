@@ -93,7 +93,7 @@
         }
 
         /* ── Summary KPI Grid ── */
-        .kpi-grid {
+        .kpi-grid { 
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 22px;
@@ -817,7 +817,7 @@
                             <tbody>
                                 @forelse($borrowerAnalytics['borrowers'] as $i => $b)
                                     <tr>
-                                        <td>{{ $i + 1 }}</td>
+                                        <td class="p-1">{{ $i + 1 }}</td>
                                         <td>{{ $b['borrower'] }}</td>
                                         <td class="text-right">{{ $b['count'] }}</td>
                                     </tr>

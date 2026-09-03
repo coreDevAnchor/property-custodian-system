@@ -105,6 +105,6 @@ class AssetSeeder extends Seeder
             'remarks' => null,
         ]);
 
-        Asset::factory()->count(500)->create();
+        Asset::factory()->count(2000)->create();
     }
 }

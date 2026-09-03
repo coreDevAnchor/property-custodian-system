@@ -153,8 +153,9 @@ function BorrowRequestRow({
 interface Props {
     borrowRequests: Paginated<BorrowRequest>;
     pendingCount: number;
-    renewalRequests: BorrowRenewalRequest[];
+    renewalRequests: Paginated<BorrowRenewalRequest>;
     pendingRenewalCount: number;
+    renewalFilters: { renewal_page: number; renewal_per_page: number };
     filters: Filters;
 }
 
@@ -163,6 +164,7 @@ export default function BorrowRequests({
     pendingCount,
     renewalRequests,
     pendingRenewalCount,
+    renewalFilters,
     filters = { search: '', status: 'pending', sort: 'newest', per_page: 10 },
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -172,8 +174,10 @@ export default function BorrowRequests({
     const [rejectionRequest, setRejectionRequest] = useState<BorrowRequest | null>(null);
     const [view, setView] = useState<'borrows' | 'renewals'>('borrows');
     const [loading, setLoading] = useState(false);
+    const [renewalPage, setRenewalPage] = useState(renewalFilters?.renewal_page ?? 1);
+    const [renewalPerPage, setRenewalPerPage] = useState(renewalFilters?.renewal_per_page ?? 10);
     const animationKey = `${borrowRequests.current_page}-${search}-${statusFilter}-${sortKey}`;
-    const renewalAnimationKey = `${renewalRequests.length}-${pendingRenewalCount}`;
+    const renewalAnimationKey = `${renewalRequests.data.length}-${pendingRenewalCount}`;
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRun = useRef(true);
@@ -194,8 +198,32 @@ export default function BorrowRequests({
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
-                only: ['borrowRequests', 'pendingCount', 'filters'],
+                only: ['borrowRequests', 'pendingCount', 'renewalRequests', 'pendingRenewalCount', 'filters'],
                 onFinish: () => setLoading(false),
+            },
+        );
+    }
+
+    function fetchRenewalPage(page: number, overrides: { renewal_per_page?: number } = {}) {
+        const perPage = overrides.renewal_per_page ?? renewalPerPage;
+        setRenewalPage(page);
+        setRenewalPerPage(perPage);
+
+        router.get(
+            '/custodian/borrow-requests',
+            {
+                search,
+                status: statusFilter,
+                sort: sortKey,
+                per_page: borrowRequests.per_page,
+                renewal_page: page,
+                renewal_per_page: perPage,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['renewalRequests', 'pendingRenewalCount'],
             },
         );
     }
@@ -435,7 +463,7 @@ export default function BorrowRequests({
                                 animationKey={renewalAnimationKey}
                             >
 
-                                {renewalRequests.map((renewal) => (
+                                {renewalRequests.data.map((renewal) => (
                                     <motion.tr
                                         key={renewal.id}
                                         variants={rowVariants}
@@ -453,7 +481,7 @@ export default function BorrowRequests({
                                 ))}
                             </AnimatedTableBody>
                         </table>
-                        {renewalRequests.length === 0 && (
+                        {renewalRequests.data.length === 0 && (
                             <div className="flex flex-col items-center gap-2 py-12 text-center">
                                 <CalendarClock className="size-6 text-muted-foreground" />
                                 <p className="text-sm font-semibold text-foreground">No pending renewal requests</p>
@@ -461,6 +489,18 @@ export default function BorrowRequests({
                             </div>
                         )}
                     </div>
+
+                    <PaginationBar
+                        currentPage={renewalRequests.current_page}
+                        lastPage={renewalRequests.last_page}
+                        total={renewalRequests.total}
+                        from={renewalRequests.from}
+                        to={renewalRequests.to}
+                        perPage={renewalRequests.per_page}
+                        itemLabel="renewal requests"
+                        onPageChange={fetchRenewalPage}
+                        onPerPageChange={(perPage) => fetchRenewalPage(1, { renewal_per_page: perPage })}
+                    />
                 </div>
             </div >
 

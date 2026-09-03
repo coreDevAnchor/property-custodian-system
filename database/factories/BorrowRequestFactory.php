@@ -23,7 +23,7 @@ class BorrowRequestFactory extends Factory
     public function definition(): array
     {
         // 1. Fetch target user and corresponding employee record
-        $user = User::where('email', 'employee@example.com')->first();
+        $user = User::where('email', 'javeanchor@gmail.com')->first();
         $employee = $user ? Employee::where('user_id', $user->id)->first() : null;
 
         $status = fake()->randomElement([
@@ -34,7 +34,7 @@ class BorrowRequestFactory extends Factory
             'rejected',
         ]);
 
-        $requestedAt = fake()->dateTimeBetween('-3 months', '-1 week');
+        $requestedAt = fake()->dateTimeBetween('-11 months', '-1 week');
 
         $approvedAt = in_array($status, [
             'borrowed',
