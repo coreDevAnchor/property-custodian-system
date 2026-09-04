@@ -770,6 +770,16 @@
                 @endforeach
             </div>
 
+            @php
+                $usageChartHeight = 95;
+                $usageMax = 1;
+                foreach ($monthlyUsage as $point) {
+                    foreach ($usageConfig as $mk => $mcfg) {
+                        $usageMax = max($usageMax, $point[$mk] ?? 0);
+                    }
+                }
+            @endphp
+
             <table class="grouped-bar-chart">
                 <tr>
                     @forelse($monthlyUsage as $point)

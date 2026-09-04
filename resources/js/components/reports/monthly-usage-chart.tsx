@@ -84,10 +84,18 @@ const assetBars = [
     },
 ] as const;
 
+const PERIOD_TOTAL_LABEL: Record<ReportPeriod, string> = {
+    today: "Today's Total",
+    week: "Weekly Total",
+    month: "Monthly Total",
+    year: "Yearly Total",
+};
+
 function CustomTooltip({
     active,
     payload,
     label,
+    period,
 }: {
     active?: boolean;
     payload?: Array<{
@@ -97,6 +105,7 @@ function CustomTooltip({
         fill: string;
     }>;
     label?: string;
+    period: ReportPeriod;
 }) {
 
     if (!active || !payload?.length) {
@@ -146,7 +155,7 @@ function CustomTooltip({
 
             <div className="flex items-center justify-between gap-6">
                 <span className="text-xs font-semibold text-muted-foreground">
-                    Monthly Total
+                    {PERIOD_TOTAL_LABEL[period]}
                 </span>
 
                 <span className="text-sm font-extrabold text-foreground">
@@ -318,7 +327,7 @@ export function MonthlyUsageChart({
                 ) : (
                     <div className="h-[450px] w-full rounded-xl bg-muted/20 p-4">
                         <Recharts.ResponsiveContainer width="100%" height="100%">
-                            <Recharts.BarChart
+                            <Recharts.AreaChart
                                 data={data}
                                 margin={{
                                     top: 10,
@@ -326,7 +335,6 @@ export function MonthlyUsageChart({
                                     left: -5,
                                     bottom: 5,
                                 }}
-                                barCategoryGap="25%"
                             >
                                 <Recharts.CartesianGrid
                                     vertical={false}
@@ -357,24 +365,26 @@ export function MonthlyUsageChart({
 
                                 <Recharts.Tooltip
                                     cursor={{
-                                        fill: 'hsl(var(--muted))',
-                                        opacity: 0.25,
+                                        stroke: 'hsl(var(--muted))',
+                                        strokeWidth: 1,
                                     }}
-                                    content={<CustomTooltip />}
+                                    content={<CustomTooltip period={period} />}
                                 />
 
                                 {bars.map((bar) => (
-                                    <Recharts.Bar
+                                    <Recharts.Area
                                         key={bar.key}
+                                        type="monotone"
                                         dataKey={bar.key}
                                         name={bar.name}
+                                        stackId="1"
+                                        stroke={bar.color}
                                         fill={bar.color}
-                                        radius={[10, 10, 0, 0]}
-                                        maxBarSize={42}
+                                        fillOpacity={0.6}
                                         animationDuration={500}
                                     />
                                 ))}
-                            </Recharts.BarChart>
+                            </Recharts.AreaChart>
                         </Recharts.ResponsiveContainer>
 
                     </div>
