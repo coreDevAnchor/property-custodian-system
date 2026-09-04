@@ -169,7 +169,7 @@ function AssetRow({
                 </span>
             </td>
             <td className="py-3.5">
-                <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();

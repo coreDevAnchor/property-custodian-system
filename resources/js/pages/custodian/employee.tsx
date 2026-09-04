@@ -112,7 +112,7 @@ function EmployeeRow({
                 <StatusBadge isActive={employee.is_active} />
             </td>
             <td className="py-3.5">
-                <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -365,7 +365,7 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
                             <AnimatedTableBody
                                 loading={loading}
                                 animate
-                                animationKey={`${employees.current_page}-${search}-${statusFilter}`}
+                                animationKey={`${employees.current_page}-${filters.search}-${filters.status}`}
                             >
                                 {employees.data.map((employee) => (
                                     <EmployeeRow
