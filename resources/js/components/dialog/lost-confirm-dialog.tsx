@@ -71,9 +71,9 @@ export function LostConfirmDialog({
                 </AlertDialogHeader>
 
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
 
-                    <AlertDialogAction
+                    <AlertDialogAction className="cursor-pointer"
                         variant="destructive"
                         onClick={onConfirm}
                     >

@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { employeeSchema } from './employee-schema';
 
@@ -87,6 +88,8 @@ export function EmployeeFormDialog({
         },
     });
 
+    const [submitting, setSubmitting] = useState(false);
+
     useEffect(() => {
         if (mode === 'edit' && employee) {
             form.reset({
@@ -114,46 +117,55 @@ export function EmployeeFormDialog({
     }, [employee, mode]);
 
     const submit = (data: FormValues) => {
+        if (submitting) {
+            return;
+        }
+
+        setSubmitting(true);
+
         const payload = {
             name: data.name,
             email: data.email,
             department: data.department,
             contact: data.contact,
-            employee_id:
-                mode === 'create' ? nextEmployeeId : employee?.employee_id,
             is_active: data.is_active,
+            employee_id:
+                mode === 'edit' ? (employee?.employee_id ?? null) : undefined,
+        };
+
+        const options = {
+            preserveScroll: true,
+            onSuccess: () => {
+                onOpenChange(false);
+            },
+            onError: (errors: Record<string, string>) => {
+                for (const field of [
+                    'name',
+                    'email',
+                    'department',
+                    'contact',
+                ] as const) {
+                    if (errors[field]) {
+                        form.setError(field, {
+                            type: 'server',
+                            message: errors[field],
+                        });
+                    }
+                }
+            },
+            onFinish: () => {
+                setSubmitting(false);
+            },
         };
 
         if (mode === 'create') {
-            router.post('/custodian/employees', payload, {
-                preserveScroll: true,
-                onSuccess: () => {
-                    onOpenChange(false);
-                },
-                onError: (errors) => {
-                    if (errors.email) {
-                        form.setError('email', {
-                            type: 'server',
-                            message: errors.email,
-                        });
-                    }
-                },
-            });
+            router.post('/custodian/employees', payload, options);
         } else {
-            router.put(`/custodian/employees/${employee?.id}`, payload, {
-                preserveScroll: true,
-                onSuccess: () => {
-                    onOpenChange(false);
-                },
-                onError: (errors) => {
-                    if (errors.email) {
-                        form.setError('email', {
-                            type: 'server',
-                            message: errors.email,
-                        });
-                    }
-                },
-            });
+            router.put(
+                `/custodian/employees/${employee?.id}`,
+                payload,
+                options,
+            );
         }
     };
 
@@ -277,7 +289,7 @@ export function EmployeeFormDialog({
                             <FormField
                                 control={form.control}
                                 name="employee_id"
-                                render={({ field }) => (
+                                render={() => (
                                     <FormItem>
                                         <FormLabel>Employee ID</FormLabel>
                                         <FormControl>
@@ -358,14 +370,24 @@ export function EmployeeFormDialog({
                                 className="cursor-pointer"
                                 type="button"
                                 variant="outline"
+                                disabled={submitting}
                                 onClick={() => onOpenChange(false)}
                             >
                                 Cancel
                             </Button>
-                            <Button className="cursor-pointer" type="submit">
-                                {mode === 'create'
-                                    ? 'Add Employee'
-                                    : 'Save Changes'}
+                            <Button
+                                className="cursor-pointer"
+                                type="submit"
+                                disabled={submitting}
+                            >
+                                {submitting && <Spinner />}
+                                {submitting
+                                    ? mode === 'create'
+                                        ? 'Adding...'
+                                        : 'Saving...'
+                                    : mode === 'create'
+                                      ? 'Add Employee'
+                                      : 'Save Changes'}
                             </Button>
                         </DialogFooter>
                     </form>

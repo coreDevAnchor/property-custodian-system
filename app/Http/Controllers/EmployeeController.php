@@ -70,15 +70,17 @@ class EmployeeController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email:rfc', 'max:255', 'unique:users,email'],
 
             'department' => ['required', 'string', 'max:255'],
-            'contact' => ['nullable', 'regex:/^09\d{9}$/'],
+            'contact' => ['required', 'regex:/^09\d{9}$/', 'unique:employees,contact'],
         ], [
             'email.email' => 'Please enter a valid email address.',
             'email.unique' => 'This email is already in use.',
 
+            'contact.required' => 'Contact number is required.',
             'contact.regex' => 'Contact number must be 11 digits and start with 09.',
+            'contact.unique' => 'This contact number is already in use.',
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -89,21 +91,9 @@ class EmployeeController extends Controller
                 'role' => 'employee',
             ]);
 
-            $lastEmployee = Employee::latest('id')->first();
-
-            if ($lastEmployee) {
-                $lastNumber = (int) str_replace('EMP-', '', $lastEmployee->employee_id);
-
-                $employeeId = 'EMP-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-            } else {
-                $employeeId = 'EMP-0001';
-            }
-
-            Employee::create([
-                'user_id' => $user->id,
+            $user->employee()->update([
                 'department' => $validated['department'],
-                'employee_id' => $employeeId,
-                'contact' => $validated['contact'] ?? null,
+                'contact' => $validated['contact'],
                 'is_active' => true,
             ]);
         });
@@ -144,7 +134,7 @@ class EmployeeController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
-                'email:rfc,dns',
+                'email:rfc',
                 'max:255',
                 'unique:users,email,' . $employee->user_id,
             ],
@@ -156,13 +146,14 @@ class EmployeeController extends Controller
                 'max:255',
                 'unique:employees,employee_id,' . $employee->id,
             ],
-            'contact' => ['nullable', 'regex:/^09\d{9}$/'],
+            'contact' => ['nullable', 'regex:/^09\d{9}$/', 'unique:employees,contact,' . $employee->id],
             'is_active' => ['required', 'boolean'],
         ], [
             'email.email' => 'Please enter a valid email address.',
             'email.unique' => 'This email is already in use.',
             'contact.required' => 'Contact number is required.',
             'contact.regex' => 'Contact number must be 11 digits and start with 09.',
+            'contact.unique' => 'This contact number is already in use.',
         ]);
 
         DB::transaction(function () use ($employee, $validated) {
