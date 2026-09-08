@@ -16,12 +16,13 @@ export function AppSidebarHeader({
     breadcrumbs?: BreadcrumbItemType[];
 }) {
     const { unreadNotificationCount } = usePage<SharedData>().props;
-    const notificationLabel = unreadNotificationCount > 0
-        ? `Notifications (${unreadNotificationCount} unread)`
-        : 'Notifications';
+    const notificationLabel =
+        unreadNotificationCount > 0
+            ? `Notifications (${unreadNotificationCount} unread)`
+            : 'Notifications';
 
     return (
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/50 px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4 sticky top-0">
+        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/50 bg-background px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 supports-[backdrop-filter]:bg-background/90 supports-[backdrop-filter]:backdrop-blur md:px-4">
             <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1 cursor-pointer" />
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
@@ -33,12 +34,14 @@ export function AppSidebarHeader({
                             href={notifications.index.url()}
                             prefetch
                             aria-label={notificationLabel}
-                            className="relative inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="relative inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                         >
                             <Bell className="size-5" />
                             {unreadNotificationCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex min-w-4 h-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-white">
-                                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] leading-none font-bold text-white">
+                                    {unreadNotificationCount > 99
+                                        ? '99+'
+                                        : unreadNotificationCount}
                                 </span>
                             )}
                         </Link>

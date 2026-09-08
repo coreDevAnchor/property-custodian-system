@@ -75,3 +75,24 @@ test('users are rate limited', function () {
 
     $response->assertTooManyRequests();
 });
+
+test('rate limited users see an inline lockout banner on the login page', function () {
+    $user = User::factory()->custodian()->create();
+
+    RateLimiter::increment(md5('login'.implode('|', [$user->email, '127.0.0.1'])), amount: 5);
+
+    $response = $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'wrong-password',
+    ], ['X-Inertia' => 'true']);
+
+    $response->assertOk();
+    $response->assertHeader('X-Inertia', 'true');
+    $response->assertJsonPath('component', 'auth/login');
+
+    $response
+        ->assertJsonStructure(['props' => ['auth_error', 'retry_after', 'locked_at']])
+        ->assertJsonPath('props.retry_after', fn ($value) => is_int($value) && $value > 0)
+        ->assertJsonPath('props.locked_at', fn ($value) => is_int($value) && $value > 0)
+        ->assertJsonPath('props.auth_error', fn ($value) => is_string($value) && str_contains($value, 'Please wait'));
+});

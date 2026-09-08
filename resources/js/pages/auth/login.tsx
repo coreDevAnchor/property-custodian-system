@@ -48,9 +48,13 @@ function ThemeToggle() {
             type="button"
             onClick={() => updateAppearance(isDark ? 'light' : 'dark')}
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="fixed right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-[#18181a] dark:text-gray-300 dark:hover:bg-[#1f1f21] cursor-pointer"
+            className="fixed top-5 right-5 z-20 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-[#18181a] dark:text-gray-300 dark:hover:bg-[#1f1f21]"
         >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {isDark ? (
+                <Sun className="h-4 w-4" />
+            ) : (
+                <Moon className="h-4 w-4" />
+            )}
         </button>
     );
 }
@@ -58,9 +62,17 @@ function ThemeToggle() {
 type Props = {
     status?: string;
     canResetPassword: boolean;
+    auth_error?: string | null;
+    retry_after?: number | null;
+    locked_at?: number | null;
 };
 
-export default function Login({ status }: Props) {
+export default function Login({
+    status,
+    auth_error,
+    retry_after,
+    locked_at,
+}: Props) {
     const [mode, setMode] = useState<'login' | 'reset'>('login');
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
@@ -75,7 +87,24 @@ export default function Login({ status }: Props) {
     const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
     const [now, setNow] = useState(() => Date.now());
 
-    const isTicking = expiresAt !== null || cooldownUntil !== null;
+    const secondsLeft = expiresAt
+        ? Math.max(0, Math.ceil((expiresAt - now) / 1000))
+        : 0;
+    const cooldownLeft = cooldownUntil
+        ? Math.max(0, Math.ceil((cooldownUntil - now) / 1000))
+        : 0;
+    const lockLeft =
+        locked_at && retry_after
+            ? Math.max(
+                  0,
+                  Math.ceil(((locked_at + retry_after) * 1000 - now) / 1000),
+              )
+            : 0;
+
+    const isTicking =
+        expiresAt !== null ||
+        cooldownUntil !== null ||
+        (locked_at !== null && lockLeft > 0);
 
     useEffect(() => {
         if (!isTicking) {
@@ -86,13 +115,6 @@ export default function Login({ status }: Props) {
 
         return () => window.clearInterval(id);
     }, [isTicking]);
-
-    const secondsLeft = expiresAt
-        ? Math.max(0, Math.ceil((expiresAt - now) / 1000))
-        : 0;
-    const cooldownLeft = cooldownUntil
-        ? Math.max(0, Math.ceil((cooldownUntil - now) / 1000))
-        : 0;
 
     function switchMode(next: 'login' | 'reset') {
         setMode(next);
@@ -160,7 +182,9 @@ export default function Login({ status }: Props) {
                 setResetMessage(res.body.message);
                 switchMode('login');
             } else {
-                setOtpError(res.body.message ?? 'Failed to reset the password.');
+                setOtpError(
+                    res.body.message ?? 'Failed to reset the password.',
+                );
             }
         } catch {
             setOtpError('Something went wrong. Please try again.');
@@ -185,7 +209,7 @@ export default function Login({ status }: Props) {
                     <div className="absolute inset-0 bg-gradient-to-br from-[#fdf3e7] via-[#fbeee0] to-[#f8e6d3] dark:from-[#161615] dark:via-[#0f0f10] dark:to-[#0a0a0a]" />
 
                     {/* radial glow behind mark */}
-                    <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(217,83,12,0.16)_0%,rgba(217,83,12,0)_70%)] dark:bg-[radial-gradient(circle,rgba(232,114,12,0.28)_0%,rgba(232,114,12,0)_70%)]" />
+                    <div className="absolute top-1/2 left-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(217,83,12,0.16)_0%,rgba(217,83,12,0)_70%)] dark:bg-[radial-gradient(circle,rgba(232,114,12,0.28)_0%,rgba(232,114,12,0)_70%)]" />
 
                     {/* subtle grid texture */}
                     <div
@@ -212,18 +236,18 @@ export default function Login({ status }: Props) {
                         <img
                             src="/images/coreDevlogo-CUQ-ORnY.png_2K_202608261338-removebg-preview.png"
                             alt="coreDev logo"
-                            className="h-64 w-64 animate-float rounded-2xl object-contain opacity-90"
+                            className="animate-float h-64 w-64 rounded-2xl object-contain opacity-90"
                         />
                     </div>
 
                     {/* bottom copy */}
                     <div className="relative z-10 px-12 pb-14">
-                        <h1 className="max-w-md text-4xl font-bold leading-tight tracking-tight text-gray-900 dark:text-white">
+                        <h1 className="max-w-md text-4xl leading-tight font-bold tracking-tight text-gray-900 dark:text-white">
                             Every asset, accounted for.
                         </h1>
                         <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                            Sign in to track, assign, and audit property across your
-                            organization from one place.
+                            Sign in to track, assign, and audit property across
+                            your organization from one place.
                         </p>
                     </div>
                 </div>
@@ -247,8 +271,9 @@ export default function Login({ status }: Props) {
                                     Reset password
                                 </h2>
                                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                    Enter your email, request a 6-digit code, and set a new
-                                    password. The code expires in 3 minutes.
+                                    Enter your email, request a 6-digit code,
+                                    and set a new password. The code expires in
+                                    3 minutes.
                                 </p>
 
                                 <form
@@ -273,7 +298,9 @@ export default function Login({ status }: Props) {
                                                 tabIndex={1}
                                                 autoComplete="email"
                                                 value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
+                                                onChange={(e) =>
+                                                    setEmail(e.target.value)
+                                                }
                                                 placeholder="Enter your email"
                                                 className={inputClassName}
                                             />
@@ -300,7 +327,10 @@ export default function Login({ status }: Props) {
                                                     value={otp}
                                                     onChange={(e) =>
                                                         setOtp(
-                                                            e.target.value.replace(/\D/g, ''),
+                                                            e.target.value.replace(
+                                                                /\D/g,
+                                                                '',
+                                                            ),
                                                         )
                                                     }
                                                     placeholder="6-digit code"
@@ -310,17 +340,20 @@ export default function Login({ status }: Props) {
                                                     type="button"
                                                     tabIndex={3}
                                                     onClick={handleSendOtp}
-                                                    disabled={sendingOtp || cooldownLeft > 0}
+                                                    disabled={
+                                                        sendingOtp ||
+                                                        cooldownLeft > 0
+                                                    }
                                                     className="flex h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-[#18181a] dark:text-gray-200 dark:hover:bg-[#1f1f21]"
                                                 >
                                                     {sendingOtp && <Spinner />}
                                                     {sendingOtp
                                                         ? 'Sending...'
                                                         : cooldownLeft > 0
-                                                            ? `Resend (${formatMmss(cooldownLeft)})`
-                                                            : otpSent
-                                                                ? 'Resend OTP'
-                                                                : 'Send OTP'}
+                                                          ? `Resend (${formatMmss(cooldownLeft)})`
+                                                          : otpSent
+                                                            ? 'Resend OTP'
+                                                            : 'Send OTP'}
                                                 </button>
                                             </div>
 
@@ -335,16 +368,21 @@ export default function Login({ status }: Props) {
                                                     <p className="text-xs text-gray-500 dark:text-gray-400">
                                                         Code expires in{' '}
                                                         <span className="font-semibold text-gray-700 dark:text-gray-200">
-                                                            {formatMmss(secondsLeft)}
+                                                            {formatMmss(
+                                                                secondsLeft,
+                                                            )}
                                                         </span>
                                                     </p>
                                                 ) : (
                                                     <p className="text-xs font-medium text-red-600 dark:text-red-400">
-                                                        Code expired — request a new one.
+                                                        Code expired — request a
+                                                        new one.
                                                     </p>
                                                 ))}
 
-                                            <InputError message={otpError ?? undefined} />
+                                            <InputError
+                                                message={otpError ?? undefined}
+                                            />
                                         </div>
 
                                         {/* New password field */}
@@ -363,7 +401,9 @@ export default function Login({ status }: Props) {
                                                 autoComplete="new-password"
                                                 value={newPassword}
                                                 onChange={(e) =>
-                                                    setNewPassword(e.target.value)
+                                                    setNewPassword(
+                                                        e.target.value,
+                                                    )
                                                 }
                                                 placeholder="Enter a new password"
                                                 className={inputClassName}
@@ -380,7 +420,9 @@ export default function Login({ status }: Props) {
                                             className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#f7941d] to-[#d9530c] text-sm font-bold text-[#0f0f10] shadow-[0_4px_16px_rgba(217,83,12,0.35)] transition-all duration-150 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {resetting && <Spinner />}
-                                            {resetting ? 'Changing password...' : 'Change Password'}
+                                            {resetting
+                                                ? 'Changing password...'
+                                                : 'Change Password'}
                                         </button>
                                     </div>
 
@@ -402,13 +444,27 @@ export default function Login({ status }: Props) {
                                     Welcome back
                                 </h2>
                                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                    Enter your credentials to access the Property Custodian
-                                    System.
+                                    Enter your credentials to access the
+                                    Property Custodian System.
                                 </p>
 
                                 {(status || resetMessage) && (
                                     <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-400">
                                         {status ?? resetMessage}
+                                    </div>
+                                )}
+
+                                {auth_error && lockLeft > 0 && (
+                                    <div
+                                        role="alert"
+                                        data-test="rate-limit-banner"
+                                        className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-800/40 dark:bg-red-950/40 dark:text-red-400"
+                                    >
+                                        Too many login attempts. Please wait{' '}
+                                        <span className="font-semibold">
+                                            {formatMmss(lockLeft)}
+                                        </span>{' '}
+                                        before trying again.
                                     </div>
                                 )}
 
@@ -438,9 +494,13 @@ export default function Login({ status }: Props) {
                                                         tabIndex={1}
                                                         autoComplete="email"
                                                         placeholder="Enter your email"
-                                                        className={inputClassName}
+                                                        className={
+                                                            inputClassName
+                                                        }
                                                     />
-                                                    <InputError message={errors.email} />
+                                                    <InputError
+                                                        message={errors.email}
+                                                    />
                                                 </div>
 
                                                 {/* Password field */}
@@ -460,9 +520,15 @@ export default function Login({ status }: Props) {
                                                         tabIndex={2}
                                                         autoComplete="current-password"
                                                         placeholder="Enter your password"
-                                                        className={inputClassName}
+                                                        className={
+                                                            inputClassName
+                                                        }
                                                     />
-                                                    <InputError message={errors.password} />
+                                                    <InputError
+                                                        message={
+                                                            errors.password
+                                                        }
+                                                    />
                                                 </div>
                                             </div>
 
@@ -471,12 +537,19 @@ export default function Login({ status }: Props) {
                                                 <button
                                                     type="submit"
                                                     tabIndex={3}
-                                                    disabled={processing}
+                                                    disabled={
+                                                        processing ||
+                                                        lockLeft > 0
+                                                    }
                                                     data-test="login-button"
                                                     className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#f7941d] to-[#d9530c] text-sm font-bold text-[#0f0f10] shadow-[0_4px_16px_rgba(217,83,12,0.35)] transition-all duration-150 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                                 >
                                                     {processing && <Spinner />}
-                                                    {processing ? 'Signing in...' : 'Sign In'}
+                                                    {processing
+                                                        ? 'Signing in...'
+                                                        : lockLeft > 0
+                                                          ? `Try again in ${formatMmss(lockLeft)}`
+                                                          : 'Sign In'}
                                                 </button>
                                             </div>
 
@@ -485,7 +558,9 @@ export default function Login({ status }: Props) {
                                                 Forgot your password?{' '}
                                                 <button
                                                     type="button"
-                                                    onClick={() => switchMode('reset')}
+                                                    onClick={() =>
+                                                        switchMode('reset')
+                                                    }
                                                     className="cursor-pointer font-semibold text-gray-700 underline-offset-2 hover:underline dark:text-gray-200"
                                                 >
                                                     Reset it here
@@ -494,7 +569,8 @@ export default function Login({ status }: Props) {
 
                                             {/* Role hint */}
                                             <p className="text-center text-sm text-gray-500 dark:text-gray-500">
-                                                Enter your credentials to continue.
+                                                Enter your credentials to
+                                                continue.
                                             </p>
                                         </>
                                     )}

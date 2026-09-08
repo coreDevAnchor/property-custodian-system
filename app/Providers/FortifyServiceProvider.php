@@ -119,7 +119,23 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 
-            return Limit::perMinute(5)->by($throttleKey);
+            return Limit::perMinute(5)->by($throttleKey)->response(function (Request $request, array $headers) {
+                $retryAfter = (int) ($headers['Retry-After'] ?? 60);
+
+                $message = 'Too many login attempts. Please wait '.$this->formatRetry($retryAfter).' before trying again.';
+
+                if ($request->header('X-Inertia')) {
+                    return Inertia::render('auth/login', [
+                        'canResetPassword' => Features::enabled(Features::resetPasswords()),
+                        'status' => $request->session()->get('status'),
+                        'auth_error' => $message,
+                        'retry_after' => $retryAfter,
+                        'locked_at' => now()->getTimestamp(),
+                    ])->toResponse($request);
+                }
+
+                return response()->json(['message' => $message], 429, ['Retry-After' => $retryAfter]);
+            });
         });
 
         RateLimiter::for('passkeys', function (Request $request) {
@@ -127,5 +143,15 @@ class FortifyServiceProvider extends ServiceProvider
                 ($request->input('credential.id') ?: $request->session()->getId()).'|'.$request->ip(),
             );
         });
+    }
+
+    private function formatRetry(int $seconds): string
+    {
+        $minutes = intdiv($seconds, 60);
+        $remainder = $seconds % 60;
+
+        return $minutes > 0
+            ? $minutes.':'.str_pad((string) $remainder, 2, '0', STR_PAD_LEFT)
+            : '0:'.str_pad((string) $remainder, 2, '0', STR_PAD_LEFT);
     }
 }
