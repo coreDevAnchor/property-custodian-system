@@ -421,7 +421,7 @@ export default function Login({ status }: Props) {
                                     {({ processing, errors }) => (
                                         <>
                                             <div className="grid gap-4">
-                                                {/* Username field */}
+                                                {/* Email field */}
                                                 <div className="grid gap-1.5">
                                                     <Label
                                                         htmlFor="email"
@@ -437,7 +437,7 @@ export default function Login({ status }: Props) {
                                                         autoFocus
                                                         tabIndex={1}
                                                         autoComplete="email"
-                                                        placeholder="Enter your username"
+                                                        placeholder="Enter your email"
                                                         className={inputClassName}
                                                     />
                                                     <InputError message={errors.email} />
