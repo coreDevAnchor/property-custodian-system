@@ -67,15 +67,17 @@ SESSION_SECURE_COOKIE=true
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 
-# Email — use Resend free (3000/mo, no card) or your Gmail app password
-MAIL_MAILER=resend
-RESEND_KEY=<resend-api-key>
-MAIL_FROM_ADDRESS=no-reply@<your-domain>
+# Email — Gmail SMTP with a Gmail App Password
+# First enable Google Account → Security → 2-Step Verification, then create an App Password.
+# MAIL_PASSWORD is the 16-char app password (spaces optional: yqbyfirwifmlfrbl).
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_ENCRYPTION=tls
+MAIL_USERNAME=<your-gmail-address>
+MAIL_PASSWORD=<gmail-app-password>
+MAIL_FROM_ADDRESS=<your-gmail-address> # real address you authenticate with, not a fake domain
 MAIL_FROM_NAME="Property Custodian"
-```
-
-> If staying on Gmail SMTP: `MAIL_MAILER=smtp`, `MAIL_HOST=smtp.gmail.com`, `MAIL_PORT=587`,
-> `MAIL_ENCRYPTION=tls`, `MAIL_USERNAME=<address>`, `MAIL_PASSWORD=<app-password>`.
 
 ## 4. Pinger (keeps service awake + 09:00 reminder)
 
@@ -88,7 +90,7 @@ MAIL_FROM_NAME="Property Custodian"
 # In Render shell:
 php artisan migrations:status
 php artisan schedule:list        # should show reminders:send-return dailyAt 09:00 Asia/Manila
-php artisan reminders:send-return  # manual smoke test of email path
+php artisan reminders:send-return  # manual smoke test of email path (offscreen 535 = bad MAIL_PASSWORD)
 ```
 
 - Register/login.
@@ -101,8 +103,10 @@ php artisan reminders:send-return  # manual smoke test of email path
 - **502 / static assets 404 after first boot** → check the service log for failed `migrate` or
   `config:cache` (bad env var). `APP_KEY` missing is the usual suspect.
 - **`/storage/...` returns 404** → proxy route requires the exact bucket path. Re-upload the photo.
-- **Queue of emails not sending** → SMTP blocked (Gmail) — switch to Resend. `php artisan config:clear`
-  after env changes.
+- **Queue of emails not sending** → 535 auth failure means the app password is wrong or was
+  revoked; generate a new one. 2-Step Verification must be on or no app password exists.
+  Gmail caps ~500 emails/day per account — reminders are a few/day, no issue here.
+  Always `php artisan config:clear` after env changes.
 - **Photos lost** — should be impossible on R2. If they appear lost, confirm `FILESYSTEM_DISK=r2`
   actually took effect (`php artisan tinker --execute="echo config('filesystems.disks.public.driver');"`).
 - **Service suspended mid-month** → ran past 750 free hours (two instances or heavy restarts).
