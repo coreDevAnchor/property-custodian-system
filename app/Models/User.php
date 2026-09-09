@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -64,7 +63,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     {
         return Attribute::get(
             fn () => $this->profile_photo_path
-                ? Storage::url($this->profile_photo_path)
+                ? '/storage/'.ltrim($this->profile_photo_path, '/')
                 : null,
         );
     }

@@ -26,7 +26,7 @@ ENV_VARS = [
     ("DB_DATABASE", "neondb"),
     ("DB_USERNAME", "neondb_owner"),
     ("DB_PASSWORD", "___  Copy from the Neon connection modal"),
-    ("FILESYSTEM_DISK", "r2"),
+    ("FILESYSTEM_DISK", "public  (the single disk the app uses; R2 when R2_BUCKET is set)"),
     ("R2_ACCESS_KEY_ID", "___  Cloudflare R2 API token"),
     ("R2_SECRET_ACCESS_KEY", "___  Cloudflare R2 API token"),
     ("R2_BUCKET", "property-custodian-system"),
@@ -151,7 +151,9 @@ def main() -> None:
     sub.add_run(
         "A step-by-step guide to getting the app live on Render's free tier, "
         "with a NeoN PostgreSQL database and Cloudflare R2 for photo storage. "
-        "Allow about 30 minutes the first time."
+        "Allow about 30 minutes the first time. "
+        "Note: nothing here is Render-specific — the same steps (env vars + migrations) "
+        "work on any PHP 8.4 host; Render is shown as one example."
     )
     sub.alignment = WD_ALIGN_PARAGRAPH.LEFT
 

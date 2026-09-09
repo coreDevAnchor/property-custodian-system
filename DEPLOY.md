@@ -12,7 +12,32 @@ frontend never changes.
 | 750 free instance-hours/mo | Continuous run = ~744h | Fits; reset monthly. Long downtime can underrun safely |
 | Neon free 0.5GB | session/cache tables grow in DB | occasional `php artisan cache:clear` |
 | Render free Postgres deleted after 90 days | n/a — we use Neon, which persists | — |
-| Container FS is ephemeral | photo uploads must NOT live on disk | R2 disk (`FILESYSTEM_DISK=r2`) |
+| Container FS is ephemeral | photo uploads must NOT live on disk | R2 disk (`FILESYSTEM_DISK=public` when `R2_BUCKET` is set) |
+
+## Runs on any PHP host
+
+Nothing here is Render-specific. The app runs on any host that can run PHP 8.4+
+with `pdo_pgsql` and `zip`, whose web root points at `public/` (Laravel requires
+the `public/` directory to be the document root):
+
+- **Frontend assets are prebuilt and committed** under `public/build` — no Node/build step on the server.
+- **Storage is disk-agnostic.** The `public` disk is a local folder when `R2_BUCKET` is empty and an
+  S3-compatible Cloudflare R2 bucket when `R2_BUCKET` is set. Writes use `Storage::disk('public')`;
+  reads go through the app's own proxy `GET /storage/{path}` (e.g. avatars → `/storage/profile-photos/...`),
+  so images work on any host with a **private** bucket and no CDN or URL config.
+  There is no separate `r2` disk — `FILESYSTEM_DISK=public` uses the name from `config/filesystems.php`.
+- **Database/session/cache/queue** are plain Postgres + the `database` drivers — portable.
+- **Boot steps on a fresh host** (however you deploy):
+  ```bash
+  composer install --no-dev --optimize-autoloader
+  php artisan migrate --force --seed
+  php artisan config:cache
+  php artisan view:cache
+  ```
+- **Recommended environment:** `APP_ENV=production`, `APP_DEBUG=false`, a real `APP_KEY`,
+  Postgres credentials (`DB_*`), optional R2 (`R2_*`), and a mailer per the Email section below.
+- The Docker image in this repo (`Dockerfile` + `docker/`) packages the same PHP runtime and
+  runs the boot steps automatically — Hosting-agnostic; the Render walkthrough below is one example.
 
 ## 1. Cloudflare R2 (photos)
 
@@ -53,8 +78,9 @@ DB_DATABASE=neondb
 DB_USERNAME=<user>
 DB_PASSWORD=<password>
 
-# Cloudflare R2
-FILESYSTEM_DISK=r2
+# Cloudflare R2 (optional; empty R2_BUCKET keeps the local `public` disk).
+# Setting R2_BUCKET makes the `public` disk an S3-compatible R2 bucket.
+FILESYSTEM_DISK=public
 R2_ACCESS_KEY_ID=<access-key>
 R2_SECRET_ACCESS_KEY=<secret>
 R2_BUCKET=property-custodian-assets
@@ -88,7 +114,7 @@ MAIL_FROM_ADDRESS=<the-sender-email-verified-in-brevo>
 # RESEND_API_KEY=<resend-api-key>
 # MAIL_FROM_ADDRESS=<your-email-or-no-reply@your-domain>
 
-# ── Option C: Gmail SMTP (workable off Render; flaky from Render free) ─────────────
+# ── Option C: Gmail SMTP (workable off Render; flaky from Render free, only render plans above free plan) ─────────────
 # Enable 2-Step Verification, create an App Password (16 chars). MAIL_FROM_ADDRESS must
 # exactly equal MAIL_USERNAME or Gmail rejects with 550 "Sender address rejected".
 # WARNING: on Render free this frequently hangs the request → 504.
@@ -131,7 +157,7 @@ php artisan reminders:send-return  # manual smoke test of email path (offscreen 
   API key is wrong; a 400 "sender not verified" means `MAIL_FROM_ADDRESS` isn't verified in
   Brevo (Settings → Senders). Gmail caps ~500 emails/day — Brevo free is ~300/day, fine for
   reminders. Always `php artisan config:clear` after env changes.
-- **Photos lost** — should be impossible on R2. If they appear lost, confirm `FILESYSTEM_DISK=r2`
+- **Photos lost** — should be impossible on R2. If they appear lost, confirm `R2_BUCKET`/`FILESYSTEM_DISK=public`
   actually took effect (`php artisan tinker --execute="echo config('filesystems.disks.public.driver');"`).
 - **Service suspended mid-month** → ran past 750 free hours (two instances or heavy restarts).
   Check Render billing page; wait for reset or let it sleep more.
