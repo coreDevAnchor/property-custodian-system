@@ -94,4 +94,9 @@ class BrevoTransport extends AbstractTransport
             $addresses,
         );
     }
+
+    private function firstAddress(array $addresses): ?Address
+    {
+        return $addresses[0] ?? null;
+    }
 }
