@@ -5,12 +5,14 @@ FROM node:22-alpine AS assets
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install -g pnpm@10
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN npm run build
+RUN pnpm run build
 
 # --- Application runtime ---
 FROM php:8.3-fpm-alpine AS app
