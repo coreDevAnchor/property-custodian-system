@@ -3,7 +3,7 @@
 # Frontend assets are prebuilt (pnpm build) and committed under public/build,
 # so no node toolchain is needed in the image.
 
-FROM php:8.3-fpm-alpine AS app
+FROM php:8.4-fpm-alpine AS app
 
 RUN apk add --no-cache \
     nginx \
