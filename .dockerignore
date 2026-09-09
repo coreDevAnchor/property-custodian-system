@@ -3,7 +3,6 @@
 .gitignore
 node_modules
 vendor
-public/build
 public/storage
 storage/app
 storage/logs/*.log

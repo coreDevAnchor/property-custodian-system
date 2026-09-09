@@ -1,0 +1,1 @@
+import{n as e,t}from"./jsx-runtime-D37iEI3I.js";import{a as n,s as r}from"./asset-table-animations-D9QEzHoE.js";var i=e(),a=t();function o(e){let t=(0,i.c)(3),{children:o,className:s}=e,c;return t[0]!==o||t[1]!==s?(c=(0,a.jsx)(r.div,{variants:n,className:s,children:o}),t[0]=o,t[1]=s,t[2]=c):c=t[2],c}export{o as t};

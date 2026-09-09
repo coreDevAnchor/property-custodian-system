@@ -1,20 +1,8 @@
 # syntax=docker/dockerfile:1
 
-# --- Frontend assets ---
-FROM node:22-alpine AS assets
+# Frontend assets are prebuilt (pnpm build) and committed under public/build,
+# so no node toolchain is needed in the image.
 
-WORKDIR /app
-
-RUN npm install -g pnpm@10
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-RUN pnpm install --frozen-lockfile
-
-COPY . .
-
-RUN pnpm run build
-
-# --- Application runtime ---
 FROM php:8.3-fpm-alpine AS app
 
 RUN apk add --no-cache \
@@ -36,7 +24,6 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader
 
 COPY . .
-COPY --from=assets /app/public/build public/build
 
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
     && php artisan package:discover --ansi

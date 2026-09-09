@@ -108,6 +108,20 @@ php artisan reminders:send-return  # manual smoke test of email path
 - **Service suspended mid-month** → ran past 750 free hours (two instances or heavy restarts).
   Check Render billing page; wait for reset or let it sleep more.
 
+## When you change frontend code
+
+Vite assets are **prebuilt and committed** under `public/build` (the Docker image does not
+run a node build — see `Dockerfile`). Before pushing a deploy, regenerate them:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm run build
+git add public/build
+git commit -m "build: assets"
+```
+
+Otherwise Render serves stale JS/CSS.
+
 ## Local dev is unaffected
 
 - `R2_BUCKET` empty locally → `public` disk stays `local`; `/storage` still hits `public/storage`
