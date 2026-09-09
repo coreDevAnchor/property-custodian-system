@@ -67,13 +67,39 @@ SESSION_SECURE_COOKIE=true
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 
-# Email — Brevo transactional API (free ~300/day, no domain needed)
-# SMTP-out (Gmail etc.) is often blocked/stalled from Render free egress, so send over
-# HTTPS via Brevo's API. Create the key at brevo.com → Developers → API Keys, then verify
-# the sender email (Settings → Senders → verify with a confirmation link).
+# Email — pick ONE provider below. Default recommendation: Brevo.
+# NOTE: SMTP-out (Gmail) is frequently blocked/stalled from Render's free egress and trips
+# nginx's 504 during request-time sends. API-based providers (Brevo/Resend) ride HTTPS :443
+# and are the reliable choice on Render.
+
+# ── Option A: Brevo (recommended — free ~300/day, no domain needed) ─────────────
+# brevo.com → Developers → API Keys, then Settings → Senders → verify the sender email.
+# Delivers to any recipient. Custom transport in app/Support/Mail/BrevoTransport.php.
 MAIL_MAILER=brevo
 BREVO_API_KEY=<brevo-api-key>
-MAIL_FROM_ADDRESS=<the-sender-email-you-verified-in-brevo>
+MAIL_FROM_ADDRESS=<the-sender-email-verified-in-brevo>
+
+# ── Option B: Resend (free 3,000/mo) ────────────────────────────────────────────────
+# resend.com → API Keys. Native Laravel transport requires `composer require resend/resend-php`.
+# Without a verified domain, the free sandbox (sender onboarding@resend.dev) delivers ONLY to
+# the inbox your Resend account is registered with — real recipients need a verified domain,
+# after which MAIL_FROM_ADDRESS becomes no-reply@<your-domain>.
+# MAIL_MAILER=resend
+# RESEND_API_KEY=<resend-api-key>
+# MAIL_FROM_ADDRESS=<your-email-or-no-reply@your-domain>
+
+# ── Option C: Gmail SMTP (workable off Render; flaky from Render free) ─────────────
+# Enable 2-Step Verification, create an App Password (16 chars). MAIL_FROM_ADDRESS must
+# exactly equal MAIL_USERNAME or Gmail rejects with 550 "Sender address rejected".
+# WARNING: on Render free this frequently hangs the request → 504.
+# MAIL_MAILER=smtp
+# MAIL_HOST=smtp.gmail.com
+# MAIL_PORT=587
+# MAIL_ENCRYPTION=tls
+# MAIL_USERNAME=<your-gmail-address>
+# MAIL_PASSWORD=<gmail-app-password>
+# MAIL_FROM_ADDRESS=<your-gmail-address>
+
 MAIL_FROM_NAME="Property Custodian"
 
 ## 4. Pinger (keeps service awake + 09:00 reminder)
