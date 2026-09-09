@@ -81,9 +81,11 @@ class BrevoTransport extends AbstractTransport
 
     private function payloadAddress(Address $address): array
     {
+        $email = $address->getAddress();
+
         return [
-            'email' => $address->getAddress(),
-            'name' => $address->getName(),
+            'email' => $email,
+            'name' => $address->getName() !== '' ? $address->getName() : strstr($email, '@', true),
         ];
     }
 

@@ -34,6 +34,29 @@ it('sends a message through the Brevo API with the expected payload', function (
     });
 });
 
+it('derives a fallback name from the email local-part when none is set', function () {
+    Http::fake([
+        'api.brevo.com/v3/smtp/email' => Http::response(['messageId' => 'test-id'], 201),
+    ]);
+
+    $transport = new BrevoTransport('test-api-key');
+
+    $message = (new Email)
+        ->from(new Address('sender@example.com'))
+        ->to(new Address('to@example.com'))
+        ->subject('Hello')
+        ->html('<p>Hi</p>');
+
+    $transport->send($message, Envelope::create($message));
+
+    Http::assertSent(function ($request) {
+        $payload = $request->data();
+
+        return $payload['sender']['name'] === 'sender'
+            && $payload['to'][0]['name'] === 'to';
+    });
+});
+
 it('throws a transport exception when Brevo rejects the send', function () {
     Http::fake([
         'api.brevo.com/v3/smtp/email' => Http::response('sender not verified', 400),
