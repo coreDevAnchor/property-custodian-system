@@ -12,16 +12,18 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Custodian User',
+        User::updateOrCreate([
             'email' => 'anchorjave16@gmail.com',
+        ], [
+            'name' => 'Custodian User',
             'password' => 'password',
             'role' => 'custodian',
         ]);
 
-        User::create([
-            'name' => 'Employee User',
+        User::updateOrCreate([
             'email' => 'javeanchor@gmail.com',
+        ], [
+            'name' => 'Employee User',
             'password' => 'password',
             'role' => 'employee',
         ]);

@@ -12,18 +12,21 @@ class LocationSeeder extends Seeder
      */
     public function run(): void
     {
-        Location::create([
+        Location::updateOrCreate([
             'name' => 'Luzon Office',
+        ], [
             'description' => 'Main office in Luzon',
         ]);
 
-        Location::create([
+        Location::updateOrCreate([
             'name' => 'Visayas Office',
+        ], [
             'description' => 'Regional office in Visayas',
         ]);
 
-        Location::create([
+        Location::updateOrCreate([
             'name' => 'Mindanao Office',
+        ], [
             'description' => 'Regional office in Mindanao',
         ]);
     }

@@ -8,7 +8,7 @@ if [ -z "${APP_KEY}" ] || [ "${APP_KEY}" = "change-me" ]; then
     php artisan key:generate --force
 fi
 
-php artisan migrate --force --no-interaction
+php artisan migrate --force --seed --no-interaction
 php artisan config:cache
 php artisan view:cache
 
