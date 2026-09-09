@@ -8,7 +8,7 @@ Output: DEPLOY.docx (repo root). Requires python-docx:  pip install python-docx
 from pathlib import Path
 
 from docx import Document
-from docx.shared import Pt, RGBColor
+from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -17,28 +17,25 @@ OUT = ROOT / "DEPLOY.docx"
 ENV_VARS = [
     ("APP_ENV", "production"),
     ("APP_DEBUG", "false"),
-    ("APP_KEY", "___  Generate: in the Render shell run  php artisan key:generate --show"),
-    ("APP_URL", "https://coredevpcs.onrender.com"),
-    ("TZ", "Asia/Manila"),
+    ("APP_KEY", "___  Run  php artisan key:generate --show  and paste the output"),
+    ("APP_URL", "https://<your-domain>  (must be the public URL users visit)"),
+    ("TZ", "<your-timezone>"),
     ("DB_CONNECTION", "pgsql"),
-    ("DB_HOST", "ep-soft-frog-b31ccs2s-pooler.c-4.ap-southeast-1.aws.neon.tech"),
+    ("DB_HOST", "<pooled-host>.neon.tech"),
     ("DB_PORT", "5432"),
-    ("DB_DATABASE", "neondb"),
-    ("DB_USERNAME", "neondb_owner"),
+    ("DB_DATABASE", "<database-name>"),
+    ("DB_USERNAME", "<database-user>"),
     ("DB_PASSWORD", "___  Copy from the Neon connection modal"),
-    ("FILESYSTEM_DISK", "public  (the single disk the app uses; R2 when R2_BUCKET is set)"),
+    ("FILESYSTEM_DISK", "public  (the single disk the app uses; becomes R2 when R2_BUCKET is set)"),
     ("R2_ACCESS_KEY_ID", "___  Cloudflare R2 API token"),
     ("R2_SECRET_ACCESS_KEY", "___  Cloudflare R2 API token"),
-    ("R2_BUCKET", "property-custodian-system"),
-    ("R2_ENDPOINT", "https://f739b2736f11fcda69d3f89a2b6b8b3c.r2.cloudflarestorage.com"),
+    ("R2_BUCKET", "<your-bucket-name>"),
+    ("R2_ENDPOINT", "https://<ACCOUNT_ID>.r2.cloudflarestorage.com"),
     ("SESSION_DRIVER", "database"),
     ("SESSION_LIFETIME", "120"),
     ("SESSION_SECURE_COOKIE", "true"),
     ("CACHE_STORE", "database"),
     ("QUEUE_CONNECTION", "database"),
-    ("MAIL_MAILER", "brevo"),
-    ("BREVO_API_KEY", "___  Brevo → Developers → API Keys"),
-    ("MAIL_FROM_ADDRESS", "coredev.anchorjavearnejo@gmail.com"),
     ("MAIL_FROM_NAME", '"Property Custodian"'),
 ]
 
@@ -47,7 +44,7 @@ STEPS = [
         "Step 1 — Cloudflare R2 (stores photos)",
         [
             "Log in to Cloudflare and open R2 → Buckets → Create a bucket.",
-            "Name it \"property-custodian-system\". Region: APAC (Singapore).",
+            "Name it <your-bucket-name>. Region: APAC (Singapore).",
             "Keep the bucket PRIVATE (public access off). The app serves photos through its own proxy at /storage/{path}, so the frontend never talks to R2 directly.",
             "Open R2 → Manage R2 API Tokens → Create API token. Permission: Object Read & Write, scope: this bucket only.",
             "Copy and keep the Access Key ID and Secret Access Key — you will not see the secret again.",
@@ -65,6 +62,7 @@ STEPS = [
     (
         "Step 3 — Render (the web service that runs the app)",
         [
+            "Render is shown as one example host — the same steps work on any PHP 8.4 hosting.",
             "Create a free account at render.com → New → Web Service.",
             "Connect your Git repo and choose the branch to deploy.",
             "Runtime: Docker (Render builds the repo's Dockerfile automatically).",
@@ -76,19 +74,19 @@ STEPS = [
     (
         "Step 4 — Pinger (keeps the free service awake)",
         [
-            "Render's free tier sleeps after 15 minutes of no traffic and takes 30–60 s to wake up. A pinger poaches that.",
+            "Render's free tier sleeps after 15 minutes of no traffic and takes 30–60 s to wake up. A pinger keeps it awake.",
             "Use UptimeRobot (free) — HTTP(S) monitor, interval 10 min — or cron-job.org firing a GET every 10 minutes.",
-            "URL to hit: https://coredevpcs.onrender.com/login",
+            "URL to hit: https://<your-domain>/login",
             "This also keeps the 09:00 daily return-reminder mail running.",
         ],
     ),
     (
         "Step 5 — Verify after deploy",
         [
-            "Open https://coredevpcs.onrender.com/login and register / sign in.",
-            "Trigger a verification / OTP email and confirm it lands in the inbox (uses Brevo).",
+            "Open https://<your-domain>/login and register / sign in.",
+            "Trigger a verification / OTP email and confirm it lands in the inbox.",
             "Upload a photo against an asset, then open its /storage/assets/... URL — the image should render.",
-            "Open the custodian dashboard — the stats and recent activity render (no 502).",
+            "Open the custodian dashboard — the stats and recent activity render (no 500 or 502).",
         ],
     ),
 ]
@@ -99,6 +97,35 @@ VERIFY_TABLE = [
     ("Send OTP email", "Verification mail arrives on any address"),
     ("Upload asset photo", "Photo is viewable via /storage/assets/..."),
     ("Custodian dashboard", "Stats + recent activity render"),
+]
+
+EMAIL_OPTIONS = [
+    (
+        "Option A — Brevo (recommended) — free ~300 emails/day",
+        [
+            "API-based, so it rides HTTPS 443 and works on any host including Render's free tier.",
+            "Create a free account at brevo.com → Developers → API Keys, then Settings → Senders and verify the sender email.",
+            "A 401 means a wrong API key; a 400 \"sender not verified\" means the sender step is pending.",
+        ],
+        "MAIL_MAILER=brevo\nBREVO_API_KEY=<your-brevo-api-key>\nMAIL_FROM_ADDRESS=<sender-email-verified-in-brevo>",
+    ),
+    (
+        "Option B — Resend — free 3,000 emails/month",
+        [
+            "API-based. Requires the native package: composer require resend/resend-php.",
+            "Free sandbox (sender onboarding@resend.dev) delivers ONLY to the inbox your Resend account uses — real recipients need a verified domain.",
+        ],
+        "MAIL_MAILER=resend\nRESEND_API_KEY=<your-resend-api-key>\nMAIL_FROM_ADDRESS=no-reply@<your-verified-domain>",
+    ),
+    (
+        "Option C — Gmail SMTP — free (~500 emails/day with an existing Google account)",
+        [
+            "Turn on 2-Step Verification and create an App Password for the app.",
+            "MAIL_FROM_ADDRESS must exactly equal MAIL_USERNAME, or Gmail rejects with 550 \"Sender address rejected\".",
+            "Note: on Render's free tier outbound SMTP is frequently blocked/stalled (504) — the API options above are the reliable choice there. On VPS/shared hosting SMTP normally works.",
+        ],
+        "MAIL_MAILER=smtp\nMAIL_HOST=smtp.gmail.com\nMAIL_PORT=587\nMAIL_ENCRYPTION=tls\nMAIL_USERNAME=<your-gmail-address>\nMAIL_PASSWORD=<gmail-app-password>\nMAIL_FROM_ADDRESS=<your-gmail-address>",
+    ),
 ]
 
 
@@ -138,7 +165,7 @@ def add_env_table(doc: Document) -> None:
         row = table.add_row().cells
         row[0].text = name
         row[1].text = value
-    doc.add_paragraph("Secrets are left as ___ — fill them in from the account dashboards. Then press Save & Deploy.")
+    doc.add_paragraph("Secrets and account values are blanks — fill each one in from the account dashboards, then save and deploy.")
 
 
 def main() -> None:
@@ -149,38 +176,43 @@ def main() -> None:
     title.add_run("Deploying the Property Custodian System")
     sub = doc.add_paragraph()
     sub.add_run(
-        "A step-by-step guide to getting the app live on Render's free tier, "
-        "with a NeoN PostgreSQL database and Cloudflare R2 for photo storage. "
-        "Allow about 30 minutes the first time. "
-        "Note: nothing here is Render-specific — the same steps (env vars + migrations) "
-        "work on any PHP 8.4 host; Render is shown as one example."
+        "A step-by-step guide to getting the app live, with a PostgreSQL database and "
+        "Cloudflare R2 for photo storage. Allow about 30 minutes the first time. "
+        "Nothing here is hosting-specific — the same steps (env vars + migrations) work "
+        "on any PHP 8.4 host; Render's free tier is shown as one example."
     )
     sub.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
     doc.add_heading("What you need", level=1)
-    for item in ["Cloudflare account", "Neon account", "Render account", "Brevo account", "UptimeRobot account (optional but recommended)"]:
+    for item in [
+        "Cloudflare account",
+        "Neon account",
+        "Render account (or any PHP 8.4 host)",
+        "Email provider account (free tier): Brevo, Resend, or Gmail App Password — pick one",
+        "UptimeRobot account (optional but recommended)",
+    ]:
         doc.add_paragraph(item, style="List Bullet")
 
     for heading, bullets in STEPS:
         add_step(doc, heading, bullets)
 
-    doc.add_heading("Environment variables (paste into Render)", level=1)
+    doc.add_heading("Environment variables (paste into your host)", level=1)
     doc.add_paragraph(
-        "Render web service → Environment → add each line below. "
-        "Everything already filled in stays as-is."
+        "In Render: web service → Environment. On any other host: the same values go in "
+        ".env or the host's secret store. Fill every <placeholder> and blank with your own values."
     )
     add_code(
         doc,
-        "APP_ENV=production\nAPP_DEBUG=false\nAPP_URL=https://coredevpcs.onrender.com\nTZ=Asia/Manila"
+        "APP_ENV=production\nAPP_DEBUG=false\nAPP_URL=https://<your-domain>\nTZ=<your-timezone>"
     )
     add_env_table(doc)
 
-    doc.add_heading("Email note", level=1)
-    doc.add_paragraph(
-        "Mail goes through Brevo's API (not SMTP — free Render egress blocks Gmail-style SMTP). "
-        "After adding BREVO_API_KEY, verify the sender address coredev.anchorjavearnejo@gmail.com "
-        "in Brevo → Settings → Senders. A 401 means a wrong API key; a 400 \"sender not verified\" means the sender step is pending."
-    )
+    doc.add_heading("Email — choose one provider (all free tiers)", level=1)
+    for heading, bullets, code in EMAIL_OPTIONS:
+        doc.add_heading(heading, level=2)
+        for bullet in bullets:
+            doc.add_paragraph(bullet, style="List Bullet")
+        add_code(doc, code)
 
     doc.add_heading("Changed frontend code?", level=1)
     doc.add_paragraph(
