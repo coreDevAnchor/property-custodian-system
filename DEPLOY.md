@@ -105,8 +105,9 @@ php artisan reminders:send-return  # manual smoke test of email path (offscreen 
 - **`/storage/...` returns 404** → proxy route requires the exact bucket path. Re-upload the photo.
 - **Queue of emails not sending** → 535 auth failure means the app password is wrong or was
   revoked; generate a new one. 2-Step Verification must be on or no app password exists.
-  Gmail caps ~500 emails/day per account — reminders are a few/day, no issue here.
-  Always `php artisan config:clear` after env changes.
+  Gmail rejects `550 5.1.7 Sender address rejected` when `MAIL_FROM_ADDRESS` is a domain you
+  don't own — set it to exactly `MAIL_USERNAME`. Gmail caps ~500 emails/day per account —
+  reminders are a few/day, no issue here. Always `php artisan config:clear` after env changes.
 - **Photos lost** — should be impossible on R2. If they appear lost, confirm `FILESYSTEM_DISK=r2`
   actually took effect (`php artisan tinker --execute="echo config('filesystems.disks.public.driver');"`).
 - **Service suspended mid-month** → ran past 750 free hours (two instances or heavy restarts).
