@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use App\Observers\UserObserver;
+use App\Support\Mail\BrevoTransport;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
-use App\Observers\UserObserver;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -28,8 +30,19 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->registerQueryBuilderMacros();
+        $this->registerMailTransports();
 
         User::observe(UserObserver::class);
+    }
+
+    /**
+     * Register custom mail transports.
+     */
+    protected function registerMailTransports(): void
+    {
+        Mail::extend('brevo', fn (): BrevoTransport => new BrevoTransport(
+            (string) config('services.brevo.key'),
+        ));
     }
 
     /**

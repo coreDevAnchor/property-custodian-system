@@ -67,16 +67,13 @@ SESSION_SECURE_COOKIE=true
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 
-# Email — Gmail SMTP with a Gmail App Password
-# First enable Google Account → Security → 2-Step Verification, then create an App Password.
-# MAIL_PASSWORD is the 16-char app password.
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_ENCRYPTION=tls
-MAIL_USERNAME=<your-gmail-address>
-MAIL_PASSWORD=<gmail-app-password>
-MAIL_FROM_ADDRESS=<your-gmail-address> # real address you authenticate with, not a fake domain
+# Email — Brevo transactional API (free ~300/day, no domain needed)
+# SMTP-out (Gmail etc.) is often blocked/stalled from Render free egress, so send over
+# HTTPS via Brevo's API. Create the key at brevo.com → Developers → API Keys, then verify
+# the sender email (Settings → Senders → verify with a confirmation link).
+MAIL_MAILER=brevo
+BREVO_API_KEY=<brevo-api-key>
+MAIL_FROM_ADDRESS=<the-sender-email-you-verified-in-brevo>
 MAIL_FROM_NAME="Property Custodian"
 
 ## 4. Pinger (keeps service awake + 09:00 reminder)
@@ -103,11 +100,11 @@ php artisan reminders:send-return  # manual smoke test of email path (offscreen 
 - **502 / static assets 404 after first boot** → check the service log for failed `migrate` or
   `config:cache` (bad env var). `APP_KEY` missing is the usual suspect.
 - **`/storage/...` returns 404** → proxy route requires the exact bucket path. Re-upload the photo.
-- **Queue of emails not sending** → 535 auth failure means the app password is wrong or was
-  revoked; generate a new one. 2-Step Verification must be on or no app password exists.
-  Gmail rejects `550 5.1.7 Sender address rejected` when `MAIL_FROM_ADDRESS` is a domain you
-  don't own — set it to exactly `MAIL_USERNAME`. Gmail caps ~500 emails/day per account —
-  reminders are a few/day, no issue here. Always `php artisan config:clear` after env changes.
+- **Queue of emails not sending** → on Render free, SMTP-out (Gmail etc.) stalls and trips
+  nginx's 504 — use the Brevo API transport (`MAIL_MAILER=brevo`) instead. A 401 means the
+  API key is wrong; a 400 "sender not verified" means `MAIL_FROM_ADDRESS` isn't verified in
+  Brevo (Settings → Senders). Gmail caps ~500 emails/day — Brevo free is ~300/day, fine for
+  reminders. Always `php artisan config:clear` after env changes.
 - **Photos lost** — should be impossible on R2. If they appear lost, confirm `FILESYSTEM_DISK=r2`
   actually took effect (`php artisan tinker --execute="echo config('filesystems.disks.public.driver');"`).
 - **Service suspended mid-month** → ran past 750 free hours (two instances or heavy restarts).
