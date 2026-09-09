@@ -69,7 +69,7 @@ QUEUE_CONNECTION=database
 
 # Email — Gmail SMTP with a Gmail App Password
 # First enable Google Account → Security → 2-Step Verification, then create an App Password.
-# MAIL_PASSWORD is the 16-char app password (spaces optional: yqbyfirwifmlfrbl).
+# MAIL_PASSWORD is the 16-char app password.
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
