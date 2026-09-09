@@ -1,0 +1,14 @@
+.env
+.git
+.gitignore
+node_modules
+vendor
+public/build
+public/storage
+storage/app
+storage/logs/*.log
+tests
+.dockerignore
+Dockerfile
+database/*.sqlite
+.github

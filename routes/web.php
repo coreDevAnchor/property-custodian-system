@@ -20,10 +20,15 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MyBorrowController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReturnController;
+use App\Http\Controllers\StorageController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::redirect('/', '/login')->name('home');
+
+Route::get('/storage/{path}', [StorageController::class, 'show'])
+    ->where('path', '(assets|profile-photos)/.*')
+    ->name('storage.show');
 
 Route::middleware(['auth'])->get('/dashboard', function () {
     return auth()->user()->role === 'employee'
