@@ -33,7 +33,7 @@ export function ReportHeader({
                 </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
                 <Select
                     value={period}
                     onValueChange={onPeriodChange}
@@ -50,15 +50,17 @@ export function ReportHeader({
                     </SelectContent>
                 </Select>
 
-                <Button variant="outline" onClick={onExport} className="cursor-pointer">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export CSV
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={onExport} className="cursor-pointer">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export CSV
+                    </Button>
 
-                <Button onClick={onExportPdf} className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white">
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Export PDF
-                </Button>
+                    <Button onClick={onExportPdf} className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white">
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Export PDF
+                    </Button>
+                </div>
             </div>
         </div>
     );

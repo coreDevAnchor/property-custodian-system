@@ -222,9 +222,9 @@ export function MonthlyUsageChart({
                     </p>
                 </div>
 
-                <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3">
                     {/* Metric Switch */}
-                    <div className="flex items-center p-1 gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
                         <Select
                             value={metric}
                             onValueChange={(value) =>
@@ -232,7 +232,7 @@ export function MonthlyUsageChart({
                             }
                         >
 
-                            <SelectTrigger className="w-48">
+                            <SelectTrigger className="w-full sm:w-44">
 
                                 <SelectValue />
 
@@ -263,7 +263,7 @@ export function MonthlyUsageChart({
                             }
                         >
 
-                            <SelectTrigger className="w-36">
+                            <SelectTrigger className="w-full sm:w-32">
 
                                 <SelectValue />
 
