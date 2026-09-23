@@ -1,6 +1,6 @@
 <x-mail::message>
 <div style="text-align: center; padding: 8px 0 24px;">
-    <img src="{{ $message->embed(public_path('images/coredev-mail-logo.png')) }}" alt="coreDev" style="height: 64px; max-width: 200px;">
+    <img src="{{ asset('images/coredev-mail-logo.png') }}" alt="coreDev" style="height: 64px; max-width: 200px;">
 </div>
 
 # Password Reset Request
