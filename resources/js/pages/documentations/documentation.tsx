@@ -90,6 +90,50 @@ const installationSections: DocSection[] = [
     },
 ];
 
+// ─── Importing Sections (shared) ─────────────────────────────────────────────
+
+const importingSections: DocSection[] = [
+    {
+        id: 'import-employees',
+        title: 'Import Employees',
+        icon: FileSpreadsheet,
+        description:
+            'Bulk-import employee accounts from an Excel (XLSX) or CSV spreadsheet instead of creating them one by one.',
+        steps: [
+            'On the Employees page, click "Import Employees" and download the XLSX or CSV template',
+            'Fill in the required columns: Full Name, Email, Department, and Contact Number',
+            'Upload the file — max 5 MB',
+            'Review the preview: any row errors are listed and the import is all-or-nothing, so nothing is saved until every row is valid',
+            'Fix any reported row errors and re-upload, then confirm the import',
+            'Each employee gets an auto-generated EMP ID and an Active account that can sign in',
+        ],
+        actions: [
+            'Department must be one of: IT Department, Human Resources, Finance, Accounting, Administration, Procurement, Maintenance',
+            'Contact Number must contain digits only (no -, +, spaces, or parentheses) and be 11 digits starting with 09; a 10-digit number starting with 9 gets a leading 0 added automatically',
+            'Emails must be valid and unique — duplicate or existing emails are rejected',
+            'Imported accounts use the default password "Password123!", which can be changed after first sign-in',
+        ],
+    },
+    {
+        id: 'import-custodians',
+        title: 'Import Custodians',
+        icon: FileSpreadsheet,
+        description:
+            'Bulk-import custodian accounts from an Excel (XLSX) or CSV spreadsheet instead of creating them one by one.',
+        steps: [
+            'On the Custodians page, click "Import Custodians" and download the XLSX or CSV template',
+            'Fill in the required columns: Full Name and Email',
+            'Upload the file — max 5 MB',
+            'Review the preview: any row errors are listed and the import is all-or-nothing, so nothing is saved until every row is valid',
+            'Fix any reported row errors and re-upload, then confirm the import',
+        ],
+        actions: [
+            'Emails must be valid and unique — duplicate or existing emails are rejected',
+            'Imported accounts use the default password "Password123!", which can be changed after first sign-in',
+        ],
+    },
+];
+
 // ─── Employee Sections ───────────────────────────────────────────────────────
 
 const employeeSections: DocSection[] = [
@@ -582,6 +626,7 @@ export default function Documentation() {
     const allSections = isCustodian
         ? [
               ...installationSections,
+              ...importingSections,
               ...custodianSections.filter(
                   (s) =>
                       s.id === 'installation' || s.id === 'email-configuration',
@@ -591,7 +636,11 @@ export default function Documentation() {
                       s.id !== 'installation' && s.id !== 'email-configuration',
               ),
           ]
-        : [...installationSections, ...employeeSections];
+        : [
+              ...installationSections,
+              ...importingSections,
+              ...employeeSections,
+          ];
     const tocIds = allSections.map((s) => s.id);
     const activeId = useScrollSpy(tocIds);
 
