@@ -3,6 +3,7 @@ import { router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import {
     Eye,
+    FileUp,
     Mail,
     Pencil,
     Plus,
@@ -14,6 +15,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { rowVariants } from '@/components/assets/asset-table-animations';
 import { CustodianDeleteDialog } from '@/components/custodian/custodian-delete-dialog';
+import { ImportPeopleDialog } from '@/components/people/import-people-dialog';
 import { AnimatedTableBody } from '@/components/ui/animated-table-body';
 import { Button } from '@/components/ui/button';
 import {
@@ -148,6 +150,7 @@ export default function Custodians({ custodians, filters }: Props) {
         Custodian | null | undefined
     >();
     const [deleteTarget, setDeleteTarget] = useState<Custodian | null>(null);
+    const [importOpen, setImportOpen] = useState(false);
     const deleteForm = useForm({});
 
     const [loading, setLoading] = useState(false);
@@ -229,13 +232,23 @@ clearTimeout(debounceRef.current);
                             Manage property custodian accounts
                         </p>
                     </div>
-                    <Button
-                        onClick={() => setFormTarget(null)}
-                        className="cursor-pointer"
-                    >
-                        <Plus />
-                        Add Custodian
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setImportOpen(true)}
+                            className="cursor-pointer"
+                        >
+                            <FileUp className="size-4" />
+                            Import Custodians
+                        </Button>
+                        <Button
+                            onClick={() => setFormTarget(null)}
+                            className="cursor-pointer"
+                        >
+                            <Plus />
+                            Add Custodian
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
@@ -459,6 +472,12 @@ clearTimeout(debounceRef.current);
                 onCancel={() => setDeleteTarget(null)}
                 onConfirm={removeCustodian}
                 processing={deleteForm.processing}
+            />
+
+            <ImportPeopleDialog
+                open={importOpen}
+                kind="custodians"
+                onOpenChange={setImportOpen}
             />
         </>
     );

@@ -113,11 +113,29 @@ Route::middleware(['auth', 'verified'])
         Route::resource('employees', EmployeeController::class)
             ->except(['create', 'edit']);
 
+        Route::get('employees/import/template', [EmployeeController::class, 'downloadTemplate'])
+            ->name('employees.import.template');
+
+        Route::post('employees/import/preview', [EmployeeController::class, 'previewImport'])
+            ->name('employees.import.preview');
+
+        Route::post('employees/import', [EmployeeController::class, 'import'])
+            ->name('employees.import');
+
         Route::get('/activity', [AuditTrailController::class, 'index'])
             ->name('activity.index');
 
         Route::resource('custodians', CustodianController::class)
             ->except(['create', 'edit']);
+
+        Route::get('custodians/import/template', [CustodianController::class, 'downloadTemplate'])
+            ->name('custodians.import.template');
+
+        Route::post('custodians/import/preview', [CustodianController::class, 'previewImport'])
+            ->name('custodians.import.preview');
+
+        Route::post('custodians/import', [CustodianController::class, 'import'])
+            ->name('custodians.import');
 
         Route::get('/reports', [ReportController::class, 'index'])
             ->name('reports');

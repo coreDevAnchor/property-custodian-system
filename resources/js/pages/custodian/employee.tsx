@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import {
     Building2,
     Eye,
+    FileUp,
     Mail,
     Pencil,
     Phone,
@@ -16,6 +17,7 @@ import { rowVariants } from "@/components/assets/asset-table-animations";
 import { EmployeeDeleteDialog } from '@/components/employees/employee-delete-dialog';
 import { EmployeeFormDialog } from '@/components/employees/employee-form-dialog';
 import { EmployeeViewDialog } from '@/components/employees/employee-views-dialog';
+import { ImportPeopleDialog } from '@/components/people/import-people-dialog';
 import { AnimatedTableBody } from "@/components/ui/animated-table-body";
 import { Badge } from '@/components/ui/badge';
 import {
@@ -191,6 +193,7 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | undefined>();
     const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+    const [importOpen, setImportOpen] = useState(false);
 
     const [loading, setLoading] = useState(false);
 
@@ -289,13 +292,23 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
                         </p>
                     </div>
 
-                    <button
-                        onClick={openAddModal}
-                        className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
-                    >
-                        <Plus className="size-4" />
-                        Add New Employee
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setImportOpen(true)}
+                            className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm transition-all hover:bg-muted/60 active:scale-[0.98]"
+                        >
+                            <FileUp className="size-4" />
+                            Import Employees
+                        </button>
+
+                        <button
+                            onClick={openAddModal}
+                            className="flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98] cursor-pointer"
+                        >
+                            <Plus className="size-4" />
+                            Add New Employee
+                        </button>
+                    </div>
                 </div>
 
                 {/* ── Filters + table ── */}
@@ -417,6 +430,12 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
                 employee={deleteTarget}
                 onCancel={() => setDeleteTarget(null)}
                 onConfirm={handleDeleteConfirm}
+            />
+
+            <ImportPeopleDialog
+                open={importOpen}
+                kind="employees"
+                onOpenChange={setImportOpen}
             />
 
             <EmployeeViewDialog
