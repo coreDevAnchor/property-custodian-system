@@ -483,9 +483,10 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                     <Button
                                         variant="outline"
                                         className="cursor-pointer"
-                                        onClick={() =>
-                                            markAsUnread(details.id)
-                                        }
+                                        onClick={() => {
+                                            setDetails(null);
+                                            markAsUnread(details.id);
+                                        }}
                                     >
                                         Mark unread
                                     </Button>
@@ -493,7 +494,10 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                     <Button
                                         variant="outline"
                                         className="cursor-pointer"
-                                        onClick={() => markAsRead(details.id)}
+                                        onClick={() => {
+                                            setDetails(null);
+                                            markAsRead(details.id);
+                                        }}
                                     >
                                         Mark read
                                     </Button>
