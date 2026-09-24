@@ -233,21 +233,21 @@ clearTimeout(debounceRef.current);
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
+                        <button
                             onClick={() => setImportOpen(true)}
-                            className="cursor-pointer"
+                            className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm transition-all hover:bg-muted/60 active:scale-[0.98]"
                         >
                             <FileUp className="size-4" />
                             Import Custodians
-                        </Button>
-                        <Button
+                        </button>
+
+                        <button
                             onClick={() => setFormTarget(null)}
-                            className="cursor-pointer"
+                            className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
                         >
-                            <Plus />
+                            <Plus className="size-4" />
                             Add Custodian
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
