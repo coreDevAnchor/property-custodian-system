@@ -98,7 +98,7 @@ const installationSections: DocSection[] = [
     },
 ];
 
-// ─── Importing Sections (shared) ─────────────────────────────────────────────
+// ─── Importing Sections (custodian) ──────────────────────────────────────────
 
 const importEmployeesSection: DocSection = {
     id: 'import-employees',
@@ -729,12 +729,7 @@ export default function Documentation() {
                       return [s];
                   }),
           ]
-        : [
-              ...installationSections,
-              ...employeeSections,
-              importEmployeesSection,
-              importCustodiansSection,
-          ];
+        : [...installationSections, ...employeeSections];
     const tocIds = allSections.map((s) => s.id);
     const activeId = useScrollSpy(tocIds);
 
