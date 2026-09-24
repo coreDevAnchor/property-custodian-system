@@ -8,6 +8,7 @@ import {
 import { AssetValuationCard } from '@/components/reports/asset-valuation-card';
 import { BorrowerAnalyticsChart } from '@/components/reports/borrower-analytics-chart';
 import { DepreciationCard } from '@/components/reports/depreciation-card';
+import { ExportCsvModal } from '@/components/reports/export-csv-modal';
 import { ExportPdfModal } from '@/components/reports/export-pdf-modal';
 import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
 import { ReportFilters } from '@/components/reports/report-filters';
@@ -17,7 +18,6 @@ import { TopEmployeeCard } from '@/components/reports/top-employee-card';
 import { PaginationBar } from '@/components/ui/pagination';
 import { SectionReveal } from '@/components/ui/section-reveal';
 import { dashboard, reports as custodianReports } from '@/routes/custodian';
-import { exportMethod as exportReports } from '@/routes/custodian/reports';
 import type { Asset } from '@/types/assets';
 import type { Category } from '@/types/categories';
 import type { Paginated } from '@/types/pagination';
@@ -103,6 +103,7 @@ export default function Reports({
     const [sort, setSort] = useState(selectedSort);
     const [metric, setMetric] = useState<UsageMetric>(usageMetric ?? 'borrows');
     const [isExportPdfOpen, setIsExportPdfOpen] = useState(false);
+    const [isExportCsvOpen, setIsExportCsvOpen] = useState(false);
     const [chartPeriod, setChartPeriod] = useState<ReportPeriod>(
         selectedChartPeriod ?? "month"
     );
@@ -276,16 +277,7 @@ export default function Reports({
                     <ReportHeader
                         period={headerPeriod}
                         onPeriodChange={handleHeaderPeriodChange}
-                        onExport={() =>
-                        (window.location.href = exportReports.url({
-                            query: {
-                                view,
-                                category,
-                                sort,
-                                headerPeriod,
-                            },
-                        }))
-                        }
+                        onExport={() => setIsExportCsvOpen(true)}
                         onExportPdf={() => setIsExportPdfOpen(true)}
                     />
                 </SectionReveal>
@@ -458,6 +450,15 @@ export default function Reports({
                     </div>
                 </SectionReveal>
             </motion.div >
+
+            <ExportCsvModal
+                open={isExportCsvOpen}
+                onOpenChange={setIsExportCsvOpen}
+                categories={categories}
+                view={view}
+                category={category}
+                sort={sort}
+            />
 
             <ExportPdfModal
                 open={isExportPdfOpen}

@@ -790,11 +790,13 @@ class ReportController extends Controller
 
     public function exportCsv(Request $request): StreamedResponse
     {
-        $view = $request->get('view', 'assets');
+        $source = $request->get('data_source', $request->get('view', 'assets'));
         $selectedCategory = $request->get('category', 'all');
-        $sort = $request->get('sort', 'latest');
+        $sort = $request->get('sort', $source === 'overdue' ? 'most_overdue' : 'latest');
+        $recordLimit = $request->get('record_limit', 'all');
+        $limit = $recordLimit === 'all' ? null : (int) $recordLimit;
 
-        if ($view === 'overdue') {
+        if ($source === 'overdue') {
             $query = BorrowRequest::with(['asset.category:id,name', 'borrower:id,name'])
                 ->where('status', 'borrowed')
                 ->whereNotNull('expected_return_date')
@@ -804,7 +806,25 @@ class ReportController extends Controller
                 $query->whereHas('asset', fn ($q) => $q->where('category_id', $selectedCategory));
             }
 
-            $items = $query->orderBy('expected_return_date')->get();
+            match ($sort) {
+                'latest' => $query->orderByDesc('expected_return_date'),
+                'oldest' => $query->orderBy('expected_return_date'),
+                'name_asc', 'borrower_az' => $query->join('users', 'users.id', '=', 'borrows.borrower_id')
+                    ->orderBy('users.name', 'asc')
+                    ->select('borrows.*'),
+                'name_desc', 'borrower_za' => $query->join('users', 'users.id', '=', 'borrows.borrower_id')
+                    ->orderBy('users.name', 'desc')
+                    ->select('borrows.*'),
+                'cost_high' => $query->join('assets', 'assets.id', '=', 'borrows.asset_id')
+                    ->orderByDesc('assets.acquisition_cost')
+                    ->select('borrows.*'),
+                'cost_low' => $query->join('assets', 'assets.id', '=', 'borrows.asset_id')
+                    ->orderBy('assets.acquisition_cost')
+                    ->select('borrows.*'),
+                default => $query->orderBy('expected_return_date'),
+            };
+
+            $items = $limit ? $query->limit($limit)->get() : $query->get();
 
             return response()->streamDownload(function () use ($items) {
                 $handle = fopen('php://output', 'w');
@@ -828,7 +848,7 @@ class ReportController extends Controller
             }, 'overdue_assets_'.now()->format('Y-m-d').'.csv');
         }
 
-        if ($view === 'lost') {
+        if ($source === 'lost') {
             $query = Asset::with(['category:id,name', 'assetType:id,name'])
                 ->where('status', 'lost');
 
@@ -840,10 +860,12 @@ class ReportController extends Controller
                 'oldest' => $query->oldest(),
                 'name_asc' => $query->orderBy('name'),
                 'name_desc' => $query->orderByDesc('name'),
+                'cost_high' => $query->orderByDesc('acquisition_cost'),
+                'cost_low' => $query->orderBy('acquisition_cost'),
                 default => $query->latest(),
             };
 
-            $items = $query->get();
+            $items = $limit ? $query->limit($limit)->get() : $query->get();
 
             return response()->streamDownload(function () use ($items) {
                 $handle = fopen('php://output', 'w');
@@ -881,7 +903,7 @@ class ReportController extends Controller
             default => $query->latest(),
         };
 
-        $assets = $query->get();
+        $assets = $limit ? $query->limit($limit)->get() : $query->get();
 
         return response()->streamDownload(function () use ($assets) {
             $handle = fopen('php://output', 'w');
@@ -897,8 +919,8 @@ class ReportController extends Controller
                     $asset->acquisition_cost,
                     $asset->depreciation_rate,
                     $asset->depreciation_rate
-                    ? $asset->acquisition_cost * ($asset->depreciation_rate / 100)
-                    : 0,
+                        ? $asset->acquisition_cost * ($asset->depreciation_rate / 100)
+                        : 0,
                     $asset->category?->unit_type === 'multi' ? ($asset->amount ?? 1) : 1,
                     $asset->created_at?->format('Y-m-d H:i:s'),
                 ]);
@@ -906,7 +928,6 @@ class ReportController extends Controller
 
             fclose($handle);
         }, 'assets_report_'.now()->format('Y-m-d').'.csv');
-
     }
 
     /**
