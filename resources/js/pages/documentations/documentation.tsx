@@ -5,6 +5,7 @@ import {
     BarChart3,
     Box,
     CheckCircle,
+    ChevronRight,
     ClipboardList,
     Clock,
     Copy,
@@ -35,6 +36,13 @@ interface DocSection {
     codeBlocks?: { label: string; code: string }[];
     gif?: string;
     actions?: string[];
+}
+
+interface TocGroup {
+    id: string;
+    title: string;
+    anchorId: string;
+    items: DocSection[];
 }
 
 // ─── Shared Sections ─────────────────────────────────────────────────────────
@@ -512,12 +520,31 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
 }
 
 function TableOfContents({
-    sections,
+    groups,
     activeId,
 }: {
-    sections: DocSection[];
+    groups: TocGroup[];
     activeId: string;
 }) {
+    const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        setOpenGroups((prev) => {
+            const next = new Set(prev);
+
+            for (const group of groups) {
+                if (
+                    group.anchorId === activeId ||
+                    group.items.some((item) => item.id === activeId)
+                ) {
+                    next.add(group.id);
+                }
+            }
+
+            return next;
+        });
+    }, [groups, activeId]);
+
     function scrollTo(id: string) {
         const el = document.getElementById(id);
 
@@ -526,26 +553,81 @@ function TableOfContents({
         }
     }
 
+    function toggleGroup(id: string) {
+        setOpenGroups((prev) => {
+            const next = new Set(prev);
+
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+
+            return next;
+        });
+    }
+
     return (
         <nav className="sticky top-24">
             <h4 className="mb-3 text-xs font-bold tracking-wider text-muted-foreground uppercase">
                 On this page
             </h4>
             <ul className="space-y-1 border-l border-border">
-                {sections.map((section) => (
-                    <li key={section.id}>
-                        <button
-                            onClick={() => scrollTo(section.id)}
-                            className={`w-full cursor-pointer border-l-2 py-1.5 pl-4 text-left text-sm transition-colors ${
-                                activeId === section.id
-                                    ? 'border-primary font-semibold text-primary'
-                                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
-                            }`}
-                        >
-                            {section.title}
-                        </button>
-                    </li>
-                ))}
+                {groups.map((group) => {
+                    const isOpen = openGroups.has(group.id);
+                    const isGroupActive =
+                        group.anchorId === activeId ||
+                        group.items.some((item) => item.id === activeId);
+
+                    return (
+                        <li key={group.id}>
+                            <div
+                                className={`flex items-center justify-between border-l-2 py-1.5 pr-1 pl-4 text-sm transition-colors ${
+                                    isGroupActive
+                                        ? 'border-primary font-semibold text-primary'
+                                        : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                                }`}
+                            >
+                                <button
+                                    onClick={() => scrollTo(group.anchorId)}
+                                    className="flex-1 cursor-pointer text-left"
+                                >
+                                    {group.title}
+                                </button>
+                                <button
+                                    onClick={() => toggleGroup(group.id)}
+                                    aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${group.title}`}
+                                    className="cursor-pointer p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                                >
+                                    <ChevronRight
+                                        className={`size-4 transition-transform ${
+                                            isOpen ? 'rotate-90' : ''
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+
+                            {isOpen && (
+                                <ul className="ml-3 border-l border-border">
+                                    {group.items.map((item) => (
+                                        <li key={item.id}>
+                                            <button
+                                                onClick={() => scrollTo(item.id)}
+                                                className={`w-full cursor-pointer border-l-2 py-1.5 pl-4 text-left text-sm transition-colors ${
+                                                    activeId === item.id
+                                                        ? 'border-primary font-semibold text-primary'
+                                                        : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                                                }`}
+                                            >
+                                                {item.title}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </li>
+                    );
+                })}
             </ul>
         </nav>
     );
@@ -656,6 +738,42 @@ export default function Documentation() {
     const tocIds = allSections.map((s) => s.id);
     const activeId = useScrollSpy(tocIds);
 
+    const systemOverviewGroupIds = new Set([
+        'system-overview',
+        'validate-email',
+        'forgot-password',
+        'installation',
+        'email-configuration',
+    ]);
+
+    const tocGroups: TocGroup[] = (() => {
+        const overviewItems: DocSection[] = [];
+        const dashboardItems: DocSection[] = [];
+
+        for (const section of allSections) {
+            if (systemOverviewGroupIds.has(section.id)) {
+                overviewItems.push(section);
+            } else {
+                dashboardItems.push(section);
+            }
+        }
+
+        return [
+            {
+                id: 'system-overview-group',
+                title: overviewItems[0].title,
+                anchorId: overviewItems[0].id,
+                items: overviewItems.slice(1),
+            },
+            {
+                id: 'dashboard-group',
+                title: dashboardItems[0].title,
+                anchorId: dashboardItems[0].id,
+                items: dashboardItems.slice(1),
+            },
+        ];
+    })();
+
     return (
         <>
             <Head title="Documentation" />
@@ -702,10 +820,7 @@ export default function Documentation() {
 
                     {/* Right sidebar TOC */}
                     <div className="hidden w-56 shrink-0 lg:block">
-                        <TableOfContents
-                            sections={allSections}
-                            activeId={activeId}
-                        />
+                        <TableOfContents groups={tocGroups} activeId={activeId} />
                     </div>
                 </div>
             </motion.div>
