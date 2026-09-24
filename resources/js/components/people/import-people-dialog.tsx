@@ -325,9 +325,13 @@ export function ImportPeopleDialog({ open, kind, onOpenChange }: Props) {
                                                 {config.departments.join(', ')}.
                                             </li>
                                             <li>
-                                                Contact Number must be 11 digits
-                                                and start with 09 (e.g.{' '}
-                                                09171234567).
+                                                Contact Number must contain
+                                                digits only (no -, +, spaces, or
+                                                parentheses) and be 11 digits
+                                                starting with 09 (e.g.{' '}
+                                                09171234567). A 10-digit number
+                                                starting with 9 gets a leading 0
+                                                added automatically.
                                             </li>
                                         </>
                                     ) : null}

@@ -318,12 +318,22 @@ class EmployeeController extends Controller
 
             if ($contact === '') {
                 $rowErrors[] = 'Contact Number is required.';
+            } elseif (preg_match('/\D/', $contact) === 1) {
+                $rowErrors[] = 'Contact Number must contain digits only. Remove special characters like "-", "+", spaces, or parentheses.';
+            } elseif (strlen($contact) === 10 && str_starts_with($contact, '9')) {
+                // A 10-digit number starting with 9 is missing its leading 0
+                // (e.g. 9171234567 → 09171234567). Accept it and add the 0.
+                $contact = '0'.$contact;
             } elseif (preg_match('/^09\d{9}$/', $contact) !== 1) {
                 $rowErrors[] = 'Contact Number must be 11 digits and start with 09.';
-            } elseif ($contactSeen->has($contact)) {
-                $rowErrors[] = 'Contact Number is already in use.';
-            } else {
-                $contactSeen->put($contact, true);
+            }
+
+            if (! $rowErrors) {
+                if ($contactSeen->has($contact)) {
+                    $rowErrors[] = 'Contact Number is already in use.';
+                } else {
+                    $contactSeen->put($contact, true);
+                }
             }
 
             if ($rowErrors) {

@@ -145,3 +145,52 @@ test('employee import saves nothing when a row has a problem', function () {
     expect(User::where('email', 'juan@example.com')->exists())->toBeFalse();
     expect(Employee::count())->toBe(0);
 });
+
+test('employee import rejects contact numbers with special characters', function () {
+    $file = importEmployeeCsv([
+        ['Juan Dela Cruz', 'juan@example.com', 'IT Department', '0917-123-4567'],
+    ]);
+
+    $response = $this->actingAs(User::factory()->custodian()->create())
+        ->post(route('custodian.employees.import.preview'), ['file' => $file]);
+
+    $response->assertStatus(422);
+    $response->assertJsonPath('message', fn ($message) => str_contains($message, 'digits only'));
+    expect(User::where('email', 'juan@example.com')->exists())->toBeFalse();
+});
+
+test('employee import adds a leading zero to a 10-digit contact number', function () {
+    $file = importEmployeeCsv([
+        ['Juan Dela Cruz', 'juan@example.com', 'IT Department', '9171234567'],
+    ]);
+
+    $response = $this->actingAs(User::factory()->custodian()->create())
+        ->post(route('custodian.employees.import.preview'), ['file' => $file]);
+
+    $response->assertOk();
+    $response->assertJsonPath('rows.0.contact', '09171234567');
+
+    $this->actingAs(User::factory()->custodian()->create())
+        ->post(route('custodian.employees.import'), ['file' => $file])
+        ->assertRedirect()
+        ->assertSessionHas('success', 'Imported 1 employee from Excel.');
+
+    $juan = User::where('email', 'juan@example.com')->first();
+    expect($juan->employee->contact)->toBe('09171234567');
+});
+
+test('employee import treats a normalized contact as taken against existing records', function () {
+    $existing = User::factory()->employee()->create();
+    $existing->employee->update(['contact' => '09171234567']);
+
+    $file = importEmployeeCsv([
+        ['Juan Dela Cruz', 'juan@example.com', 'IT Department', '9171234567'],
+    ]);
+
+    $response = $this->actingAs(User::factory()->custodian()->create())
+        ->post(route('custodian.employees.import.preview'), ['file' => $file]);
+
+    $response->assertStatus(422);
+    $response->assertJsonPath('message', fn ($message) => str_contains($message, 'already in use'));
+    expect(User::where('email', 'juan@example.com')->exists())->toBeFalse();
+});

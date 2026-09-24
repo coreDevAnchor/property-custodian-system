@@ -369,7 +369,7 @@ export default function Assets({
                             className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm transition-all hover:bg-muted/60 active:scale-[0.98]"
                         >
                             <FileUp className="size-4" />
-                            Upload Excel
+                            Upload Assets
                         </button>
 
                         <button
