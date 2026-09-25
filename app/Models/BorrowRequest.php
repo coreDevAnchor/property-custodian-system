@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
  * @property int $id
@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class BorrowRequest extends Model
 {
     use HasFactory;
+
     protected $table = 'borrows';
 
     protected $casts = [
@@ -39,6 +40,7 @@ class BorrowRequest extends Model
         'deadline_reminder_sent_at' => 'datetime',
 
         'overdue_last_notified_at' => 'datetime',
+        'receipt_printed_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -64,6 +66,8 @@ class BorrowRequest extends Model
         'deadline_reminder_sent_at',
 
         'overdue_last_notified_at',
+        'receipt_printed_at',
+        'receipt_printed_by',
     ];
 
     public function asset(): BelongsTo
@@ -119,5 +123,12 @@ class BorrowRequest extends Model
     public function isRejected(): bool
     {
         return $this->status === 'rejected';
+    }
+
+    public function getReceiptNumberAttribute(): string
+    {
+        $year = $this->approved_at?->format('Y') ?? now()->format('Y');
+
+        return 'ACR-'.$year.'-'.str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
     }
 }

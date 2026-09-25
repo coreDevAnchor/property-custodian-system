@@ -68,6 +68,10 @@ class HandleInertiaRequests extends Middleware
                     'pendingBorrowRequests' => BorrowRequest::where('status', 'pending')->count()
                         + BorrowRenewal::where('status', 'pending')->count(),
                     'awaitingReturns' => BorrowRequest::where('status', 'awaiting_check')->count(),
+                    'unprintedReceipts' => BorrowRequest::where('status', 'borrowed')
+                        ->whereNull('receipt_printed_at')
+                        ->whereNotNull('approved_at')
+                        ->count(),
                 ]
                 : null,
             'unreadNotificationCount' => fn () => $request->user()?->unreadNotifications()->count() ?? 0,

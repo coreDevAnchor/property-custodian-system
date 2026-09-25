@@ -10,6 +10,7 @@ use App\Http\Controllers\BorrowRenewalController;
 use App\Http\Controllers\BorrowRequestController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CurrentBorrowsController;
+use App\Http\Controllers\Custodian\ReceiptController;
 use App\Http\Controllers\Custodian\ReportController;
 use App\Http\Controllers\CustodianController;
 use App\Http\Controllers\CustodianDashboardController;
@@ -145,6 +146,12 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])
             ->name('reports.export-pdf');
+
+        Route::get('/receipts', [ReceiptController::class, 'index'])
+            ->name('receipts.index');
+
+        Route::get('/receipts/{borrowRequest}/print', [ReceiptController::class, 'print'])
+            ->name('receipts.print');
     });
 
 Route::get('/dev-custodian', function () {

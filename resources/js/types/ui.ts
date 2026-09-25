@@ -20,6 +20,7 @@ export interface SharedData {
     counts: {
         pendingBorrowRequests: number;
         awaitingReturns: number;
+        unprintedReceipts: number;
     } | null;
     unreadNotificationCount: number;
     [key: string]: unknown;

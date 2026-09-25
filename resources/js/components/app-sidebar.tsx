@@ -12,6 +12,8 @@ import {
     History,
     PackageSearch,
     BoxSelect,
+    ShieldUser,
+    ReceiptText,
 } from 'lucide-react';
 import * as reports from '@/actions/App/Http/Controllers/Custodian/ReportController';
 import AppLogo from '@/components/app-logo';
@@ -37,6 +39,7 @@ import * as custodians from '@/routes/custodian/custodians';
 
 import * as employees from '@/routes/custodian/employees';
 import * as returns from '@/routes/custodian/returns';
+import * as receipts from '@/routes/custodian/receipts';
 import * as availableAssets from '@/routes/employee/assets';
 import * as currentBorrows from '@/routes/employee/current-borrows';
 
@@ -80,6 +83,12 @@ export function AppSidebar() {
             badge: counts?.awaitingReturns ?? 0,
         },
         {
+            title: 'Receipts',
+            href: receipts.index.url(),
+            icon: ReceiptText,
+            badge: counts?.unprintedReceipts ?? 0,
+        },
+        {
             title: 'Employees',
             href: employees.index.url(),
             icon: Users,
@@ -87,7 +96,7 @@ export function AppSidebar() {
         {
             title: 'Custodians',
             href: custodians.index.url(),
-            icon: Users,
+            icon: ShieldUser,
         },
         {
             title: 'Audit Trail',
