@@ -74,9 +74,26 @@ class ReceiptController extends Controller
             abort(404);
         }
 
+        $pdf = Pdf::loadView('receipts.acknowledgement', [
+            'borrow' => $borrowRequest,
+            'generatedAt' => now()->format('F d, Y h:i A'),
+        ])->setPaper('a4');
+
+        $assetTag = $borrowRequest->asset?->asset_tag ?? 'asset';
+        $filename = 'acknowledgement_receipt_'.str_replace('/', '-', $assetTag).'_'.$borrowRequest->id.'.pdf';
+
+        return $pdf->stream($filename);
+    }
+
+    public function markPrinted(BorrowRequest $borrowRequest)
+    {
+        if ($borrowRequest->status !== 'borrowed') {
+            abort(404);
+        }
+
         $custodian = Auth::user();
 
-        if ($custodian instanceof User) {
+        if ($custodian instanceof User && $borrowRequest->receipt_printed_at === null) {
             $borrowRequest->update([
                 'receipt_printed_at' => now(),
                 'receipt_printed_by' => $custodian->id,
@@ -88,20 +105,12 @@ class ReceiptController extends Controller
                 ActivityLogs::record(
                     $asset,
                     'receipt_printed',
-                    "Acknowledgement receipt printed for {$borrowRequest->borrower?->name} ({$asset->name}).",
+                    "Acknowledgement receipt marked as printed for {$borrowRequest->borrower?->name} ({$asset->name}).",
                     ['borrow_request_id' => $borrowRequest->id],
                 );
             }
         }
 
-        $pdf = Pdf::loadView('receipts.acknowledgement', [
-            'borrow' => $borrowRequest,
-            'generatedAt' => now()->format('F d, Y h:i A'),
-        ])->setPaper('a4');
-
-        $assetTag = $borrowRequest->asset?->asset_tag ?? 'asset';
-        $filename = 'acknowledgement_receipt_'.str_replace('/', '-', $assetTag).'_'.$borrowRequest->id.'.pdf';
-
-        return $pdf->stream($filename);
+        return back();
     }
 }

@@ -149,9 +149,12 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('/receipts', [ReceiptController::class, 'index'])
             ->name('receipts.index');
-
         Route::get('/receipts/{borrowRequest}/print', [ReceiptController::class, 'print'])
             ->name('receipts.print');
+
+        Route::post('/receipts/{borrowRequest}/printed', [ReceiptController::class, 'markPrinted'])
+
+            ->name('receipts.mark-printed');
     });
 
 Route::get('/dev-custodian', function () {

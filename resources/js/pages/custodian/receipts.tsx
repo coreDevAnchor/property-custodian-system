@@ -1,12 +1,12 @@
 import { Head, router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
-import { FileText, Printer, Search } from 'lucide-react';
+import { CheckCircle2, FileText, Printer, Search } from 'lucide-react';
 import { useState } from 'react';
 import { rowVariants } from '@/components/assets/asset-table-animations';
 import { AnimatedTableBody } from '@/components/ui/animated-table-body';
 import { PaginationBar } from '@/components/ui/pagination';
 import { dashboard } from '@/routes/custodian';
-import { print, index } from '@/routes/custodian/receipts';
+import { index, markPrinted, print } from '@/routes/custodian/receipts';
 import type { Paginated } from '@/types/pagination';
 
 type ReceiptItem = {
@@ -34,10 +34,16 @@ export default function Receipts({ receipts, filters }: Props) {
 
     function handlePrint(receipt: ReceiptItem) {
         window.open(print.url(receipt.id), '_blank');
+    }
 
-        setTimeout(() => {
-            router.reload({ only: ['receipts'] });
-        }, 1500);
+    function handleDone(receipt: ReceiptItem) {
+        router.post(
+            markPrinted.url(receipt.id),
+            {},
+            {
+                preserveScroll: true,
+            },
+        );
     }
 
     function submitSearch(event: React.FormEvent<HTMLFormElement>) {
@@ -185,14 +191,24 @@ export default function Receipts({ receipts, filters }: Props) {
                                                 : '—'}
                                         </td>
                                         <td className="py-3.5 text-right">
-                                            <button
-                                                onClick={() => handlePrint(receipt)}
-                                                className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
-                                                aria-label={`Print receipt ${receipt.receipt_number}`}
-                                            >
-                                                <Printer className="size-4" />
-                                                Print
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleDone(receipt)}
+                                                    className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
+                                                    aria-label={`Mark receipt ${receipt.receipt_number} as printed`}
+                                                >
+                                                    <CheckCircle2 className="size-4 text-green-600" />
+                                                    Done
+                                                </button>
+                                                <button
+                                                    onClick={() => handlePrint(receipt)}
+                                                    className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 active:scale-[0.98]"
+                                                    aria-label={`Print receipt ${receipt.receipt_number}`}
+                                                >
+                                                    <Printer className="size-4" />
+                                                    Print
+                                                </button>
+                                            </div>
                                         </td>
                                     </motion.tr>
                                 ))}

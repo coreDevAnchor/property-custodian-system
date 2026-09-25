@@ -8,7 +8,7 @@ use App\Models\Employee;
 use App\Models\Location;
 use App\Models\User;
 
-function createReceiptAsset(\App\Models\Category $category): Asset
+function createReceiptAsset(Category $category): Asset
 {
     $location = Location::create(['name' => 'Main Lab '.uniqid()]);
     $type = AssetType::create([
@@ -83,7 +83,7 @@ test('receipts index lists only unprinted borrowed receipts', function () {
     $response->assertDontSee($pendingBorrower->name);
 });
 
-test('printing an unprinted receipt returns a pdf and marks it printed', function () {
+test('printing a receipt returns a pdf without marking it printed', function () {
     $custodian = User::factory()->custodian()->create();
 
     $category = Category::create(['name' => 'IT Equipment', 'prefix' => 'ITQ']);
@@ -101,41 +101,45 @@ test('printing an unprinted receipt returns a pdf and marks it printed', functio
         'approved_at' => now(),
     ]);
 
-    $response = $this->actingAs($custodian)->get(route('custodian.receipts.print', $borrow->id));
+    $this->actingAs($custodian)->get(route('custodian.receipts.print', $borrow->id))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
 
-    $response->assertOk();
-    $response->assertHeader('Content-Type', 'application/pdf');
+    $borrow->refresh();
+    expect($borrow->receipt_printed_at)->toBeNull();
+
+    $this->actingAs($custodian)->get(route('custodian.receipts.index'))
+        ->assertSee($borrower->name);
+});
+
+test('marking a receipt as done records it printed and removes it from the index', function () {
+    $custodian = User::factory()->custodian()->create();
+
+    $category = Category::create(['name' => 'IT Equipment', 'prefix' => 'ITQ']);
+    $asset = createReceiptAsset($category);
+
+    $borrower = User::factory()->employee()->create();
+    $employee = Employee::where('user_id', $borrower->id)->firstOrFail();
+
+    $borrow = BorrowRequest::factory()->create([
+        'asset_id' => $asset->id,
+        'employee_id' => $employee->id,
+        'borrower_id' => $borrower->id,
+        'status' => 'borrowed',
+        'approved_by' => $custodian->id,
+        'approved_at' => now(),
+    ]);
+
+    $this->actingAs($custodian)
+        ->post(route('custodian.receipts.mark-printed', $borrow->id))
+        ->assertStatus(302);
 
     $borrow->refresh();
     expect($borrow->receipt_printed_at)->not->toBeNull();
     expect($borrow->receipt_printed_by)->toBe($custodian->id);
-});
 
-test('a printed receipt no longer appears on the receipts index', function () {
-    $custodian = User::factory()->custodian()->create();
-
-    $category = Category::create(['name' => 'IT Equipment', 'prefix' => 'ITQ']);
-    $asset = createReceiptAsset($category);
-
-    $borrower = User::factory()->employee()->create();
-    $employee = Employee::where('user_id', $borrower->id)->firstOrFail();
-
-    $borrow = BorrowRequest::factory()->create([
-        'asset_id' => $asset->id,
-        'employee_id' => $employee->id,
-        'borrower_id' => $borrower->id,
-        'status' => 'borrowed',
-        'approved_by' => $custodian->id,
-        'approved_at' => now(),
-    ]);
-
-    $this->actingAs($custodian)->get(route('custodian.receipts.print', $borrow->id));
-    $borrow->refresh();
-
-    expect($borrow->receipt_printed_at)->not->toBeNull();
-
-    $response = $this->actingAs($custodian)->get(route('custodian.receipts.index'));
-    $response->assertDontSee($borrower->name);
+    $this->actingAs($custodian)->get(route('custodian.receipts.index'))
+        ->assertDontSee($borrower->name);
 });
 
 test('a non-borrowed request cannot be printed', function () {
@@ -156,6 +160,30 @@ test('a non-borrowed request cannot be printed', function () {
 
     $this->actingAs($custodian)
         ->get(route('custodian.receipts.print', $borrow->id))
+        ->assertNotFound();
+
+    $borrow->refresh();
+    expect($borrow->receipt_printed_at)->toBeNull();
+});
+
+test('a non-borrowed request cannot be marked as done', function () {
+    $custodian = User::factory()->custodian()->create();
+
+    $category = Category::create(['name' => 'IT Equipment', 'prefix' => 'ITQ']);
+    $asset = createReceiptAsset($category);
+
+    $borrower = User::factory()->employee()->create();
+    $employee = Employee::where('user_id', $borrower->id)->firstOrFail();
+
+    $borrow = BorrowRequest::factory()->create([
+        'asset_id' => $asset->id,
+        'employee_id' => $employee->id,
+        'borrower_id' => $borrower->id,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($custodian)
+        ->post(route('custodian.receipts.mark-printed', $borrow->id))
         ->assertNotFound();
 
     $borrow->refresh();
