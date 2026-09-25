@@ -68,6 +68,12 @@ Route::middleware(['auth'])
     });
 
 Route::middleware(['auth', 'verified'])
+    ->group(function () {
+        Route::get('/assets/{asset}', [AssetController::class, 'detail'])->name('assets.detail');
+        Route::get('/assets/{asset}/qr.png', [AssetController::class, 'qr'])->name('assets.qr');
+    });
+
+Route::middleware(['auth', 'verified'])
     ->prefix('custodian')
     ->name('custodian.')
     ->group(function () {

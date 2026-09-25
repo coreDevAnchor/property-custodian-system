@@ -7,6 +7,9 @@ use App\Models\Asset;
 use App\Models\AssetType;
 use App\Models\Category;
 use App\Models\Location;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -174,6 +177,35 @@ class AssetController extends Controller
         );
 
         return response()->json($asset);
+    }
+
+    public function detail(Asset $asset)
+    {
+        $asset->load([
+            'category',
+            'assetType',
+            'location',
+            'currentBorrow.borrower:id,name',
+        ]);
+
+        return Inertia::render('assets/detail', [
+            'asset' => $asset,
+        ]);
+    }
+
+    public function qr(Asset $asset)
+    {
+        $qr = new QrCode(
+            data: route('assets.detail', $asset, absolute: true),
+            errorCorrectionLevel: ErrorCorrectionLevel::Low,
+            size: 320,
+            margin: 10,
+        );
+
+        $result = (new PngWriter)->write($qr);
+
+        return response($result->getString(), 200, ['Content-Type' => 'image/png'])
+            ->header('Cache-Control', 'public, max-age=31536000, immutable');
     }
 
     public function edit(Asset $asset)

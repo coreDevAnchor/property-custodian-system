@@ -546,6 +546,7 @@ export default function Assets({
             />
 
             <AssetViewDialog
+                key={viewTarget?.id}
                 open={!!viewTarget}
                 asset={viewTarget}
                 onOpenChange={(open) => !open && setViewTarget(undefined)}
