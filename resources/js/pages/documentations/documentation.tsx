@@ -15,6 +15,7 @@ import {
     KeyRound,
     Mail,
     PackageSearch,
+    Printer,
     RefreshCcw,
     Terminal,
     Undo2,
@@ -378,6 +379,27 @@ const custodianSections: DocSection[] = [
             'View return history',
         ],
         gif: '/docs/return-requests.gif',
+    },
+    {
+        id: 'acknowledgement-receipts',
+        title: 'Acknowledgement Receipts',
+        icon: Printer,
+        description:
+            'Print acknowledgement receipts for approved borrows that are currently out. Hand the printed receipt to the borrower to sign.',
+        steps: [
+            'Go to the Receipts page from the sidebar — the badge shows how many receipts are pending print',
+            'The list shows approved borrows currently out that have not yet been printed. Use search to filter by borrower, asset, or department',
+            'Click Print to open the PDF receipt in a new tab — the Reference No. on the PDF is the same as the Receipt No. in the table (ACR-YYYY-####)',
+            'Review and print the PDF. It shows the borrower, item received, the acknowledgement statement, and signature lines for the borrower and the property custodian',
+            'The row stays in the list until you confirm — printing alone does not mark the receipt as done',
+            'After handing the receipt to the borrower, click Done on the row. The receipt is marked as printed and disappears from the list',
+        ],
+        actions: [
+            'Only approved, currently-borrowed assets appear in the list — pending or already-printed requests are excluded',
+            'Receipt numbers are auto-generated and unique — they cannot be edited',
+            'You can open and print a receipt as many times as needed before clicking Done',
+            'Marking a receipt as printed is recorded in the Audit Trail',
+        ],
     },
     {
         id: 'employee-management',
