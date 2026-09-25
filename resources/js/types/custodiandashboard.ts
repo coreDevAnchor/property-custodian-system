@@ -23,4 +23,16 @@ export interface CategoryBreakdown {
     count: number;
 }
 
+export type DepreciationGranularity = 'day' | 'week' | 'month' | 'year';
+
+export interface DepartmentStat {
+    label: string;
+    count: number;
+}
+
+export interface DepreciationPoint {
+    label: string;
+    value: number;
+}
+
 export type { ActivityItem } from './activities';
