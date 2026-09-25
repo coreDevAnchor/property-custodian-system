@@ -50,6 +50,8 @@ class ReceiptController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
+        $receipts->getCollection()->append('receipt_number');
+
         return Inertia::render('custodian/receipts', [
             'receipts' => $receipts,
             'filters' => [

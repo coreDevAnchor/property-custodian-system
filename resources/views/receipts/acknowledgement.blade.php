@@ -13,7 +13,7 @@
         }
 
         @page {
-            margin: 15mm;
+            margin: 0;
         }
 
         body {
@@ -22,6 +22,7 @@
             color: #1f2937;
             line-height: 1.55;
             background: #fff;
+            padding: 15mm;
         }
 
         .page-header {

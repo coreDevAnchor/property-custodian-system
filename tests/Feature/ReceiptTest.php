@@ -79,6 +79,7 @@ test('receipts index lists only unprinted borrowed receipts', function () {
 
     $response->assertOk();
     $response->assertSee($unprinted->borrower->name);
+    $response->assertSee($unprinted->receipt_number);
     $response->assertDontSee($printedBorrower->name);
     $response->assertDontSee($pendingBorrower->name);
 });
