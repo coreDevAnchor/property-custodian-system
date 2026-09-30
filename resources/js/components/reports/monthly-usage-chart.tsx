@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as Recharts from 'recharts';
 
 import {
@@ -14,6 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { useIsMobile } from '@/hooks/use-mobile';
 import type {
     MonthlyUsagePoint,
     UsageMetric,
@@ -194,6 +195,31 @@ export function MonthlyUsageChart({
         0,
     );
 
+    const isMobile = useIsMobile();
+
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
+
+    const mobileChartWidth = Math.max(data.length * 52, 520);
+
+    function updateScrollEdge() {
+        const el = scrollRef.current;
+
+        if (!el) {
+            return;
+        }
+
+        setCanScrollLeft(el.scrollLeft > 4);
+        setCanScrollRight(
+            el.scrollWidth - el.clientWidth - el.scrollLeft > 4,
+        );
+    }
+
+    useEffect(() => {
+        updateScrollEdge();
+    }, [data, isMobile]);
+
     return (
         <Card className="rounded-2xl shadow-sm">
             {/* Header */}
@@ -319,10 +345,122 @@ export function MonthlyUsageChart({
                 </div>
                 {/* Empty State */}
                 {total === 0 ? (
-                    <div className="flex h-[450px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20">
+                    <div className="flex h-[320px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 sm:h-[450px]">
                         <p className="text-sm text-muted-foreground">
                             {copy.emptyText}
                         </p>
+                    </div>
+                ) : isMobile ? (
+                    <div className="h-[320px] rounded-xl bg-muted/20 pt-4">
+                        <div className="flex h-full">
+                            {/* Fixed Y-axis column (never scrolls) */}
+                            <div className="h-full w-11 shrink-0">
+                                <Recharts.AreaChart
+                                    data={data}
+                                    width={44}
+                                    height={320}
+                                    margin={{
+                                        top: 10,
+                                        right: 0,
+                                        left: 0,
+                                        bottom: 5,
+                                    }}
+                                >
+                                    <Recharts.XAxis
+                                        dataKey="label"
+                                        hide
+                                    />
+
+                                    <Recharts.YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        allowDecimals={false}
+                                        tick={{
+                                            fontSize: 12,
+                                            fill: '#71717a',
+                                        }}
+                                    />
+                                </Recharts.AreaChart>
+                            </div>
+
+                            {/* Horizontally scrollable plot */}
+                            <div
+                                ref={scrollRef}
+                                onScroll={updateScrollEdge}
+                                tabIndex={0}
+                                className="relative min-w-0 flex-1 overflow-x-auto overscroll-x-contain outline-none"
+                            >
+                                <div
+                                    style={{
+                                        width: `${mobileChartWidth}px`,
+                                    }}
+                                    className="h-full"
+                                >
+                                    <Recharts.AreaChart
+                                        data={data}
+                                        width={mobileChartWidth}
+                                        height={320}
+                                        margin={{
+                                            top: 10,
+                                            right: 20,
+                                            left: 0,
+                                            bottom: 5,
+                                        }}
+                                    >
+                                        <Recharts.CartesianGrid
+                                            vertical={false}
+                                            strokeDasharray="4 4"
+                                            opacity={0.35}
+                                        />
+
+                                        <Recharts.XAxis
+                                            dataKey="label"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{
+                                                fontSize: 12,
+                                                fill: '#71717a',
+                                            }}
+                                            dy={10}
+                                        />
+
+                                        <Recharts.Tooltip
+                                            cursor={{
+                                                stroke: 'hsl(var(--muted))',
+                                                strokeWidth: 1,
+                                            }}
+                                            content={
+                                                <CustomTooltip
+                                                    period={period}
+                                                />
+                                            }
+                                        />
+
+                                        {bars.map((bar) => (
+                                            <Recharts.Area
+                                                key={bar.key}
+                                                type="monotone"
+                                                dataKey={bar.key}
+                                                name={bar.name}
+                                                stackId="1"
+                                                stroke={bar.color}
+                                                fill={bar.color}
+                                                fillOpacity={0.6}
+                                                animationDuration={500}
+                                            />
+                                        ))}
+                                    </Recharts.AreaChart>
+                                </div>
+
+                                {canScrollRight && (
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background/70 to-transparent" />
+                                )}
+
+                                {canScrollLeft && (
+                                    <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-background/70 to-transparent" />
+                                )}
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <div className="h-[450px] w-full rounded-xl bg-muted/20 p-4">
