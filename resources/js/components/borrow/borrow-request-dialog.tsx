@@ -283,12 +283,27 @@ export function BorrowRequestDialog({
                                 type="number"
                                 min="1"
                                 max={asset.amount ?? 1}
-                                value={borrowAmount}
-                                onChange={(e) =>
-                                    setBorrowAmount(
-                                        Number(e.target.value),
-                                    )
+                                value={
+                                    borrowAmount === 0
+                                        ? ''
+                                        : borrowAmount
                                 }
+                                onChange={(e) => {
+                                    if (e.target.value === '') {
+                                        setBorrowAmount(0);
+
+                                        return;
+                                    }
+
+                                    const next = Number(
+                                        e.target.value,
+                                    );
+
+                                    if (!Number.isNaN(next)) {
+                                        setBorrowAmount(next);
+                                    }
+                                }}
+                                placeholder="1"
                                 className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                             />
 

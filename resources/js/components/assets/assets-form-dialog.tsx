@@ -985,13 +985,34 @@ export function AssetFormDialog({
                                                             ? ''
                                                             : field.value
                                                     }
-                                                    onChange={(e) =>
-                                                        field.onChange(
+                                                    onChange={(e) => {
+                                                        if (
+                                                            e.target
+                                                                .value ===
+                                                            ''
+                                                        ) {
+                                                            field.onChange(
+                                                                0,
+                                                            );
+
+                                                            return;
+                                                        }
+
+                                                        const next =
                                                             Number(
                                                                 e.target.value,
-                                                            ),
-                                                        )
-                                                    }
+                                                            );
+
+                                                        if (
+                                                            !Number.isNaN(
+                                                                next,
+                                                            )
+                                                        ) {
+                                                            field.onChange(
+                                                                next,
+                                                            );
+                                                        }
+                                                    }}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -1018,13 +1039,34 @@ export function AssetFormDialog({
                                                             ? ''
                                                             : field.value
                                                     }
-                                                    onChange={(e) =>
-                                                        field.onChange(
+                                                    onChange={(e) => {
+                                                        if (
+                                                            e.target
+                                                                .value ===
+                                                            ''
+                                                        ) {
+                                                            field.onChange(
+                                                                0,
+                                                            );
+
+                                                            return;
+                                                        }
+
+                                                        const next =
                                                             Number(
                                                                 e.target.value,
-                                                            ),
-                                                        )
-                                                    }
+                                                            );
+
+                                                        if (
+                                                            !Number.isNaN(
+                                                                next,
+                                                            )
+                                                        ) {
+                                                            field.onChange(
+                                                                next,
+                                                            );
+                                                        }
+                                                    }}
                                                 />
                                             </FormControl>
                                             <FormMessage />
