@@ -5,7 +5,8 @@ export type BorrowStatus =
     | 'borrowed'
     | 'awaiting_check'
     | 'returned'
-    | 'rejected';
+    | 'rejected'
+    | 'consumed';
 
 export type ActiveBorrowStatus = Extract<
     BorrowStatus,

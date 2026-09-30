@@ -50,7 +50,7 @@ class AssetController extends Controller
                 'depreciation_rate',
             ])
             ->with([
-                'category:id,name,unit_type',
+                'category:id,name,unit_type,borrow_policy',
                 'assetType:id,name,prefix',
                 'location:id,name',
 
@@ -88,7 +88,7 @@ class AssetController extends Controller
 
         return Inertia::render('custodian/assets', [
             'assets' => $assets,
-            'categories' => Category::orderBy('name', 'asc')->get(['id', 'name', 'unit_type']),
+            'categories' => Category::orderBy('name', 'asc')->get(['id', 'name', 'unit_type', 'borrow_policy']),
             'assetTypes' => AssetType::with('category:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'prefix', 'category_id']),
@@ -115,7 +115,7 @@ class AssetController extends Controller
             'acquisition_cost' => ['nullable', 'numeric', 'min:0'],
             'depreciation_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'condition' => ['nullable', 'integer', 'min:1', 'max:4'],
-            'status' => ['required', 'in:available,borrowed,under_repair,disposed,lost'],
+            'status' => ['required', 'in:available,borrowed,under_repair,disposed,lost,unavailable'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
@@ -230,7 +230,7 @@ class AssetController extends Controller
             'acquisition_cost' => ['nullable', 'numeric', 'min:0'],
             'depreciation_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'condition' => ['nullable', 'integer', 'min:1', 'max:4'],
-            'status' => ['required', 'in:available,borrowed,under_repair,disposed,lost'],
+            'status' => ['required', 'in:available,borrowed,under_repair,disposed,lost,unavailable'],
             'location_id' => ['nullable', 'exists:locations,id'],
             'remarks' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],

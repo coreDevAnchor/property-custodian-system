@@ -187,6 +187,9 @@ Route::middleware(['auth', 'verified'])
         Route::post('/borrow-requests', [BorrowRequestController::class, 'store'])
             ->name('borrow-requests.store');
 
+        Route::post('/consumables/take', [BorrowRequestController::class, 'directTake'])
+            ->name('consumables.take');
+
         Route::post('/borrow-renewals', [BorrowRenewalController::class, 'store'])
             ->name('borrow-renewals.store');
 

@@ -21,7 +21,7 @@ interface Props {
     selectedId?: number;
     options: SearchableOption[];
     onSelect: (id: number) => void;
-    onDelete: (option: SearchableOption) => void;
+    onDelete?: (option: SearchableOption) => void;
     onAdd?: () => void;
     addLabel?: string;
 }
@@ -142,17 +142,19 @@ export function SearchableSelect({
                                             <Check className="size-4 text-primary" />
                                         )}
 
-                                        <button
-                                            type="button"
-                                            aria-label={`Delete ${option.name}`}
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                onDelete(option);
-                                            }}
-                                            className="flex size-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100"
-                                        >
-                                            <X className="size-3.5" />
-                                        </button>
+                                        {onDelete && (
+                                            <button
+                                                type="button"
+                                                aria-label={`Delete ${option.name}`}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    onDelete(option);
+                                                }}
+                                                className="flex size-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100"
+                                            >
+                                                <X className="size-3.5" />
+                                            </button>
+                                        )}
                                     </span>
                                 </div>
                             );

@@ -11,6 +11,7 @@ class AuditTrailController extends Controller
     private const CATEGORY_ACTIONS = [
         'assets' => ['asset_created', 'asset_updated', 'asset_deleted', 'asset_disposed', 'asset_repair_flagged', 'asset_lost'],
         'borrow_requests' => ['borrow_requested', 'borrow_approved', 'borrow_rejected', 'borrow_updated'],
+        'consumables' => ['consumable_taken'],
         'returns' => ['return_submitted', 'return_inspected'],
         'employees' => ['employee_created', 'employee_updated', 'employee_deleted'],
         'custodians' => ['custodian_created', 'custodian_updated', 'custodian_deleted'],

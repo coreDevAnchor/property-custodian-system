@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int $asset_id
  * @property int $employee_id
  * @property int $borrower_id
- * @property 'pending'|'borrowed'|'awaiting_check'|'returned'|'rejected' $status
+ * @property 'pending'|'borrowed'|'awaiting_check'|'returned'|'rejected'|'consumed' $status
  * @property string|null $remarks
  * @property 'ok'|'defective'|'lost'|null $return_condition
  * @property-read Asset $asset
@@ -118,6 +118,11 @@ class BorrowRequest extends Model
     public function isReturned(): bool
     {
         return $this->status === 'returned';
+    }
+
+    public function isConsumed(): bool
+    {
+        return $this->status === 'consumed';
     }
 
     public function isRejected(): bool

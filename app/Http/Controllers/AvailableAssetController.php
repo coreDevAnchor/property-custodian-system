@@ -18,6 +18,7 @@ class AvailableAssetController extends Controller
 
         $assets = Asset::with(['category', 'assetType', 'location'])
             ->where('status', 'available')
+            ->where('amount', '>', 0)
             ->when($search, function ($query) use ($search) {
                 $searchPattern = '%'.mb_strtolower($search).'%';
 
@@ -33,7 +34,7 @@ class AvailableAssetController extends Controller
 
         return Inertia::render('employee/employee-assets', [
             'assets' => $assets,
-            'categories' => Category::orderBy('name')->get(['id', 'name']),
+            'categories' => Category::orderBy('name')->get(['id', 'name', 'borrow_policy']),
             'filters' => [
                 'search' => $search,
                 'category' => $category,

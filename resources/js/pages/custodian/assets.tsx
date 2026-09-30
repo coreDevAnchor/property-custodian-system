@@ -12,6 +12,7 @@ import {
     Eye,
 } from 'lucide-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { PolicyBadge } from '@/components/assets/asset-detail-panel';
 import { rowVariants } from '@/components/assets/asset-table-animations';
 import { AssetFormDialog } from '@/components/assets/assets-form-dialog';
 import { AssetViewDialog } from '@/components/assets/assets-views-dialog';
@@ -24,13 +25,7 @@ import {
     HoverCardTrigger,
 } from '@/components/ui/hover-card';
 import { PaginationBar } from '@/components/ui/pagination';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { dashboard } from '@/routes/custodian';
 import assetRoutes from '@/routes/custodian/assets';
 import type {
@@ -52,6 +47,7 @@ const statusLabels: Record<AssetStatus, string> = {
     under_repair: 'Under Repair',
     disposed: 'Pull out',
     lost: 'Lost',
+    unavailable: 'Unavailable',
 };
 
 const categoryIcon: Record<string, typeof Laptop> = {
@@ -74,6 +70,8 @@ const statusStyles: Record<string, string> = {
     disposed: 'bg-muted text-muted-foreground',
 
     lost: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+
+    unavailable: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 };
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -123,12 +121,21 @@ function AssetRow({
                 </div>
             </td>
             <td className="py-3.5 pr-4">
-                <span
-                    className="block max-w-[150px] truncate text-sm text-foreground"
-                    title={asset.category?.name ?? 'Unspecified'}
-                >
-                    {asset.category?.name ?? 'Unspecified'}
-                </span>
+                <div className="flex flex-col gap-1">
+                    <span
+                        className="block max-w-[150px] truncate text-sm text-foreground"
+                        title={asset.category?.name ?? 'Unspecified'}
+                    >
+                        {asset.category?.name ?? 'Unspecified'}
+                    </span>
+                    {asset.category && (
+                        <PolicyBadge
+                            policy={
+                                asset.category.borrow_policy ?? 'returnable'
+                            }
+                        />
+                    )}
+                </div>
             </td>
             <td className="py-3.5 pr-4">
                 <StatusBadge status={asset.status} />
@@ -397,33 +404,40 @@ export default function Assets({
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <Select
-                                value={categoryFilter}
-                                onValueChange={handleCategoryChange}
-                            >
-                                <SelectTrigger className="w-[180px] cursor-pointer">
-                                    <SelectValue placeholder="Category" />
-                                </SelectTrigger>
-
-                                <SelectContent>
-                                    <SelectItem value="All">
-                                        All Categories
-                                    </SelectItem>
-
-                                    <SelectItem value="Unspecified">
-                                        Unspecified
-                                    </SelectItem>
-
-                                    {categoryOptions.map((category) => (
-                                        <SelectItem
-                                            key={category.id}
-                                            value={category.id.toString()}
-                                        >
-                                            {category.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <div className="w-[180px]">
+                                <SearchableSelect
+                                    placeholder="Category"
+                                    selectedId={
+                                        categoryFilter === 'All'
+                                            ? 0
+                                            : categoryFilter === 'Unspecified'
+                                              ? -1
+                                              : Number(categoryFilter)
+                                    }
+                                    options={[
+                                        { id: 0, name: 'All Categories' },
+                                        { id: -1, name: 'Unspecified' },
+                                        ...categoryOptions.map((category) => ({
+                                            id: category.id,
+                                            name: category.name,
+                                            secondary:
+                                                category.borrow_policy ===
+                                                'consumable'
+                                                    ? 'Consumable'
+                                                    : 'Returnable',
+                                        })),
+                                    ]}
+                                    onSelect={(id) =>
+                                        handleCategoryChange(
+                                            id === 0
+                                                ? 'All'
+                                                : id === -1
+                                                  ? 'Unspecified'
+                                                  : String(id),
+                                        )
+                                    }
+                                />
+                            </div>
                             {/* Status */}
                             <div className="flex flex-wrap items-center gap-2">
                                 <Badge

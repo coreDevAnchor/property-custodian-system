@@ -2,24 +2,22 @@ import { Head, router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { Armchair, Laptop, PackageSearch, Search, Video } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { PolicyBadge } from '@/components/assets/asset-detail-panel';
 import { cardVariants } from '@/components/assets/asset-table-animations';
 import { AssetViewDialog } from '@/components/assets/assets-views-dialog';
 import type { Asset } from '@/components/assets/types';
 import { BorrowRequestDialog } from '@/components/borrow/borrow-request-dialog';
+import { TakeSupplyDialog } from '@/components/borrow/take-supply-dialog';
 import { AnimatedCardGrid } from '@/components/ui/animated-card-grid';
 import { PaginationBar } from '@/components/ui/pagination';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import type { BorrowPolicy } from '@/types/categories';
 import type { Paginated } from '@/types/pagination';
 
 interface Category {
     id: number;
     name: string;
+    borrow_policy?: BorrowPolicy;
 }
 
 interface Filters {
@@ -39,15 +37,20 @@ const categoryIcon: Record<string, typeof Laptop> = {
 function AssetCard({
     asset,
     onRequest,
+    onTake,
     onView,
 }: {
     asset: Asset;
     onRequest: (asset: Asset) => void;
+    onTake: (asset: Asset) => void;
     onView: (asset: Asset) => void;
 }) {
     const Icon = asset.category
         ? (categoryIcon[asset.category.name] ?? Laptop)
         : Laptop;
+
+    const isConsumable =
+        asset.category?.borrow_policy === 'consumable';
 
     return (
         <motion.div
@@ -74,10 +77,28 @@ function AssetCard({
                     <p className="truncate text-sm font-semibold text-foreground">
                         {asset.name}
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                        {asset.asset_tag} ·{' '}
-                        {asset.category?.name ?? 'Unspecified'}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                        <p className="min-w-0 truncate text-xs text-muted-foreground">
+                            {asset.asset_tag} ·{' '}
+                            {asset.category?.name ?? 'Unspecified'}
+                        </p>
+
+                        {isConsumable ? (
+                            <span className="shrink-0">
+                                <PolicyBadge
+                                    policy="consumable"
+                                    size="xs"
+                                />
+                            </span>
+                        ) : (
+                            <span className="shrink-0">
+                                <PolicyBadge
+                                    policy="returnable"
+                                    size="xs"
+                                />
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {asset.description && (
@@ -86,15 +107,27 @@ function AssetCard({
                     </p>
                 )}
 
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onRequest(asset);
-                    }}
-                    className="mt-auto flex h-9 w-full cursor-pointer items-center justify-center rounded-lg bg-orange-500 text-sm font-bold text-white transition-colors hover:bg-orange-600 active:scale-[0.98]"
-                >
-                    Request to Borrow
-                </button>
+                {isConsumable ? (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onTake(asset);
+                        }}
+                        className="mt-auto flex h-9 w-full cursor-pointer items-center justify-center rounded-lg bg-emerald-500 text-sm font-bold text-white transition-colors hover:bg-emerald-600 active:scale-[0.98]"
+                    >
+                        Take Supply
+                    </button>
+                ) : (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onRequest(asset);
+                        }}
+                        className="mt-auto flex h-9 w-full cursor-pointer items-center justify-center rounded-lg bg-orange-500 text-sm font-bold text-white transition-colors hover:bg-orange-600 active:scale-[0.98]"
+                    >
+                        Request to Borrow
+                    </button>
+                )}
             </div>
         </motion.div>
     );
@@ -118,6 +151,7 @@ export default function AvailableAssets({
         filters.category ?? 'All',
     );
     const [requestTarget, setRequestTarget] = useState<Asset | undefined>();
+    const [takeTarget, setTakeTarget] = useState<Asset | undefined>();
     const [viewTarget, setViewTarget] = useState<Asset | undefined>();
     const [loading, setLoading] = useState(false);
 
@@ -202,6 +236,21 @@ export default function AvailableAssets({
         );
     }
 
+    function handleTake(assetId: number, amount: number, remarks: string) {
+        router.post(
+            '/employee/consumables/take',
+            {
+                asset_id: assetId,
+                amount,
+                remarks,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => setTakeTarget(undefined),
+            },
+        );
+    }
+
     return (
         <>
             <Head title="Available Assets" />
@@ -231,28 +280,33 @@ export default function AvailableAssets({
                             />
                         </div>
 
-                        <Select
-                            value={categoryFilter}
-                            onValueChange={handleCategoryChange}
-                        >
-                            <SelectTrigger className="w-[200px] cursor-pointer">
-                                <SelectValue placeholder="Filter by category" />
-                            </SelectTrigger>
-
-                            <SelectContent>
-                                <SelectItem value="All">
-                                    All Categories
-                                </SelectItem>
-                                {categories.map((category) => (
-                                    <SelectItem
-                                        key={category.id}
-                                        value={category.id.toString()}
-                                    >
-                                        {category.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="w-[200px]">
+                            <SearchableSelect
+                                placeholder="Select category"
+                                selectedId={
+                                    categoryFilter === 'All'
+                                        ? 0
+                                        : Number(categoryFilter)
+                                }
+                                options={[
+                                    { id: 0, name: 'All Categories' },
+                                    ...categories.map((category) => ({
+                                        id: category.id,
+                                        name: category.name,
+                                        secondary:
+                                            category.borrow_policy ===
+                                            'consumable'
+                                                ? 'Consumable'
+                                                : 'Returnable',
+                                    })),
+                                ]}
+                                onSelect={(id) =>
+                                    handleCategoryChange(
+                                        id === 0 ? 'All' : String(id),
+                                    )
+                                }
+                            />
+                        </div>
                     </div>
 
                     <div className="px-6 py-6">
@@ -268,6 +322,7 @@ export default function AvailableAssets({
                                         key={asset.id}
                                         asset={asset}
                                         onRequest={setRequestTarget}
+                                        onTake={setTakeTarget}
                                         onView={setViewTarget}
                                     />
                                 ))}
@@ -303,6 +358,12 @@ export default function AvailableAssets({
                 asset={requestTarget}
                 onOpenChange={(open) => !open && setRequestTarget(undefined)}
                 onSubmit={handleSubmitRequest}
+            />
+
+            <TakeSupplyDialog
+                asset={takeTarget}
+                onOpenChange={(open) => !open && setTakeTarget(undefined)}
+                onSubmit={handleTake}
             />
 
             <AssetViewDialog

@@ -1,10 +1,14 @@
 import type { Borrow } from './borrows';
 import type { Category } from './categories';
-import { StagedImage } from './images';
 import type { Location } from './location';
 
 export type AssetStatus =
-    'available' | 'borrowed' | 'under_repair' | 'disposed' | 'lost';
+    | 'available'
+    | 'borrowed'
+    | 'under_repair'
+    | 'disposed'
+    | 'lost'
+    | 'unavailable';
 
 export const statusOptions: AssetStatus[] = [
     'available',
@@ -12,6 +16,7 @@ export const statusOptions: AssetStatus[] = [
     'under_repair',
     'disposed',
     'lost',
+    'unavailable',
 ];
 
 export interface Asset {

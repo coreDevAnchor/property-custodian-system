@@ -9,7 +9,12 @@ export interface ActivityItem {
     actor?: EntityRef | null;
 }
 
-export type Category = 'All' | 'assets' | 'borrow_requests' | 'returns';
+export type Category =
+    | 'All'
+    | 'assets'
+    | 'borrow_requests'
+    | 'returns'
+    | 'consumables';
 export type DateRange = 'all' | '24h' | '7d' | '30d';
 
 export interface Filters extends BaseFilters {

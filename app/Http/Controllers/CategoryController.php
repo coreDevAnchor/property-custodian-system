@@ -15,6 +15,7 @@ class CategoryController extends Controller
             'prefix' => ['required', 'string', 'max:50', 'unique:categories,prefix'],
             'description' => ['nullable', 'string'],
             'unit_type' => ['required', 'in:single,multi'],
+            'borrow_policy' => ['required', 'in:returnable,consumable'],
         ]);
 
         $category = Category::create($validated);

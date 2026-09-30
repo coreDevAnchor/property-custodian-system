@@ -25,6 +25,7 @@ const categoryOptions: { value: Category; label: string }[] = [
     { value: 'assets', label: 'Assets' },
     { value: 'borrow_requests', label: 'Borrow Requests' },
     { value: 'returns', label: 'Returns' },
+    { value: 'consumables', label: 'Consumables' },
 ];
 
 const rangeOptions: { value: DateRange; label: string }[] = [
@@ -40,11 +41,8 @@ export default function AuditTrail({
 }: Props) {
     const [category, setCategory] = useState<Category>(filters.category ?? 'All');
     const [range, setRange] = useState<DateRange>(filters.range ?? 'all');
-    const [loading, setLoading] = useState(false);
 
     function fetchPage(page: number, overrides: Partial<Filters> = {}) {
-        setLoading(true);
-
         router.get(
             '/custodian/activity',
             {
@@ -58,7 +56,6 @@ export default function AuditTrail({
                 preserveScroll: true,
                 replace: true,
                 only: ['activity', 'filters'],
-                onFinish: () => setLoading(false),
             },
         );
     }

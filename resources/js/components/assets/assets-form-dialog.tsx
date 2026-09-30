@@ -618,9 +618,9 @@ export function AssetFormDialog({
                                         </FormControl>
 
                                         <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                        </FormItem>
+                                    )}
+                                />
 
                             <div className="grid gap-4 md:grid-cols-3">
                                 <div className="space-y-2">
@@ -854,6 +854,16 @@ export function AssetFormDialog({
                                                 />
                                             </FormControl>
                                             <FormMessage />
+
+                                            {selectedCategory?.borrow_policy ===
+                                                'consumable' && (
+                                                <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                                                    Consumable category —
+                                                    employees take this supply
+                                                    directly and stock is
+                                                    deducted on take.
+                                                </p>
+                                            )}
                                         </FormItem>
                                     )}
                                 />

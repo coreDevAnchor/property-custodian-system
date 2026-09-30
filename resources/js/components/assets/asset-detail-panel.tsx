@@ -2,6 +2,8 @@ import { ImageOff, QrCode } from 'lucide-react';
 
 import { qr } from '@/routes/assets';
 import type { Asset, AssetStatus } from '@/types/assets';
+import { borrowPolicyLabels } from '@/types/categories';
+import type { BorrowPolicy } from '@/types/categories';
 
 const statusLabels: Record<AssetStatus, string> = {
     available: 'Available',
@@ -9,6 +11,7 @@ const statusLabels: Record<AssetStatus, string> = {
     under_repair: 'Under Repair',
     disposed: 'Pull out',
     lost: 'Lost',
+    unavailable: 'Unavailable',
 };
 
 const statusStyles: Record<AssetStatus, string> = {
@@ -20,6 +23,7 @@ const statusStyles: Record<AssetStatus, string> = {
         'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
     disposed: 'bg-muted text-muted-foreground',
     lost: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    unavailable: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 };
 
 export function StatusBadge({ status }: { status: AssetStatus }) {
@@ -28,6 +32,32 @@ export function StatusBadge({ status }: { status: AssetStatus }) {
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[status]}`}
         >
             {statusLabels[status]}
+        </span>
+    );
+}
+
+const policyStyles: Record<BorrowPolicy, string> = {
+    returnable:
+        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    consumable:
+        'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+};
+
+export function PolicyBadge({
+    policy,
+    size = 'sm',
+}: {
+    policy: BorrowPolicy;
+    size?: 'sm' | 'xs';
+}) {
+    const sizing =
+        size === 'xs' ? 'px-1.5 py-px text-[10px]' : 'px-2 py-0.5 text-xs';
+
+    return (
+        <span
+            className={`inline-flex w-fit items-center rounded-full font-semibold ${sizing} ${policyStyles[policy]}`}
+        >
+            {borrowPolicyLabels[policy]}
         </span>
     );
 }
@@ -170,6 +200,16 @@ export function AssetDetailPanel({
 
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                     <DetailRow label="Category" value={asset.category?.name} />
+                    {asset.category?.borrow_policy && (
+                        <DetailRow
+                            label="Policy"
+                            value={
+                                <PolicyBadge
+                                    policy={asset.category.borrow_policy}
+                                />
+                            }
+                        />
+                    )}
                     <DetailRow
                         label="Asset Type"
                         value={asset.asset_type?.name}
@@ -243,6 +283,8 @@ export function AssetDetailPanel({
                                     'This asset has been pulled out.'}
                                 {asset.status === 'lost' &&
                                     'This asset has been reported as lost.'}
+                                {asset.status === 'unavailable' &&
+                                    'This asset has been marked unavailable.'}
                             </span>
                         </div>
                     </div>

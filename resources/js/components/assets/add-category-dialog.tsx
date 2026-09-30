@@ -10,7 +10,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import type { Category } from '@/types/categories';
+import type { BorrowPolicy, Category } from '@/types/categories';
 
 interface Props {
     open: boolean;
@@ -22,6 +22,9 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
     const [name, setName] = useState('');
     const [prefix, setPrefix] = useState('');
     const [unitType, setUnitType] = useState<'single' | 'multi'>('single');
+    const [borrowPolicy, setBorrowPolicy] = useState<BorrowPolicy>(
+        'returnable',
+    );
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -30,6 +33,7 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
         setName('');
         setPrefix('');
         setUnitType('single');
+        setBorrowPolicy('returnable');
         setError(null);
         setLoading(false);
         setConfirmOpen(false);
@@ -64,6 +68,7 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
                     name: name.trim(),
                     prefix: prefix.trim().toUpperCase(),
                     unit_type: unitType,
+                    borrow_policy: borrowPolicy,
                 }),
             });
 
@@ -134,6 +139,71 @@ export function AddCategoryDialog({ open, onOpenChange, onCreated }: Props) {
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Multi-unit categories track stock quantity (e.g. consumable supplies).
+                            </p>
+                        </div>
+                        <div className="space-y-1.5">
+                            <p className="text-xs font-medium text-foreground">
+                                Borrowing Policy
+                            </p>
+                            <div className="flex w-full overflow-hidden rounded-lg border border-border">
+                                {([
+                                    {
+                                        value: 'returnable',
+                                        label: 'Returnable',
+                                        desc: 'Approval required, must be returned',
+                                    },
+                                    {
+                                        value: 'consumable',
+                                        label: 'Consumable',
+                                        desc: 'No request, no return',
+                                    },
+                                ] as const).map((option, index) => {
+                                    const isActive =
+                                        borrowPolicy === option.value;
+
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            onClick={() =>
+                                                setBorrowPolicy(
+                                                    option.value,
+                                                )
+                                            }
+                                            className={`flex-1 cursor-pointer border-border px-3 py-2 text-center transition-colors ${index !== 0 ? 'border-l' : ''} ${
+                                                isActive
+                                                    ? 'bg-orange-500 text-white border-orange-500'
+                                                    : 'bg-background text-muted-foreground hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            <span className="block text-sm font-semibold">
+                                                {option.label}
+                                            </span>
+                                            <span
+                                                className={`block text-[11px] leading-tight ${isActive ? 'text-orange-100' : 'text-muted-foreground'}`}
+                                            >
+                                                {option.desc}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {borrowPolicy === 'returnable' ? (
+                                    <>
+                                        Returnable items are borrowed via a
+                                        request, need custodian approval, and
+                                        must be returned (e.g. laptop, table,
+                                        chair).
+                                    </>
+                                ) : (
+                                    <>
+                                        Consumable supplies are taken
+                                        directly — no approval, no return —
+                                        and are deducted from stock (e.g.
+                                        paper, bond paper).
+                                    </>
+                                )}
                             </p>
                         </div>
                         {error && (

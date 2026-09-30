@@ -13,12 +13,25 @@ class Category extends Model
     public const UNIT_SINGLE = 'single';
     public const UNIT_MULTI = 'multi';
 
+    public const POLICY_RETURNABLE = 'returnable';
+    public const POLICY_CONSUMABLE = 'consumable';
+
     protected $fillable = [
         'name',
         'prefix',
         'description',
         'unit_type',
+        'borrow_policy',
     ];
+
+    protected $casts = [
+        'borrow_policy' => 'string',
+    ];
+
+    public function isConsumable(): bool
+    {
+        return $this->borrow_policy === self::POLICY_CONSUMABLE;
+    }
 
     public function assets(): HasMany
     {
