@@ -9,6 +9,8 @@ use App\Models\BorrowRequest;
 use App\Models\User;
 use App\Notifications\BorrowRequestStatusNotification;
 use App\Notifications\ManualOverdueReminderNotification;
+use App\Notifications\ReturnConfirmedNotification;
+use App\Support\LowStockChecker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -112,6 +114,13 @@ class BorrowRequestController extends Controller
         $isMultiUnit = $asset->category?->unit_type === 'multi';
         $borrowQty = $isMultiUnit ? ($validated['borrow_amount'] ?? 1) : 1;
 
+        if ($asset->category?->isConsumable()) {
+            return back()->with(
+                'error',
+                'Consumable supplies are taken directly and cannot be requested for borrowing.'
+            );
+        }
+
         if ($isMultiUnit) {
             if ($asset->amount < $borrowQty) {
                 return back()->with('error', "Only {$asset->amount} units available.");
@@ -159,6 +168,72 @@ class BorrowRequestController extends Controller
         return redirect()
             ->route('employee.assets.index')
             ->with('success', 'Borrow request submitted successfully.');
+    }
+
+    public function directTake(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'asset_id' => ['required', 'exists:assets,id'],
+            'amount' => ['required', 'integer', 'min:1'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $asset = Asset::query()
+            ->with('category')
+            ->find((int) $validated['asset_id']);
+
+        if (! $asset instanceof Asset) {
+            abort(404);
+        }
+
+        if (! $asset->category?->isConsumable()) {
+            return back()->with('error', 'This asset is not a consumable supply.');
+        }
+
+        $available = $asset->amount;
+
+        if ($validated['amount'] > $available) {
+            return back()->with(
+                'error',
+                "Only {$available} unit(s) available for taking."
+            );
+        }
+
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        $newAmount = $available - $validated['amount'];
+
+        $asset->update([
+            'amount' => $newAmount,
+            'status' => $newAmount === 0 ? 'unavailable' : $asset->status,
+        ]);
+
+        BorrowRequest::create([
+            'asset_id' => $asset->id,
+            'employee_id' => $user->employee?->id,
+            'borrower_id' => $user->id,
+            'status' => 'consumed',
+            'requested_at' => now(),
+            'returned_at' => now(),
+            'remarks' => $validated['remarks'] ?? null,
+            'borrow_amount' => $validated['amount'],
+        ]);
+
+        ActivityLogs::record(
+            $asset,
+            'consumable_taken',
+            "{$user->name} took {$validated['amount']} unit(s) of {$asset->name} from consumable supply."
+        );
+
+        LowStockChecker::check($asset);
+
+        return redirect()
+            ->route('employee.assets.index')
+            ->with('success', 'Supply taken — stock deducted.');
     }
 
     public function show(string $id): JsonResponse
@@ -291,6 +366,8 @@ class BorrowRequestController extends Controller
                     'status' => 'borrowed',
                 ]);
             }
+
+            LowStockChecker::check($asset);
         }
 
         if ($validated['status'] === 'returned') {
@@ -304,6 +381,8 @@ class BorrowRequestController extends Controller
                     'status' => 'available',
                 ]);
             }
+
+            LowStockChecker::check($asset);
         }
 
         $message = match (true) {

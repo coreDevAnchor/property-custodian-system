@@ -36,12 +36,23 @@ class Asset extends Model
         'location_id',
         'remarks',
         'amount',
+        'original_amount',
         'low_stock_notified_at',
     ];
 
     protected $casts = [
         'low_stock_notified_at' => 'datetime',
+        'original_amount' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Asset $asset) {
+            if ($asset->original_amount === null) {
+                $asset->original_amount = $asset->amount ?? 1;
+            }
+        });
+    }
 
     public function category(): BelongsTo
     {

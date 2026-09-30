@@ -1,6 +1,5 @@
 <?php
 
-use App\Console\Commands\SendLowStockAlerts;
 use App\Models\Asset;
 use App\Models\AssetType;
 use App\Models\BorrowRequest;
@@ -8,8 +7,10 @@ use App\Models\Category;
 use App\Models\Employee;
 use App\Models\Location;
 use App\Models\User;
+use App\Notifications\LowStockNotification;
+use App\Support\LowStockChecker;
 
-function createLowStockAsset(Category $category, int $amount): Asset
+function createStockAsset(Category $category, int $amount, int $original): Asset
 {
     $location = Location::create(['name' => 'Main Lab '.uniqid()]);
     $type = AssetType::create([
@@ -26,13 +27,14 @@ function createLowStockAsset(Category $category, int $amount): Asset
         'asset_type_id' => $type->id,
         'status' => 'available',
         'amount' => $amount,
+        'original_amount' => $original,
         'acquisition_cost' => 5000.00,
         'condition' => 'excellent',
         'acquisition_date' => now()->format('Y-m-d'),
     ]);
 }
 
-function activeBorrowFor(Asset $asset, int $qty, User $borrower, User $custodian): BorrowRequest
+function activeBorrowFor(Asset $asset, User $borrower): BorrowRequest
 {
     $employee = Employee::where('user_id', $borrower->id)->firstOrFail();
 
@@ -41,22 +43,27 @@ function activeBorrowFor(Asset $asset, int $qty, User $borrower, User $custodian
         'employee_id' => $employee->id,
         'borrower_id' => $borrower->id,
         'status' => 'borrowed',
-        'approved_by' => $custodian->id,
         'approved_at' => now(),
-        'borrow_amount' => $qty,
+        'borrow_amount' => 1,
     ]);
 }
 
-test('custodians are notified when multi-unit stock drops to 20 percent or less', function () {
+function stockCategory(): Category
+{
+    $suffix = uniqid();
+
+    return Category::create(['name' => 'Bulk Supplies '.$suffix, 'prefix' => 'BLK-'.$suffix, 'unit_type' => 'multi']);
+}
+
+test('custodians are notified when remaining stock hits 20 percent of the original total', function () {
     $custodianOne = User::factory()->custodian()->create();
     $custodianTwo = User::factory()->custodian()->create();
-    $borrower = User::factory()->employee()->create();
 
-    $category = Category::create(['name' => 'Bulk Supplies', 'prefix' => 'BLK', 'unit_type' => 'multi']);
-    $asset = createLowStockAsset($category, 10);
-    activeBorrowFor($asset, 8, $borrower, $custodianOne);
+    $asset = createStockAsset(stockCategory(), amount: 2, original: 10);
 
-    $this->artisan(SendLowStockAlerts::class)->assertSuccessful();
+    $notified = LowStockChecker::check($asset);
+
+    expect($notified)->toBe(1);
 
     foreach ([$custodianOne, $custodianTwo] as $custodian) {
         $notification = $custodian->notifications()->first();
@@ -64,72 +71,123 @@ test('custodians are notified when multi-unit stock drops to 20 percent or less'
         expect($notification)->not->toBeNull();
         expect($notification->data['type'])->toBe('low_stock');
         expect($notification->data['remaining'])->toBe(2);
-        expect($notification->data['amount'])->toBe(10);
+        expect($notification->data['total'])->toBe(10);
     }
 });
 
-test('no notification when multi-unit stock is above 20 percent', function () {
+test('no notification while stock is above 20 percent of the original total', function () {
     $custodian = User::factory()->custodian()->create();
-    $borrower = User::factory()->employee()->create();
 
-    $category = Category::create(['name' => 'Bulk Supplies', 'prefix' => 'BLK', 'unit_type' => 'multi']);
-    $asset = createLowStockAsset($category, 10);
-    activeBorrowFor($asset, 4, $borrower, $custodian);
+    $asset = createStockAsset(stockCategory(), amount: 3, original: 10);
 
-    $this->artisan(SendLowStockAlerts::class)->assertSuccessful();
-
+    expect(LowStockChecker::check($asset))->toBe(0);
     expect($custodian->notifications()->count())->toBe(0);
     $asset->refresh();
     expect($asset->low_stock_notified_at)->toBeNull();
 });
 
-test('exactly 20 percent remaining is considered low stock', function () {
+test('a receive that restocks the asset clears the notified marker', function () {
     $custodian = User::factory()->custodian()->create();
-    $borrower = User::factory()->employee()->create();
 
-    $category = Category::create(['name' => 'Bulk Supplies', 'prefix' => 'BLK', 'unit_type' => 'multi']);
-    $asset = createLowStockAsset($category, 10);
-    activeBorrowFor($asset, 8, $borrower, $custodian);
-
-    $this->artisan(SendLowStockAlerts::class);
-
-    expect($custodian->notifications()->count())->toBe(1);
-});
-
-test('alerts are sent once per day while stock stays low', function () {
-    $custodian = User::factory()->custodian()->create();
-    $borrower = User::factory()->employee()->create();
-
-    $category = Category::create(['name' => 'Bulk Supplies', 'prefix' => 'BLK', 'unit_type' => 'multi']);
-    $asset = createLowStockAsset($category, 10);
-    activeBorrowFor($asset, 8, $borrower, $custodian);
-
-    $this->artisan(SendLowStockAlerts::class);
-    $this->artisan(SendLowStockAlerts::class);
-
-    expect($custodian->notifications()->count())->toBe(1);
-});
-
-test('restocking clears the notified marker so a later low episode alerts again', function () {
-    $custodian = User::factory()->custodian()->create();
-    $borrower = User::factory()->employee()->create();
-
-    $category = Category::create(['name' => 'Bulk Supplies', 'prefix' => 'BLK', 'unit_type' => 'multi']);
-    $asset = createLowStockAsset($category, 10);
-    $borrow = activeBorrowFor($asset, 8, $borrower, $custodian);
-
-    $this->artisan(SendLowStockAlerts::class);
+    $asset = createStockAsset(stockCategory(), amount: 2, original: 10);
+    LowStockChecker::check($asset);
     expect($custodian->notifications()->count())->toBe(1);
 
-    $borrow->update(['status' => 'returned', 'returned_at' => now()]);
-    $asset->refresh();
-    $this->artisan(SendLowStockAlerts::class);
-
+    $asset->update(['amount' => 10]);
+    LowStockChecker::check($asset);
     $asset->refresh();
     expect($asset->low_stock_notified_at)->toBeNull();
+});
 
-    activeBorrowFor($asset, 8, $borrower, $custodian);
-    $this->artisan(SendLowStockAlerts::class);
+test('a new low episode after restocking alerts again', function () {
+    $custodian = User::factory()->custodian()->create();
+
+    $asset = createStockAsset(stockCategory(), amount: 2, original: 10);
+    LowStockChecker::check($asset);
+    expect($custodian->notifications()->count())->toBe(1);
+
+    $asset->update(['amount' => 10]);
+    LowStockChecker::check($asset);
+
+    $asset->update(['amount' => 1]);
+    LowStockChecker::check($asset);
 
     expect($custodian->notifications()->count())->toBe(2);
+});
+
+test('a single stock check does not duplicate notifications while still low', function () {
+    $custodian = User::factory()->custodian()->create();
+
+    $asset = createStockAsset(stockCategory(), amount: 1, original: 10);
+
+    LowStockChecker::check($asset);
+    LowStockChecker::check($asset);
+    LowStockChecker::check($asset);
+
+    expect($custodian->notifications()->count())->toBe(1);
+});
+
+test('the scheduled command alerts every low asset as a backstop', function () {
+    $custodian = User::factory()->custodian()->create();
+
+    $lowOne = createStockAsset(stockCategory(), amount: 2, original: 10);
+    $lowTwo = createStockAsset(stockCategory(), amount: 1, original: 5);
+    createStockAsset(stockCategory(), amount: 8, original: 10);
+
+    $this->artisan('inventory:send-low-stock')
+        ->expectsOutputToContain('low-stock')
+        ->assertSuccessful();
+
+    expect($custodian->notifications()->count())->toBe(2);
+    expect($lowOne->refresh()->low_stock_notified_at)->not->toBeNull();
+    expect($lowTwo->refresh()->low_stock_notified_at)->not->toBeNull();
+});
+
+test('approving a multi-unit borrow notifies custodians immediately', function () {
+    $custodian = User::factory()->custodian()->create();
+    $borrower = User::factory()->employee()->create();
+
+    $category = stockCategory();
+    $asset = createStockAsset($category, amount: 2, original: 10);
+    $borrow = activeBorrowFor($asset, $borrower);
+    $borrow->update(['status' => 'pending', 'approved_by' => null, 'approved_at' => null]);
+
+    $this->actingAs($custodian)
+        ->put(route('custodian.borrow-requests.update', $borrow->id), [
+            'status' => 'borrowed',
+        ])
+        ->assertRedirect();
+
+    $asset->refresh();
+    expect($asset->amount)->toBe(1);
+
+    expect($custodian->notifications()->get())->toHaveCount(1);
+    expect($custodian->notifications()->first()->data['type'])->toBe('low_stock');
+});
+
+test('a pending borrow does not trigger low-stock notifications on approval of a single-unit asset', function () {
+    $custodian = User::factory()->custodian()->create();
+    $borrower = User::factory()->employee()->create();
+
+    $category = Category::create(['name' => 'Unit Gear', 'prefix' => 'UGR', 'unit_type' => 'single']);
+    $asset = createStockAsset($category, amount: 1, original: 1);
+    $borrow = activeBorrowFor($asset, $borrower);
+    $borrow->update(['status' => 'pending', 'approved_by' => null, 'approved_at' => null]);
+
+    $this->actingAs($custodian)
+        ->put(route('custodian.borrow-requests.update', $borrow->id), [
+            'status' => 'borrowed',
+        ])
+        ->assertRedirect();
+
+    expect($custodian->notifications()->get())->toHaveCount(0);
+});
+
+test('low stock notifications use the database channel only', function () {
+    $asset = createStockAsset(stockCategory(), amount: 2, original: 10);
+    $custodian = User::factory()->custodian()->create();
+
+    $notification = new LowStockNotification($asset, 2);
+
+    expect($notification->via($custodian))->toBe(['database']);
 });
