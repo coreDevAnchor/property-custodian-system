@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class LowStockChecker
 {
+    private const THRESHOLD = 5;
+
     public static function check(?Asset $asset = null): int
     {
         if ($asset !== null) {
@@ -43,10 +45,8 @@ class LowStockChecker
         }
 
         $remaining = (int) $asset->amount;
-        $total = (int) ($asset->original_amount ?? $asset->amount ?? 1);
-        $threshold = max(1, (int) ceil($total * 0.20));
 
-        if ($remaining > $threshold) {
+        if ($remaining > self::THRESHOLD) {
             if ($asset->low_stock_notified_at !== null) {
                 $asset->update(['low_stock_notified_at' => null]);
             }

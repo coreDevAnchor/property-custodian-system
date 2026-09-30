@@ -55,11 +55,11 @@ function stockCategory(): Category
     return Category::create(['name' => 'Bulk Supplies '.$suffix, 'prefix' => 'BLK-'.$suffix, 'unit_type' => 'multi']);
 }
 
-test('custodians are notified when remaining stock hits 20 percent of the original total', function () {
+test('custodians are notified when remaining stock reaches 5 units', function () {
     $custodianOne = User::factory()->custodian()->create();
     $custodianTwo = User::factory()->custodian()->create();
 
-    $asset = createStockAsset(stockCategory(), amount: 2, original: 10);
+    $asset = createStockAsset(stockCategory(), amount: 5, original: 10);
 
     $notified = LowStockChecker::check($asset);
 
@@ -70,15 +70,15 @@ test('custodians are notified when remaining stock hits 20 percent of the origin
 
         expect($notification)->not->toBeNull();
         expect($notification->data['type'])->toBe('low_stock');
-        expect($notification->data['remaining'])->toBe(2);
+        expect($notification->data['remaining'])->toBe(5);
         expect($notification->data['total'])->toBe(10);
     }
 });
 
-test('no notification while stock is above 20 percent of the original total', function () {
+test('no notification while stock is above 5 units', function () {
     $custodian = User::factory()->custodian()->create();
 
-    $asset = createStockAsset(stockCategory(), amount: 3, original: 10);
+    $asset = createStockAsset(stockCategory(), amount: 6, original: 10);
 
     expect(LowStockChecker::check($asset))->toBe(0);
     expect($custodian->notifications()->count())->toBe(0);
@@ -106,10 +106,10 @@ test('a new low episode after restocking alerts again', function () {
     LowStockChecker::check($asset);
     expect($custodian->notifications()->count())->toBe(1);
 
-    $asset->update(['amount' => 10]);
+    $asset->update(['amount' => 6]);
     LowStockChecker::check($asset);
 
-    $asset->update(['amount' => 1]);
+    $asset->update(['amount' => 5]);
     LowStockChecker::check($asset);
 
     expect($custodian->notifications()->count())->toBe(2);
@@ -130,7 +130,7 @@ test('a single stock check does not duplicate notifications while still low', fu
 test('the scheduled command alerts every low asset as a backstop', function () {
     $custodian = User::factory()->custodian()->create();
 
-    $lowOne = createStockAsset(stockCategory(), amount: 2, original: 10);
+    $lowOne = createStockAsset(stockCategory(), amount: 5, original: 10);
     $lowTwo = createStockAsset(stockCategory(), amount: 1, original: 5);
     createStockAsset(stockCategory(), amount: 8, original: 10);
 
@@ -148,7 +148,7 @@ test('approving a multi-unit borrow notifies custodians immediately', function (
     $borrower = User::factory()->employee()->create();
 
     $category = stockCategory();
-    $asset = createStockAsset($category, amount: 2, original: 10);
+    $asset = createStockAsset($category, amount: 6, original: 10);
     $borrow = activeBorrowFor($asset, $borrower);
     $borrow->update(['status' => 'pending', 'approved_by' => null, 'approved_at' => null]);
 
@@ -159,7 +159,7 @@ test('approving a multi-unit borrow notifies custodians immediately', function (
         ->assertRedirect();
 
     $asset->refresh();
-    expect($asset->amount)->toBe(1);
+    expect($asset->amount)->toBe(5);
 
     expect($custodian->notifications()->get())->toHaveCount(1);
     expect($custodian->notifications()->first()->data['type'])->toBe('low_stock');
