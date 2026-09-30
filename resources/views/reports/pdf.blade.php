@@ -244,6 +244,42 @@
             color: #4b5563;
         }
 
+        /* ── Horizontal Bar: Assets by Department ── */
+        .hbar {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        .hbar th {
+            background: #f1f5f9;
+            border: 1px solid #dfe4ea;
+            padding: 7px 10px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 8.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #334155;
+        }
+
+        .hbar td {
+            border: 1px solid #e2e8f0;
+            padding: 6px 10px;
+            color: #1f2937;
+        }
+
+        .hbar-track {
+            height: 12px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+        }
+
+        .hbar-fill {
+            height: 100%;
+            background: #f97316;
+        }
+
         /* ── Grouped Bar Chart: Monthly Usage ── */
         .chart-legend {
             margin-bottom: 14px;
@@ -731,6 +767,98 @@
                     @endforeach
                 </tr>
             </table>
+
+            </div>
+    @endif
+
+    {{-- ── Section: Asset Analytics — Charts ── --}}
+    @if(in_array('summary', $sections))
+        <div class="section {{ $firstSectionRendered ? 'page-break' : '' }}">
+            @php $firstSectionRendered = true; @endphp
+            <h2 class="section-title">Asset Analytics</h2>
+
+            {{-- Assets by Department — Horizontal Bar Chart --}}
+            <p class="chart-title">Assets by Department</p>
+            @php
+                $deptData = $assetDepartments['breakdown'] ?? [];
+                $deptMax = max(collect($deptData)->pluck('count')->push(1)->map(fn ($c) => (int) $c)->all());
+            @endphp
+            @if(count($deptData) > 0)
+                <table class="hbar">
+                    <thead>
+                        <tr>
+                            <th>Department</th>
+                            <th style="width: 45%;">Distribution</th>
+                            <th class="text-right">Borrowed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($deptData as $dept)
+                            @php
+                                $barPct = (int) round(($dept['count'] / $deptMax) * 100);
+                            @endphp
+                            <tr>
+                                <td>{{ $dept['label'] }}</td>
+                                <td>
+                                    <div class="hbar-track">
+                                        <div class="hbar-fill" style="width: {{ $barPct }}%;"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right">{{ number_format($dept['count']) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @else
+                <p style="color: #6b7280; font-style: italic; margin-bottom: 24px;">No assets are currently borrowed.</p>
+            @endif
+
+            {{-- Total Depreciation Over Time — Vertical Bar Chart --}}
+            <p class="chart-title">Total Depreciation Over Time</p>
+            @php
+                $depMax = max(collect($depreciationSeries)->pluck('value')->push(1)->map(fn ($v) => (float) $v)->all());
+                $depChartHeight = 95;
+            @endphp
+            @if(count($depreciationSeries) > 0)
+                <table class="grouped-bar-chart">
+                    <tr>
+                        @foreach($depreciationSeries as $point)
+                            @php
+                                $barHeight = (int) round(($point['value'] / $depMax) * $depChartHeight);
+                                if ($point['value'] > 0 && $barHeight < 2) {
+                                    $barHeight = 2;
+                                }
+                            @endphp
+                            <td class="grouped-bar-cell">
+                                <div class="grouped-bar-track" style="height: {{ $depChartHeight }}px;">
+                                    <div class="grouped-bar-fill"
+                                        style="height: {{ $barHeight }}px; background: #f97316;"></div>
+                                </div>
+                                <div class="grouped-bar-label">{{ $point['label'] }}</div>
+                            </td>
+                        @endforeach
+                    </tr>
+                </table>
+
+                <table class="stats-summary-table">
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th class="text-right">Depreciation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($depreciationSeries as $point)
+                            <tr>
+                                <td>{{ $point['label'] }}</td>
+                                <td class="text-right">₱{{ number_format($point['value'], 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @else
+                <p style="color: #6b7280; font-style: italic; margin-bottom: 24px;">No depreciation data available.</p>
+            @endif
         </div>
     @endif
 

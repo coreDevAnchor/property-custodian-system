@@ -6,8 +6,10 @@ import {
     pageStaggerVariants,
 } from '@/components/assets/asset-table-animations';
 import { AssetValuationCard } from '@/components/reports/asset-valuation-card';
+import { AssetsByDepartmentCard } from '@/components/reports/assets-by-department-card';
 import { BorrowerAnalyticsChart } from '@/components/reports/borrower-analytics-chart';
 import { DepreciationCard } from '@/components/reports/depreciation-card';
+import { DepreciationOverTimeCard } from '@/components/reports/depreciation-over-time-card';
 import { ExportCsvModal } from '@/components/reports/export-csv-modal';
 import { ExportPdfModal } from '@/components/reports/export-pdf-modal';
 import { MonthlyUsageChart } from '@/components/reports/monthly-usage-chart';
@@ -28,6 +30,9 @@ import type {
     MonthlyUsagePoint,
     BorrowerAnalytics,
     DepreciationSummary,
+    DepartmentStat,
+    DepreciationGranularity,
+    DepreciationPoint,
     UsageMetric,
     ReportSummary,
     ReportPeriod,
@@ -52,6 +57,12 @@ interface Props {
     borrowerAnalytics: BorrowerAnalytics;
     depreciationSummary: DepreciationSummary;
     reportSummary: ReportSummary;
+    assetDepartments: {
+        total: number;
+        breakdown: DepartmentStat[];
+    };
+    depreciationGranularity: DepreciationGranularity;
+    depreciationSeries: DepreciationPoint[];
     assets: Paginated<Asset> | null;
     overdueItems: Paginated<OverdueItem> | null;
     lostItems: Paginated<LostItem> | null;
@@ -94,6 +105,9 @@ export default function Reports({
     borrowerAnalytics,
     depreciationSummary,
     reportSummary,
+    assetDepartments,
+    depreciationGranularity,
+    depreciationSeries,
     assets,
     overdueItems,
     lostItems,
@@ -116,6 +130,10 @@ export default function Reports({
 
     const [headerPeriod, setHeaderPeriod] = useState<ReportPeriod>(
         selectedHeaderPeriod ?? "month"
+    );
+
+    const [granularity, setGranularity] = useState<DepreciationGranularity>(
+        depreciationGranularity ?? 'month'
     );
 
     const reportTableRef = useRef<HTMLDivElement>(null);
@@ -259,6 +277,29 @@ export default function Reports({
         });
     }
 
+    function handleGranularityChange(value: DepreciationGranularity) {
+        if (value === granularity) {
+            return;
+        }
+
+        setGranularity(value);
+
+        router.get(
+            custodianReports.url(),
+            { depreciation_granularity: value },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: [
+                    'assetDepartments',
+                    'depreciationSeries',
+                    'depreciationGranularity',
+                ],
+            },
+        );
+    }
+
     const sortOptions =
         view === 'overdue' ? overdueSortOptions : assetSortOptions;
 
@@ -335,6 +376,21 @@ export default function Reports({
                             onMetricChange={handleMetricChange}
                             onPeriodChange={handleChartPeriodChange}
                         />
+
+                        <div className="grid gap-6 xl:grid-cols-2">
+                            <AssetsByDepartmentCard
+                                breakdown={assetDepartments.breakdown}
+                                total={assetDepartments.total}
+                            />
+
+                            <DepreciationOverTimeCard
+                                series={depreciationSeries}
+                                granularity={granularity}
+                                onGranularityChange={
+                                    handleGranularityChange
+                                }
+                            />
+                        </div>
 
                         <div className="grid gap-6 lg:grid-cols-12">
                             <div className="lg:col-span-5">

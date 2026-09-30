@@ -7,6 +7,7 @@ use App\Models\Asset;
 use App\Models\BorrowRequest;
 use App\Models\Category;
 use App\Models\Employee;
+use App\Support\AssetAnalytics;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -16,6 +17,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
+    public function __construct(
+        private readonly AssetAnalytics $analytics,
+    ) {}
+
     public function index(Request $request)
     {
         $view = $request->get('view', 'assets');
@@ -58,6 +63,9 @@ class ReportController extends Controller
         $borrowerAnalytics = $this->borrowerAnalytics($employeePeriod);
         $depreciationSummary = $this->depreciationSummary($valuationPeriod);
         $reportSummary = $this->reportSummary($headerPeriod);
+        $assetDepartments = $this->analytics->departmentBreakdown();
+        $depreciationGranularity = $this->analytics->depreciationGranularity($request);
+        $depreciationSeries = $this->analytics->depreciationSeries($request);
 
         $sharedReportData = [
             'categories' => $categories,
@@ -78,6 +86,10 @@ class ReportController extends Controller
             'borrowerAnalytics' => $borrowerAnalytics,
             'depreciationSummary' => $depreciationSummary,
             'reportSummary' => $reportSummary,
+
+            'assetDepartments' => $assetDepartments,
+            'depreciationGranularity' => $depreciationGranularity,
+            'depreciationSeries' => $depreciationSeries,
 
         ];
 
@@ -669,6 +681,15 @@ class ReportController extends Controller
             $summary = $this->reportSummary($headerPeriod);
         }
 
+        $assetDepartments = [];
+        $depreciationSeries = [];
+        if (in_array('summary', $sections)) {
+            $assetDepartments = $this->analytics->departmentBreakdown();
+            $depreciationSeries = $this->analytics->depreciationSeries(
+                new Request(['depreciation_granularity' => 'month'])
+            );
+        }
+
         $monthlyUsage = [];
         if (in_array('usage_chart', $sections)) {
             $monthlyUsage = $this->monthlyUsageSeries($usageMetric, $selectedCategory, $chartPeriod);
@@ -771,6 +792,8 @@ class ReportController extends Controller
             'lostItems' => $lostItems,
             'lostTotalCount' => $lostTotalCount,
             'borrowerAnalytics' => $borrowerAnalytics,
+            'assetDepartments' => $assetDepartments,
+            'depreciationSeries' => $depreciationSeries,
             'recordLimit' => $recordLimit,
             'orientation' => $orientation,
             'headerPeriod' => $headerPeriod,

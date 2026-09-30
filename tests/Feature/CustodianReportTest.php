@@ -35,3 +35,16 @@ test('overdue report displays custodian borrowers without employee profiles', fu
             ->component('custodian/reports')
             ->where('overdueItems.data.0.borrower', 'Custodian Borrower'));
 });
+
+test('reports page provides asset department and depreciation analytics', function () {
+    $custodian = User::factory()->custodian()->create();
+
+    $this->actingAs($custodian)
+        ->get(route('custodian.reports'))
+        ->assertSuccessful()
+        ->assertInertia(fn ($page) => $page
+            ->component('custodian/reports')
+            ->has('assetDepartments')
+            ->has('depreciationSeries')
+            ->where('depreciationGranularity', 'month'));
+});

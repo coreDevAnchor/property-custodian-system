@@ -7,24 +7,10 @@ import {
     Box,
     CheckCircle,
     Clock,
-    PieChart,
     Plus,
-    TrendingDown,
     UserPlus,
 } from 'lucide-react';
 import { useState } from 'react';
-import {
-    CartesianGrid,
-    Cell,
-    Legend,
-    Line,
-    LineChart,
-    Pie,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
 import { ActivityFeed } from '@/components/activity/activity-feed';
 import {
     pageStaggerVariants,
@@ -32,14 +18,9 @@ import {
     tableVariants,
 } from '@/components/assets/asset-table-animations';
 import { BorrowApprovalDialog } from '@/components/borrow/borrow-approval-dialog';
+import { AssetsByDepartmentCard } from '@/components/reports/assets-by-department-card';
+import { DepreciationOverTimeCard } from '@/components/reports/depreciation-over-time-card';
 import { SectionReveal } from '@/components/ui/section-reveal';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { dashboard } from '@/routes/custodian';
 import { index as auditTrail } from '@/routes/custodian/activity';
 import type {
@@ -141,33 +122,6 @@ const avatarColors = [
 function avatarColorFor(id: number) {
     return avatarColors[id % avatarColors.length];
 }
-
-const chartColors = [
-    '#f97316',
-    '#f59e0b',
-    '#0ea5e9',
-    '#8b5cf6',
-    '#ef4444',
-    '#10b981',
-    '#ec4899',
-    '#6366f1',
-];
-
-const currencyFormatter = new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-    maximumFractionDigits: 0,
-});
-
-const granularityOptions: Array<{
-    value: DepreciationGranularity;
-    label: string;
-}> = [
-    { value: 'day', label: 'Daily' },
-    { value: 'week', label: 'Weekly' },
-    { value: 'month', label: 'Monthly' },
-    { value: 'year', label: 'Yearly' },
-];
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
@@ -413,297 +367,6 @@ function RequestCard({
                 </button>
             </div>
         </motion.div>
-    );
-}
-// ─── Chart sub-components ───────────────────────────────────────────────────────
-
-function DeparturePieTooltip({
-    active,
-    payload,
-}: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; payload: DepartmentStat }>;
-}) {
-    if (!active || !payload?.length) {
-        return null;
-    }
-
-    const item = payload[0].payload;
-
-    return (
-        <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
-            <p className="text-sm font-bold text-gray-900 dark:text-white">
-                {item.label}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-                {item.count.toLocaleString()}{' '}
-                {item.count === 1 ? 'asset' : 'assets'} borrowed
-            </p>
-        </div>
-    );
-}
-
-function DepartmentPieCard({
-    breakdown,
-    total,
-}: {
-    breakdown: DepartmentStat[];
-    total: number;
-}) {
-    const data = breakdown.filter((item) => item.count > 0);
-
-    return (
-        <div className="rounded-xl border border-gray-100 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-start justify-between border-b border-gray-100 px-6 py-4 dark:border-zinc-800">
-                <div>
-                    <h2 className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
-                        <PieChart className="size-4 text-primary" />
-                        Assets by Department
-                    </h2>
-                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                        Currently borrowed assets by department
-                    </p>
-                </div>
-            </div>
-
-            <div className="p-6">
-                {data.length === 0 ? (
-                    <div className="flex h-[260px] flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-200 text-center dark:border-zinc-700">
-                        <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                            No borrowed assets
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Assets out on loan will appear here
-                        </p>
-                    </div>
-                ) : (
-                    <div className="h-[260px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={data}
-                                    dataKey="count"
-                                    nameKey="label"
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={55}
-                                    outerRadius={95}
-                                    paddingAngle={3}
-                                    strokeWidth={2}
-                                    animationDuration={500}
-                                >
-                                    {data.map((entry, index) => (
-                                        <Cell
-                                            key={entry.label}
-                                            fill={
-                                                chartColors[
-                                                    index % chartColors.length
-                                                ]
-                                            }
-                                        />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    content={<DeparturePieTooltip />}
-                                />
-                                <Legend
-                                    verticalAlign="bottom"
-                                    iconType="circle"
-                                    iconSize={8}
-                                    formatter={(value) => (
-                                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                                            {value}
-                                        </span>
-                                    )}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                )}
-
-                {data.length > 0 && (
-                    <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-zinc-800/50">
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                            Total borrowed
-                        </span>
-                        <span className="text-sm font-extrabold text-gray-900 dark:text-white">
-                            {total.toLocaleString()}
-                        </span>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-const compactMoneyFormatter = new Intl.NumberFormat('en', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-});
-
-function DepreciationLineTooltip({
-    active,
-    payload,
-}: {
-    active?: boolean;
-    payload?: Array<{ value: number }>;
-}) {
-    if (!active || !payload?.length) {
-        return null;
-    }
-
-    return (
-        <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
-            <p className="text-xl font-extrabold text-gray-900 dark:text-white">
-                {currencyFormatter.format(payload[0].value)}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-                Total depreciation
-            </p>
-        </div>
-    );
-}
-
-function DepreciationLineCard({
-    series,
-    granularity,
-    onGranularityChange,
-}: {
-    series: DepreciationPoint[];
-    granularity: DepreciationGranularity;
-    onGranularityChange: (granularity: DepreciationGranularity) => void;
-}) {
-    return (
-        <div className="rounded-xl border border-gray-100 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex flex-col gap-3 border-b border-gray-100 px-6 py-4 sm:flex-row sm:items-start sm:justify-between dark:border-zinc-800">
-                <div>
-                    <h2 className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
-                        <TrendingDown className="size-4 text-primary" />
-                        Total Depreciation Over Time
-                    </h2>
-                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                        Annual depreciation by acquisition date
-                    </p>
-                </div>
-
-                <Select
-                    value={granularity}
-                    onValueChange={(value) =>
-                        onGranularityChange(
-                            value as DepreciationGranularity,
-                        )
-                    }
-                >
-                    <SelectTrigger className="w-full sm:w-32">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {granularityOptions.map((option) => (
-                            <SelectItem
-                                key={option.value}
-                                value={option.value}
-                            >
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="p-6">
-                {series.length === 0 ? (
-                    <div className="flex h-[260px] flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-200 text-center dark:border-zinc-700">
-                        <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                            No depreciation data
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Assets with depreciation will appear here
-                        </p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col gap-4">
-                        <div className="h-[260px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart
-                                    data={series}
-                                    margin={{
-                                        top: 10,
-                                        right: 10,
-                                        left: 0,
-                                        bottom: 5,
-                                    }}
-                                >
-                                    <CartesianGrid
-                                        vertical={false}
-                                        strokeDasharray="4 4"
-                                        opacity={0.35}
-                                    />
-
-                                    <XAxis
-                                        dataKey="label"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{
-                                            fontSize: 11,
-                                            fill: '#71717a',
-                                        }}
-                                        dy={8}
-                                    />
-
-                                    <YAxis
-                                        axisLine={false}
-                                        tickLine={false}
-                                        width={60}
-                                        tick={{
-                                            fontSize: 11,
-                                            fill: '#71717a',
-                                        }}
-                                        tickFormatter={(value: number) =>
-                                            `₱${compactMoneyFormatter.format(value)}`
-                                        }
-                                    />
-
-                                    <Tooltip
-                                        cursor={{
-                                            stroke: '#71717a',
-                                            strokeWidth: 1,
-                                            strokeDasharray: '4 4',
-                                        }}
-                                        content={
-                                            <DepreciationLineTooltip />
-                                        }
-                                    />
-
-                                    <Line
-                                        type="monotone"
-                                        dataKey="value"
-                                        stroke="#f97316"
-                                        strokeWidth={2.5}
-                                        dot={{ r: 3, fill: '#f97316' }}
-                                        activeDot={{ r: 5 }}
-                                        animationDuration={500}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-
-                        <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-zinc-800/50">
-                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                Total depreciation
-                            </span>
-                            <span className="text-sm font-extrabold text-gray-900 dark:text-white">
-                                {currencyFormatter.format(
-                                    series.reduce(
-                                        (sum, point) => sum + point.value,
-                                        0,
-                                    ),
-                                )}
-                            </span>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
     );
 }
 
@@ -1077,12 +740,12 @@ export default function Dashboard({
                 {/* ── Asset Analytics ── */}
                 <SectionReveal>
                     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                        <DepartmentPieCard
+                        <AssetsByDepartmentCard
                             breakdown={assetDepartments.breakdown}
                             total={assetDepartments.total}
                         />
 
-                        <DepreciationLineCard
+                        <DepreciationOverTimeCard
                             series={depreciationSeries}
                             granularity={granularity}
                             onGranularityChange={

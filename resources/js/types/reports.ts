@@ -19,6 +19,17 @@ export interface LostItem {
 
 export type ReportView = 'assets' | 'overdue' | 'lost';
 export type ReportPeriod = "today" | "week" | "month" | "year";
+export type DepreciationGranularity = 'day' | 'week' | 'month' | 'year';
+
+export interface DepartmentStat {
+    label: string;
+    count: number;
+}
+
+export interface DepreciationPoint {
+    label: string;
+    value: number;
+}
 
 export interface EmployeeOption {
     id: number;

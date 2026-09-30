@@ -6,14 +6,16 @@ use App\Models\ActivityLogs;
 use App\Models\Asset;
 use App\Models\BorrowRequest;
 use App\Models\Category;
+use App\Support\AssetAnalytics;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class CustodianDashboardController extends Controller
 {
-    //
+    public function __construct(
+        private readonly AssetAnalytics $analytics,
+    ) {}
+
     public function index(Request $request)
     {
         $totalAssets = Asset::count();
@@ -46,117 +48,15 @@ class CustodianDashboardController extends Controller
                 'breakdown' => $categoryBreakdown,
             ],
 
-            'assetDepartments' => $this->departmentBreakdown(),
+            'assetDepartments' => $this->analytics->departmentBreakdown(),
 
-            'depreciationGranularity' => $this->depreciationGranularity($request),
-            'depreciationSeries' => $this->depreciationSeries($request),
+            'depreciationGranularity' => $this->analytics->depreciationGranularity($request),
+            'depreciationSeries' => $this->analytics->depreciationSeries($request),
 
             'recentActivity' => ActivityLogs::with(['asset', 'actor'])
                 ->latest('created_at')
                 ->take(5)
                 ->get(),
         ]);
-    }
-
-    private function departmentBreakdown(): array
-    {
-        $breakdown = BorrowRequest::query()
-            ->where('status', 'borrowed')
-            ->join('employees', 'employees.id', '=', 'borrows.employee_id')
-            ->selectRaw('employees.department as label, COUNT(*) as count')
-            ->groupBy('employees.department')
-            ->orderByDesc('count')
-            ->get()
-            ->map(fn ($row) => [
-                'label' => $row->label,
-                'count' => (int) $row->count,
-            ])
-            ->filter(fn ($row) => $row['label'] !== null)
-            ->values();
-
-        return [
-            'total' => $breakdown->sum('count'),
-            'breakdown' => $breakdown,
-        ];
-    }
-
-    private function depreciationGranularity(Request $request): string
-    {
-        $granularity = strtolower((string) $request->query('depreciation_granularity', 'month'));
-
-        return in_array($granularity, ['day', 'week', 'month', 'year'], true) ? $granularity : 'month';
-    }
-
-    private function depreciationSeries(Request $request): array
-    {
-        $granularity = $this->depreciationGranularity($request);
-
-        $driver = DB::connection()->getDriverName();
-
-        $bucketExpr = match ($granularity) {
-            'day' => 'DATE(%s)',
-            'week' => match ($driver) {
-                'pgsql' => "TO_CHAR(DATE_TRUNC('week', %s::date), 'YYYY-MM-DD')",
-                'sqlite' => "date(%s, printf('-%%d days', ((CAST(strftime('%%w', %s) AS INTEGER) + 6) %% 7)))",
-                default => "DATE_FORMAT(DATE_SUB(%s, INTERVAL WEEKDAY(%s) DAY), '%%Y-%%m-%%d')",
-            },
-            'year' => match ($driver) {
-                'pgsql' => 'EXTRACT(YEAR FROM %s)',
-                'sqlite' => "strftime('%%Y', %s)",
-                default => 'YEAR(%s)',
-            },
-            default => match ($driver) {
-                'pgsql' => "TO_CHAR(%s, 'YYYY-MM')",
-                'sqlite' => "strftime('%%Y-%%m', %s)",
-                default => "DATE_FORMAT(%s, '%%Y-%%m')",
-            },
-        };
-
-        $rows = Asset::query()
-            ->selectRaw(sprintf($bucketExpr, 'acquisition_date', 'acquisition_date').' as bucket')
-            ->selectRaw('SUM(acquisition_cost * depreciation_rate / 100) as value')
-            ->groupBy('bucket')
-            ->orderBy('bucket')
-            ->get();
-
-        return $rows
-            ->map(function ($row) use ($granularity) {
-                $bucket = (string) $row->bucket;
-
-                $value = round((float) $row->value, 2);
-
-                if ($value <= 0) {
-                    return null;
-                }
-
-                return [
-                    'label' => $this->labelForBucket($bucket, $granularity),
-                    'value' => $value,
-                ];
-            })
-            ->filter()
-            ->values()
-            ->all();
-    }
-
-    private function labelForBucket(string $bucket, string $granularity): string
-    {
-        if ($granularity === 'week' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $bucket)) {
-            return Carbon::createFromFormat('Y-m-d', $bucket)->format('M j, Y');
-        }
-
-        if ($granularity === 'month' && preg_match('/^\d{4}-\d{2}$/', $bucket)) {
-            return Carbon::createFromFormat('Y-m', $bucket)->format('M Y');
-        }
-
-        if ($granularity === 'year' && preg_match('/^\d{4}$/', $bucket)) {
-            return Carbon::createFromFormat('Y', $bucket)->format('Y');
-        }
-
-        if ($granularity === 'day') {
-            return Carbon::parse($bucket)->format('M j, Y');
-        }
-
-        return $bucket;
     }
 }
