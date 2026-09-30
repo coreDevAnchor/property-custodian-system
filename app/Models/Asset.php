@@ -36,6 +36,11 @@ class Asset extends Model
         'location_id',
         'remarks',
         'amount',
+        'low_stock_notified_at',
+    ];
+
+    protected $casts = [
+        'low_stock_notified_at' => 'datetime',
     ];
 
     public function category(): BelongsTo

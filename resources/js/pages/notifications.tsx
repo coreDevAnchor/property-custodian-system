@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    AlertTriangle,
     Bell,
     BellRing,
     CalendarClock,
@@ -184,7 +185,8 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                     Notifications
                                 </h1>
                                 <p className="text-sm text-muted-foreground">
-                                    Return-date reminders for assigned assets
+                                    Return-date reminders and low-stock
+                                    alerts
                                 </p>
                             </div>
                         </div>
@@ -192,7 +194,7 @@ export default function Notifications({ notifications, unreadCount }: Props) {
 
                     <div className="flex items-center gap-2">
                         {unreadCount > 0 && (
-                            <Button variant="outline" onClick={markAllAsRead}>
+                            <Button variant="outline" onClick={markAllAsRead} className="cursor-pointer">
                                 <CheckCheck className="size-4 cursor-pointer" />
                                 Mark all as read
                             </Button>
@@ -211,18 +213,28 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                     You’re all caught up
                                 </p>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    New return reminders will appear here.
+                                    New return reminders and low-stock alerts
+                                    will appear here.
                                 </p>
                             </div>
                         </div>
                     ) : (
                         <div className="divide-y divide-border">
                             {notifications.data.map((notification) => {
+                                const isLowStock =
+                                    notification.type === 'low_stock';
                                 const isDueToday =
                                     notification.type === 'deadline_reminder';
-                                const Icon = isDueToday
-                                    ? Clock3
-                                    : CalendarClock;
+                                const Icon = isLowStock
+                                    ? AlertTriangle
+                                    : isDueToday
+                                      ? Clock3
+                                      : CalendarClock;
+                                const iconClass = isLowStock
+                                    ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                    : isDueToday
+                                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
 
                                 return (
                                     <article
@@ -232,7 +244,7 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                         {/* ── Desktop layout ── */}
                                         <div className="hidden items-start gap-4 px-5 py-4 sm:px-6 md:flex">
                                             <div
-                                                className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${isDueToday ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'}`}
+                                                className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
                                             >
                                                 <Icon className="size-5" />
                                             </div>
@@ -268,6 +280,7 @@ export default function Notifications({ notifications, unreadCount }: Props) {
 
                                                 {!notification.read_at ? (
                                                     <Button
+                                                        className="cursor-pointer"
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() =>
@@ -280,6 +293,7 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                                     </Button>
                                                 ) : (
                                                     <Button
+                                                        className="cursor-pointer"
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() =>
@@ -298,7 +312,7 @@ export default function Notifications({ notifications, unreadCount }: Props) {
                                         <div className="md:hidden">
                                             <div className="flex items-start gap-3 p-4">
                                                 <div
-                                                    className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${isDueToday ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'}`}
+                                                    className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
                                                 >
                                                     <Icon className="size-5" />
                                                 </div>

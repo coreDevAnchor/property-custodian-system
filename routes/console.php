@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('reminders:send-return')
     ->dailyAt('09:00')
     ->timezone('Asia/Manila');
+
+Schedule::command('inventory:send-low-stock')
+    ->dailyAt('09:00')
+    ->timezone('Asia/Manila');
