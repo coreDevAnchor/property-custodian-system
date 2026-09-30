@@ -7,6 +7,7 @@ use App\Models\Asset;
 use App\Models\BorrowRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -20,7 +21,7 @@ class CustodianDashboardController extends Controller
         $categoryBreakdown = Category::withCount('assets')
             ->orderByDesc('assets_count')
             ->get()
-            ->map(fn($category) => [
+            ->map(fn ($category) => [
                 'label' => $category->name,
                 'count' => $category->assets_count,
             ]);
@@ -95,19 +96,19 @@ class CustodianDashboardController extends Controller
         $bucketExpr = match ($granularity) {
             'day' => 'DATE(%s)',
             'week' => match ($driver) {
-                'pgsql' => 'EXTRACT(ISOYEAR FROM %s) || \'-\' || EXTRACT(WEEK FROM %s)',
-                'sqlite' => "printf('%04d-%02d', CAST(strftime('%Y', %s) AS INTEGER), CAST(strftime('%W', %s) AS INTEGER))",
-                default => 'DATE_FORMAT(%s, \'%x-%v\')',
+                'pgsql' => "TO_CHAR(DATE_TRUNC('week', %s::date), 'YYYY-MM-DD')",
+                'sqlite' => "date(%s, printf('-%%d days', ((CAST(strftime('%%w', %s) AS INTEGER) + 6) %% 7)))",
+                default => "DATE_FORMAT(DATE_SUB(%s, INTERVAL WEEKDAY(%s) DAY), '%%Y-%%m-%%d')",
             },
             'year' => match ($driver) {
                 'pgsql' => 'EXTRACT(YEAR FROM %s)',
-                'sqlite' => "strftime('%Y', %s)",
+                'sqlite' => "strftime('%%Y', %s)",
                 default => 'YEAR(%s)',
             },
             default => match ($driver) {
-                'pgsql' => 'TO_CHAR(%s, \'YYYY-MM\')',
-                'sqlite' => "strftime('%Y-%m', %s)",
-                default => 'DATE_FORMAT(%s, \'%Y-%m\')',
+                'pgsql' => "TO_CHAR(%s, 'YYYY-MM')",
+                'sqlite' => "strftime('%%Y-%%m', %s)",
+                default => "DATE_FORMAT(%s, '%%Y-%%m')",
             },
         };
 
@@ -140,23 +141,20 @@ class CustodianDashboardController extends Controller
 
     private function labelForBucket(string $bucket, string $granularity): string
     {
-        if ($granularity === 'week' && preg_match('/^(\d{4})-(\d{1,2})$/', $bucket, $matches)) {
-            return \Illuminate\Support\Carbon::now()
-                ->setISODate((int) $matches[1], (int) $matches[2])
-                ->startOfWeek()
-                ->format('M j, Y');
+        if ($granularity === 'week' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $bucket)) {
+            return Carbon::createFromFormat('Y-m-d', $bucket)->format('M j, Y');
         }
 
         if ($granularity === 'month' && preg_match('/^\d{4}-\d{2}$/', $bucket)) {
-            return \Illuminate\Support\Carbon::createFromFormat('Y-m', $bucket)->format('M Y');
+            return Carbon::createFromFormat('Y-m', $bucket)->format('M Y');
         }
 
         if ($granularity === 'year' && preg_match('/^\d{4}$/', $bucket)) {
-            return \Illuminate\Support\Carbon::createFromFormat('Y', $bucket)->format('Y');
+            return Carbon::createFromFormat('Y', $bucket)->format('Y');
         }
 
         if ($granularity === 'day') {
-            return \Illuminate\Support\Carbon::parse($bucket)->format('M j, Y');
+            return Carbon::parse($bucket)->format('M j, Y');
         }
 
         return $bucket;
