@@ -98,7 +98,7 @@ class CustodianController extends Controller
         $analysis = $this->analyzeCustodianImport($request);
 
         if ($analysis['error']) {
-            return back()->withErrors(['file' => $analysis['error']]);
+            return back()->with('error', $analysis['error']);
         }
 
         $importedCount = DB::transaction(function () use ($analysis) {
@@ -118,10 +118,12 @@ class CustodianController extends Controller
             return $count;
         });
 
-        return back()->with(
-            'success',
-            "Imported {$importedCount} ".($importedCount === 1 ? 'custodian' : 'custodians').' from Excel.',
-        );
+        return redirect()
+            ->route('custodian.custodians.index')
+            ->with(
+                'success',
+                "Imported {$importedCount} ".($importedCount === 1 ? 'custodian' : 'custodians').' from Excel.',
+            );
     }
 
     /**

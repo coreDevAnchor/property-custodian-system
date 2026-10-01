@@ -345,7 +345,7 @@ class AssetController extends Controller
         $analysis = $this->analyzeImport($request);
 
         if ($analysis['error']) {
-            return back()->withErrors(['file' => $analysis['error']]);
+            return back()->with('error', $analysis['error']);
         }
 
         $importedCount = DB::transaction(function () use ($analysis) {

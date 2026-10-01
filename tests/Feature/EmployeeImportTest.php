@@ -28,6 +28,20 @@ test('employee import template downloads as xlsx and csv', function () {
     }
 });
 
+test('employee import redirects to a clean index so filters reset to All', function () {
+    $custodian = User::factory()->custodian()->create();
+    $file = importEmployeeCsv([
+        ['Ana Reyes', 'ana.employee@example.com', 'IT Department', '09171234567'],
+    ]);
+
+    $response = $this->actingAs($custodian)
+        ->from('/custodian/employees?search=ana&status=Active&per_page=50')
+        ->post(route('custodian.employees.import'), ['file' => $file]);
+
+    $response->assertRedirect(route('custodian.employees.index'));
+    expect($response->headers->get('Location'))->not->toContain('?');
+});
+
 test('employee import creates accounts with employee records and the default password', function () {
     $custodian = User::factory()->custodian()->create();
     $file = importEmployeeCsv([
@@ -140,7 +154,7 @@ test('employee import saves nothing when a row has a problem', function () {
 
     $this->actingAs(User::factory()->custodian()->create())
         ->post(route('custodian.employees.import'), ['file' => $file])
-        ->assertSessionHasErrors('file');
+        ->assertSessionHas('error');
 
     expect(User::where('email', 'juan@example.com')->exists())->toBeFalse();
     expect(Employee::count())->toBe(0);

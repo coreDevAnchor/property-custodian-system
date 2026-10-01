@@ -28,6 +28,20 @@ test('custodian import template downloads as xlsx and csv', function () {
     }
 });
 
+test('custodian import redirects to a clean index so filters reset to All', function () {
+    $custodian = User::factory()->custodian()->create();
+    $file = importCustodianCsv([
+        ['Ana Reyes', 'ana@example.com'],
+    ]);
+
+    $response = $this->actingAs($custodian)
+        ->from('/custodian/custodians?search=ana&per_page=50')
+        ->post(route('custodian.custodians.import'), ['file' => $file]);
+
+    $response->assertRedirect(route('custodian.custodians.index'));
+    expect($response->headers->get('Location'))->not->toContain('?');
+});
+
 test('custodian import creates accounts with the default password and no employee record', function () {
     $custodian = User::factory()->custodian()->create();
     $file = importCustodianCsv([

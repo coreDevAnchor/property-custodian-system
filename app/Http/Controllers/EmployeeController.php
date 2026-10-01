@@ -146,7 +146,7 @@ class EmployeeController extends Controller
         $analysis = $this->analyzeEmployeeImport($request);
 
         if ($analysis['error']) {
-            return back()->withErrors(['file' => $analysis['error']]);
+            return back()->with('error', $analysis['error']);
         }
 
         $importedCount = DB::transaction(function () use ($analysis) {
@@ -172,10 +172,12 @@ class EmployeeController extends Controller
             return $count;
         });
 
-        return back()->with(
-            'success',
-            "Imported {$importedCount} ".($importedCount === 1 ? 'employee' : 'employees').' from Excel.',
-        );
+        return redirect()
+            ->route('custodian.employees.index')
+            ->with(
+                'success',
+                "Imported {$importedCount} ".($importedCount === 1 ? 'employee' : 'employees').' from Excel.',
+            );
     }
 
     /**
