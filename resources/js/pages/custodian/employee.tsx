@@ -195,6 +195,14 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
     const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
     const [importOpen, setImportOpen] = useState(false);
 
+    // ── Reconcile local controls with server filters ──
+    // After a successful import the server responds with default filters, so the
+    // search box and status pill snap back to their defaults.
+    useEffect(() => {
+        setSearch(filters.search ?? '');
+        setStatusFilter(filters.status ?? 'All');
+    }, [filters.search, filters.status]);
+
     const [loading, setLoading] = useState(false);
 
     // ── Server-driven filtering/pagination ──

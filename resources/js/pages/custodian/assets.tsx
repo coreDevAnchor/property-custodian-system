@@ -271,6 +271,15 @@ export default function Assets({
     const [importOpen, setImportOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState<Asset | undefined>();
 
+    // ── Reconcile local controls with server filters ──
+    // After a successful import the server responds with default filters, so the
+    // search box, category dropdown, and status pill snap back to their defaults.
+    useEffect(() => {
+        setSearch(filters.search ?? '');
+        setCategoryFilter(filters.category ?? 'All');
+        setStatusFilter((filters.status as 'All' | AssetStatus) ?? 'All');
+    }, [filters.search, filters.category, filters.status]);
+
     const animationKey = useMemo(() => {
         return [
             assets.current_page,

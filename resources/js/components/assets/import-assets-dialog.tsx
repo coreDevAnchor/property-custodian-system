@@ -155,7 +155,7 @@ export function ImportAssetsDialog({ open, onOpenChange }: Props) {
             { file },
             {
                 forceFormData: true,
-                onSuccess: () => onOpenChange(false),
+                onSuccess: () => handleOpenChange(false),
                 onError: (importErrors) => {
                     setServerError(
                         importErrors.file ?? 'Upload failed. Please try again.',
