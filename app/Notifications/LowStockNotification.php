@@ -23,17 +23,17 @@ class LowStockNotification extends Notification
     /** @return array<string, mixed> */
     public function toArray(object $notifiable): array
     {
-        $total = (int) ($this->asset->original_amount ?? $this->asset->amount ?? 1);
+        $remaining = max((int) $this->remaining, 0);
+        $unitLabel = $remaining === 1 ? 'unit' : 'units';
 
         return [
             'type' => 'low_stock',
             'title' => 'Low stock alert',
-            'message' => "{$this->asset->name} ({$this->asset->asset_tag}) is running low — {$this->remaining} of {$total} units left.",
+            'message' => "{$this->asset->name} ({$this->asset->asset_tag}) is running low — {$remaining} {$unitLabel} left.",
             'asset_name' => $this->asset->name,
             'asset_tag' => $this->asset->asset_tag,
-            'remaining' => $this->remaining,
+            'remaining' => $remaining,
             'amount' => $this->asset->amount,
-            'total' => $total,
         ];
     }
 }

@@ -10,7 +10,7 @@ use App\Models\User;
 use App\Notifications\LowStockNotification;
 use App\Support\LowStockChecker;
 
-function createStockAsset(Category $category, int $amount, int $original): Asset
+function createStockAsset(Category $category, int $amount): Asset
 {
     $location = Location::create(['name' => 'Main Lab '.uniqid()]);
     $type = AssetType::create([
@@ -27,7 +27,6 @@ function createStockAsset(Category $category, int $amount, int $original): Asset
         'asset_type_id' => $type->id,
         'status' => 'available',
         'amount' => $amount,
-        'original_amount' => $original,
         'acquisition_cost' => 5000.00,
         'condition' => 'excellent',
         'acquisition_date' => now()->format('Y-m-d'),
@@ -59,7 +58,7 @@ test('custodians are notified when remaining stock reaches 5 units', function ()
     $custodianOne = User::factory()->custodian()->create();
     $custodianTwo = User::factory()->custodian()->create();
 
-    $asset = createStockAsset(stockCategory(), amount: 5, original: 10);
+    $asset = createStockAsset(stockCategory(), amount: 5);
 
     $notified = LowStockChecker::check($asset);
 
@@ -71,14 +70,28 @@ test('custodians are notified when remaining stock reaches 5 units', function ()
         expect($notification)->not->toBeNull();
         expect($notification->data['type'])->toBe('low_stock');
         expect($notification->data['remaining'])->toBe(5);
-        expect($notification->data['total'])->toBe(10);
+        expect($notification->data['message'])->toContain('5 units left');
+        expect($notification->data)->not->toHaveKey('total');
     }
+});
+
+test('the low stock message uses the singular form for a single remaining unit', function () {
+    $custodian = User::factory()->custodian()->create();
+
+    $asset = createStockAsset(stockCategory(), amount: 1);
+
+    LowStockChecker::check($asset);
+
+    $notification = $custodian->notifications()->first();
+
+    expect($notification->data['message'])->toContain('1 unit left');
+    expect($notification->data['message'])->not->toContain('1 units');
 });
 
 test('no notification while stock is above 5 units', function () {
     $custodian = User::factory()->custodian()->create();
 
-    $asset = createStockAsset(stockCategory(), amount: 6, original: 10);
+    $asset = createStockAsset(stockCategory(), amount: 6);
 
     expect(LowStockChecker::check($asset))->toBe(0);
     expect($custodian->notifications()->count())->toBe(0);
@@ -89,7 +102,7 @@ test('no notification while stock is above 5 units', function () {
 test('a receive that restocks the asset clears the notified marker', function () {
     $custodian = User::factory()->custodian()->create();
 
-    $asset = createStockAsset(stockCategory(), amount: 2, original: 10);
+    $asset = createStockAsset(stockCategory(), amount: 2);
     LowStockChecker::check($asset);
     expect($custodian->notifications()->count())->toBe(1);
 
@@ -102,7 +115,7 @@ test('a receive that restocks the asset clears the notified marker', function ()
 test('a new low episode after restocking alerts again', function () {
     $custodian = User::factory()->custodian()->create();
 
-    $asset = createStockAsset(stockCategory(), amount: 2, original: 10);
+    $asset = createStockAsset(stockCategory(), amount: 2);
     LowStockChecker::check($asset);
     expect($custodian->notifications()->count())->toBe(1);
 
@@ -118,7 +131,7 @@ test('a new low episode after restocking alerts again', function () {
 test('a single stock check does not duplicate notifications while still low', function () {
     $custodian = User::factory()->custodian()->create();
 
-    $asset = createStockAsset(stockCategory(), amount: 1, original: 10);
+    $asset = createStockAsset(stockCategory(), amount: 1);
 
     LowStockChecker::check($asset);
     LowStockChecker::check($asset);
@@ -130,9 +143,9 @@ test('a single stock check does not duplicate notifications while still low', fu
 test('the scheduled command alerts every low asset as a backstop', function () {
     $custodian = User::factory()->custodian()->create();
 
-    $lowOne = createStockAsset(stockCategory(), amount: 5, original: 10);
-    $lowTwo = createStockAsset(stockCategory(), amount: 1, original: 5);
-    createStockAsset(stockCategory(), amount: 8, original: 10);
+    $lowOne = createStockAsset(stockCategory(), amount: 5);
+    $lowTwo = createStockAsset(stockCategory(), amount: 1);
+    createStockAsset(stockCategory(), amount: 8);
 
     $this->artisan('inventory:send-low-stock')
         ->expectsOutputToContain('low-stock')
@@ -148,7 +161,7 @@ test('approving a multi-unit borrow notifies custodians immediately', function (
     $borrower = User::factory()->employee()->create();
 
     $category = stockCategory();
-    $asset = createStockAsset($category, amount: 6, original: 10);
+    $asset = createStockAsset($category, amount: 6);
     $borrow = activeBorrowFor($asset, $borrower);
     $borrow->update(['status' => 'pending', 'approved_by' => null, 'approved_at' => null]);
 
@@ -170,7 +183,7 @@ test('a pending borrow does not trigger low-stock notifications on approval of a
     $borrower = User::factory()->employee()->create();
 
     $category = Category::create(['name' => 'Unit Gear', 'prefix' => 'UGR', 'unit_type' => 'single']);
-    $asset = createStockAsset($category, amount: 1, original: 1);
+    $asset = createStockAsset($category, amount: 1);
     $borrow = activeBorrowFor($asset, $borrower);
     $borrow->update(['status' => 'pending', 'approved_by' => null, 'approved_at' => null]);
 
@@ -184,7 +197,7 @@ test('a pending borrow does not trigger low-stock notifications on approval of a
 });
 
 test('low stock notifications use the database channel only', function () {
-    $asset = createStockAsset(stockCategory(), amount: 2, original: 10);
+    $asset = createStockAsset(stockCategory(), amount: 2);
     $custodian = User::factory()->custodian()->create();
 
     $notification = new LowStockNotification($asset, 2);
