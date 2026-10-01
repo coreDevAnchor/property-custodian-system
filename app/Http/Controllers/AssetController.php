@@ -319,6 +319,8 @@ class AssetController extends Controller
             'Acquisition Cost',
             'Total Depreciation',
             'Amount',
+            'Returnable',
+            'Consumable',
         ];
 
         $tempPath = sys_get_temp_dir()
@@ -358,6 +360,7 @@ class AssetController extends Controller
                         'name' => $categoryName,
                         'prefix' => $this->generateUniquePrefix($categoryName),
                         'unit_type' => $analysis['categoryPlan'][$categoryName]['unit_type'],
+                        'borrow_policy' => $analysis['categoryPlan'][$categoryName]['borrow_policy'],
                     ]);
 
                     $analysis['categoriesByName']->put($categoryName, $category);
@@ -449,7 +452,7 @@ class AssetController extends Controller
      *     summary: array<string, int>,
      *     categoriesByName: Collection<int, Category>,
      *     assetTypesByKey: Collection<int, AssetType>,
-     *     categoryPlan: array<string, array{status: string, unit_type: string, existing: Category|null}>
+     *     categoryPlan: array<string, array{status: string, unit_type: string, borrow_policy: string, existing: Category|null}>
      * }
      */
     private function analyzeImport(Request $request): array
@@ -482,7 +485,7 @@ class AssetController extends Controller
         // column and nothing outside the allowed set.
         $normalizeHeader = fn ($header) => preg_replace('/[\s_\-]+/', '', strtolower(trim((string) $header)));
 
-        $requiredHeaders = ['name', 'assettag', 'category', 'assettype', 'acquisitioncost', 'totaldepreciation'];
+        $requiredHeaders = ['name', 'assettag', 'category', 'assettype', 'acquisitioncost', 'totaldepreciation', 'returnable', 'consumable'];
         $optionalHeaders = ['amount'];
 
         $headerLabels = [
@@ -493,6 +496,8 @@ class AssetController extends Controller
             'acquisitioncost' => 'Acquisition Cost',
             'totaldepreciation' => 'Total Depreciation',
             'amount' => 'Amount',
+            'returnable' => 'Returnable',
+            'consumable' => 'Consumable',
         ];
 
         $normalizedHeaders = array_map($normalizeHeader, $headerRow);
@@ -526,7 +531,7 @@ class AssetController extends Controller
             }
 
             $problems[] = 'Expected columns: Name, Asset-Tag, Category, Asset Type, Acquisition Cost, Total Depreciation'
-                .' (optional: Amount).';
+                .', Returnable, Consumable (optional: Amount).';
 
             return ['error' => implode("\n", $problems)];
         }
@@ -536,6 +541,34 @@ class AssetController extends Controller
 
         $assetTypesByKey = AssetType::all()
             ->keyBy(fn ($type) => $type->category_id.'|'.trim($type->name));
+
+        // Parses a Returnable/Consumable cell into a policy boolean. Accepts
+        // True/T (case-insensitive) plus native spreadsheet booleans and the
+        // one-character T; returns null when the value is unknown.
+        $parsePolicy = function (mixed $value): ?bool {
+            if ($value === null || $value === '') {
+                return false;
+            }
+
+            if (is_bool($value)) {
+                return $value;
+            }
+
+            $normalized = preg_replace('/\s+/', '', strtolower(trim((string) $value)));
+
+            $truthy = ['true', 't', 'yes', '1'];
+            $falsy = ['false', 'f', 'no', '0'];
+
+            if (in_array($normalized, $truthy, true)) {
+                return true;
+            }
+
+            if (in_array($normalized, $falsy, true)) {
+                return false;
+            }
+
+            return null;
+        };
 
         $errorLines = [];
         $validRows = [];
@@ -559,6 +592,8 @@ class AssetController extends Controller
             $costRaw = $getName('acquisitioncost');
             $depreciationRaw = $getName('totaldepreciation');
             $amountRaw = $getName('amount');
+            $returnableRaw = $valueByHeader['returnable'] ?? null;
+            $consumableRaw = $valueByHeader['consumable'] ?? null;
 
             $rowErrors = [];
 
@@ -602,11 +637,28 @@ class AssetController extends Controller
                 }
             }
 
+            /** @var bool|null $returnable */
+            $returnable = $parsePolicy($returnableRaw);
+            /** @var bool|null $consumable */
+            $consumable = $parsePolicy($consumableRaw);
+
+            if ($returnable === null || $consumable === null) {
+                $rowErrors[] = 'Returnable and Consumable must contain True, T, or be left blank.';
+            } elseif ($returnable && $consumable) {
+                $rowErrors[] = 'Returnable and Consumable cannot both be True — mark exactly one.';
+            } elseif (! $returnable && ! $consumable) {
+                $rowErrors[] = 'Mark exactly one of Returnable or Consumable as True.';
+            }
+
             if ($rowErrors) {
                 $errorLines[] = "Row {$rowNumber}: ".implode(' ', $rowErrors);
 
                 continue;
             }
+
+            $borrowPolicy = $returnable
+                ? Category::POLICY_RETURNABLE
+                : Category::POLICY_CONSUMABLE;
 
             // Unit type is inferred from the amount: blank or 1 is a
             // single-unit asset, anything greater is a multi-unit asset.
@@ -618,6 +670,9 @@ class AssetController extends Controller
                 $categoryPlan[$categoryName] = [
                     'status' => $existingCategory ? 'existing' : 'new',
                     'unit_type' => $existingCategory ? $existingCategory->unit_type : Category::UNIT_SINGLE,
+                    'borrow_policy' => $existingCategory
+                        ? $existingCategory->borrow_policy
+                        : $borrowPolicy,
                     'existing' => $existingCategory,
                 ];
             }
@@ -630,6 +685,30 @@ class AssetController extends Controller
                 $categoryPlan[$categoryName]['unit_type'] = Category::UNIT_MULTI;
             }
 
+            // The borrowing policy must agree across every row:
+            // existing categories keep their current policy, and a brand-new
+            // category resolves to the first policy seen for it. Any row that
+            // disagrees aborts the import.
+            $existingPolicy = $categoryPlan[$categoryName]['existing']->borrow_policy ?? null;
+
+            if ($existingPolicy !== null && $existingPolicy !== $borrowPolicy) {
+                $existingLabel = $existingPolicy === Category::POLICY_RETURNABLE ? 'Returnable' : 'Consumable';
+                $rowLabel = $borrowPolicy === Category::POLICY_RETURNABLE ? 'Returnable' : 'Consumable';
+
+                $errorLines[] = "Row {$rowNumber}: Category '{$categoryName}' already has a {$existingLabel} "
+                    ."borrowing policy, but this row marks it {$rowLabel}.";
+
+                continue;
+            }
+
+            if ($existingPolicy === null
+                && $categoryPlan[$categoryName]['borrow_policy'] !== $borrowPolicy) {
+                $errorLines[] = "Row {$rowNumber}: Category '{$categoryName}' uses different borrowing "
+                    .'policies across rows — every row for a new category must agree.';
+
+                continue;
+            }
+
             $validRows[] = [
                 'row' => $rowNumber,
                 'name' => $name,
@@ -637,6 +716,7 @@ class AssetController extends Controller
                 'asset_type' => $assetTypeName,
                 'amount' => $amount,
                 'unit_type' => $unitType,
+                'borrow_policy' => $borrowPolicy,
                 'category_status' => $categoryPlan[$categoryName]['status'],
                 'asset_type_status' => $categoryPlan[$categoryName]['status'] === 'existing'
                     ? ($assetTypesByKey->has($categoryPlan[$categoryName]['existing']->id.'|'.$assetTypeName) ? 'existing' : 'new')
@@ -674,6 +754,8 @@ class AssetController extends Controller
                 'total' => count($validRows),
                 'single' => count(array_filter($validRows, fn ($entry) => $entry['unit_type'] === Category::UNIT_SINGLE)),
                 'multi' => count(array_filter($validRows, fn ($entry) => $entry['unit_type'] === Category::UNIT_MULTI)),
+                'returnable' => count(array_filter($validRows, fn ($entry) => $entry['borrow_policy'] === Category::POLICY_RETURNABLE)),
+                'consumable' => count(array_filter($validRows, fn ($entry) => $entry['borrow_policy'] === Category::POLICY_CONSUMABLE)),
                 'categories_existing' => count(array_filter($categoryPlan, fn ($entry) => $entry['status'] === 'existing')),
                 'categories_new' => count(array_filter($categoryPlan, fn ($entry) => $entry['status'] === 'new')),
                 'asset_types_existing' => count(array_filter($assetTypePlan, fn ($status) => $status === 'existing')),

@@ -346,7 +346,9 @@ const custodianSections: DocSection[] = [
             'Bulk-import assets from an Excel (XLSX) or CSV spreadsheet instead of creating them one by one.',
         steps: [
             'Click Import on the Assets page and download the XLSX or CSV template',
-            'Fill in the required columns: Name, Category, Asset Type, Acquisition Cost, and Total Depreciation (Amount is optional)',
+            'Fill in the required columns: Name, Category, Asset Type, Acquisition Cost, Total Depreciation, Returnable, and Consumable (Amount is optional)',
+            'Returnable and Consumable must each contain True or T — enter True in exactly one of the two columns and leave the other blank; the marked column becomes the category borrowing policy. Marking both, or leaving both blank, is rejected',
+            'All rows sharing a category must use the same policy, and it must match the existing policy if the category already exists',
             'Upload the file — max 5 MB; missing or unknown categories and asset types are created automatically',
             'Fix any reported row errors and re-upload — imports are all-or-nothing, so nothing is saved until every row is valid',
             "Each imported asset gets an auto-generated tag, status Available, condition Excellent, and today's acquisition date",

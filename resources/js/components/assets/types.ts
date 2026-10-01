@@ -10,6 +10,8 @@ export type {
 
 export type { Category } from '@/types/categories';
 
+import type { BorrowPolicy } from '@/types/categories';
+
 export interface ImportPreviewRow {
     row: number;
     name: string;
@@ -17,6 +19,7 @@ export interface ImportPreviewRow {
     asset_type: string;
     amount: number;
     unit_type: 'single' | 'multi';
+    borrow_policy: BorrowPolicy;
     category_status: 'existing' | 'new';
     asset_type_status: 'existing' | 'new';
 }
@@ -25,6 +28,8 @@ export interface ImportPreviewSummary {
     total: number;
     single: number;
     multi: number;
+    returnable: number;
+    consumable: number;
     categories_existing: number;
     categories_new: number;
     asset_types_existing: number;

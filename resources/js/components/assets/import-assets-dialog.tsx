@@ -12,6 +12,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 
+import type { BorrowPolicy } from '@/types/categories';
+
 import type { ImportPreview } from './types';
 
 interface Props {
@@ -26,6 +28,8 @@ const REQUIRED_COLUMNS = [
     'Asset Type',
     'Acquisition Cost',
     'Total Depreciation',
+    'Returnable',
+    'Consumable',
 ];
 
 const OPTIONAL_COLUMNS = ['Amount'];
@@ -77,6 +81,18 @@ function UnitBadge({ unit }: { unit: 'single' | 'multi' }) {
     ) : (
         <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground ring-1 ring-border">
             Single-unit
+        </span>
+    );
+}
+
+function PolicyBadge({ policy }: { policy: BorrowPolicy }) {
+    return policy === 'consumable' ? (
+        <span className="inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-900">
+            Consumable
+        </span>
+    ) : (
+        <span className="inline-flex items-center rounded-md bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 ring-1 ring-sky-200 dark:bg-sky-950/40 dark:text-sky-400 dark:ring-sky-900">
+            Returnable
         </span>
     );
 }
@@ -218,6 +234,14 @@ export function ImportAssetsDialog({ open, onOpenChange }: Props) {
                                         value: preview.summary.multi,
                                     },
                                     {
+                                        label: 'Returnable',
+                                        value: preview.summary.returnable,
+                                    },
+                                    {
+                                        label: 'Consumable',
+                                        value: preview.summary.consumable,
+                                    },
+                                    {
                                         label: 'Categories reused',
                                         value: preview.summary
                                             .categories_existing,
@@ -273,6 +297,9 @@ export function ImportAssetsDialog({ open, onOpenChange }: Props) {
                                             <th className="px-3 py-2 font-semibold">
                                                 Unit
                                             </th>
+                                            <th className="px-3 py-2 font-semibold">
+                                                Policy
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
@@ -317,6 +344,13 @@ export function ImportAssetsDialog({ open, onOpenChange }: Props) {
                                                 <td className="px-3 py-2">
                                                     <UnitBadge
                                                         unit={row.unit_type}
+                                                    />
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    <PolicyBadge
+                                                        policy={
+                                                            row.borrow_policy
+                                                        }
                                                     />
                                                 </td>
                                             </tr>
@@ -378,6 +412,24 @@ export function ImportAssetsDialog({ open, onOpenChange }: Props) {
                                     <li>
                                         Quantity: blank or 1 = single-unit
                                         asset; more than 1 = multi-unit asset.
+                                    </li>
+                                    <li>
+                                        <span className="font-medium text-foreground">
+                                            Returnable and Consumable must each
+                                            contain True or T.
+                                        </span>{' '}
+                                        Enter True (or T) in exactly one of
+                                        the two columns and leave the other
+                                        blank. The column you mark becomes
+                                        the category&apos;s borrowing policy.
+                                        Marking both, or leaving both blank,
+                                        is rejected.
+                                    </li>
+                                    <li>
+                                        All rows sharing a category must use
+                                        the same policy, and it must match the
+                                        existing policy if the category
+                                        already exists.
                                     </li>
                                     <li>
                                         Category and Asset Type names are
