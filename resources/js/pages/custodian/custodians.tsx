@@ -158,9 +158,14 @@ export default function Custodians({ custodians, filters }: Props) {
     // ── Reconcile local controls with server filters ──
     // After a successful import the server responds with default filters, so the
     // search box snaps back to its default.
-    useEffect(() => {
+    const [lastFilters, setLastFilters] = useState(filters);
+
+    // Adjusted during render rather than in an effect, so the controls never
+    // commit a frame with stale values.
+    if (filters.search !== lastFilters.search) {
+        setLastFilters(filters);
         setSearch(filters.search ?? '');
-    }, [filters.search]);
+    }
 
     // ── Server-driven filtering/pagination ──
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

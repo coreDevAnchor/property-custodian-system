@@ -198,10 +198,18 @@ export default function Employees({ employees, nextEmployeeId, filters }: Props)
     // ── Reconcile local controls with server filters ──
     // After a successful import the server responds with default filters, so the
     // search box and status pill snap back to their defaults.
-    useEffect(() => {
+    const [lastFilters, setLastFilters] = useState(filters);
+
+    // Adjusted during render rather than in an effect, so the controls never
+    // commit a frame with stale values.
+    if (
+        filters.search !== lastFilters.search ||
+        filters.status !== lastFilters.status
+    ) {
+        setLastFilters(filters);
         setSearch(filters.search ?? '');
         setStatusFilter(filters.status ?? 'All');
-    }, [filters.search, filters.status]);
+    }
 
     const [loading, setLoading] = useState(false);
 
