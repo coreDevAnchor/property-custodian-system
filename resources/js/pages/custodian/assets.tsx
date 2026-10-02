@@ -35,6 +35,7 @@ import type {
     AssetFilters,
 } from '@/types/assets';
 import { statusOptions } from '@/types/assets';
+import { borrowPolicyLabels } from '@/types/categories';
 import type { Category } from '@/types/categories';
 import type { Location } from '@/types/location';
 import type { Paginated } from '@/types/pagination';
@@ -439,10 +440,10 @@ export default function Assets({
                                             id: category.id,
                                             name: category.name,
                                             secondary:
-                                                category.borrow_policy ===
-                                                'consumable'
-                                                    ? 'Consumable'
-                                                    : 'Returnable',
+                                                borrowPolicyLabels[
+                                                    category.borrow_policy ??
+                                                        'returnable'
+                                                ],
                                         })),
                                     ]}
                                     onSelect={(id) =>

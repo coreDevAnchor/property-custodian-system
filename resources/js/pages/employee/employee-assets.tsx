@@ -11,6 +11,7 @@ import { TakeSupplyDialog } from '@/components/borrow/take-supply-dialog';
 import { AnimatedCardGrid } from '@/components/ui/animated-card-grid';
 import { PaginationBar } from '@/components/ui/pagination';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { borrowPolicyLabels } from '@/types/categories';
 import type { BorrowPolicy } from '@/types/categories';
 import type { Paginated } from '@/types/pagination';
 
@@ -294,10 +295,10 @@ export default function AvailableAssets({
                                         id: category.id,
                                         name: category.name,
                                         secondary:
-                                            category.borrow_policy ===
-                                            'consumable'
-                                                ? 'Consumable'
-                                                : 'Returnable',
+                                            borrowPolicyLabels[
+                                                category.borrow_policy ??
+                                                    'returnable'
+                                            ],
                                     })),
                                 ]}
                                 onSelect={(id) =>

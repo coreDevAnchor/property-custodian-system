@@ -51,6 +51,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 
 import type { Asset, AssetType } from '@/types/assets';
+import { borrowPolicyLabels } from '@/types/categories';
 import type { Category } from '@/types/categories';
 import type { StagedImage } from '@/types/images';
 import type { Location } from '@/types/location';
@@ -639,8 +640,13 @@ export function AssetFormDialog({
                                                             (category) => ({
                                                                 id: category.id,
                                                                 name: category.name,
-                                                                secondary:
+                                                                prefix:
                                                                     category.prefix,
+                                                                secondary:
+                                                                    borrowPolicyLabels[
+                                                                        category.borrow_policy ??
+                                                                            'returnable'
+                                                                    ],
                                                             }),
                                                         )}
                                                         onSelect={(value) =>
